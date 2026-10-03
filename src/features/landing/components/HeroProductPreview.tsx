@@ -75,10 +75,10 @@ function DashboardMock() {
         </div>
         <div className="grid grid-cols-4 gap-3 mb-6">
           {[
-            { label: "New Opportunities", value: "24", color: "text-blue-500" },
-            { label: "Qualified", value: "8", color: "text-emerald-500" },
-            { label: "Outreach Ready", value: "6", color: "text-purple-500" },
-            { label: "Applications", value: "3", color: "text-orange-500" },
+            { label: "New Opportunities", value: "30", color: "text-blue-500" },
+            { label: "Qualified", value: "12", color: "text-emerald-500" },
+            { label: "Outreach Ready", value: "8", color: "text-purple-500" },
+            { label: "Applications", value: "6", color: "text-orange-500" },
           ].map((stat, i) => (
             <div
               key={i}

@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button'
 
 const navLinks = [
   { label: 'How It Works', href: '#workflow' },
-  { label: 'Features', href: '#features' },
+  { label: 'Problem', href: '#problem' },
   { label: 'Product', href: '#product' },
+  { label: 'Features', href: '#features' },
+  { label: 'Built Around You', href: '#profile' },
   { label: 'Automation', href: '#automation' },
   { label: 'Technology', href: '#technology' },
 ]
@@ -34,10 +36,10 @@ export function LandingHeader() {
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         <div
-          className={`relative flex w-full max-w-5xl items-center justify-between rounded-full border backdrop-blur-xl transition-all duration-500 ease-out ${
+          className={`relative flex w-full max-w-7xl items-center justify-between rounded-full border backdrop-blur-xl transition-all duration-500 ease-out ${
             isScrolled
-              ? 'bg-background/80 border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] py-2.5 px-6'
-              : 'bg-background/40 border-border/20 shadow-sm py-3.5 px-8'
+              ? 'bg-background/80 border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] py-2.5 px-4 md:px-6'
+              : 'bg-background/40 border-border/20 shadow-sm py-3.5 px-4 md:px-8'
           }`}
         >
           {/* Left: Logo */}
@@ -54,13 +56,13 @@ export function LandingHeader() {
 
           {/* Center: Nav (Desktop) */}
           <div className="hidden md:flex flex-auto items-center justify-center">
-            <nav className="flex items-center gap-1 relative z-10" aria-label="Landing navigation" onMouseLeave={() => setHoveredIndex(null)}>
+            <nav className="flex items-center gap-0.5 lg:gap-1 relative z-10" aria-label="Landing navigation" onMouseLeave={() => setHoveredIndex(null)}>
               {navLinks.map((link, index) => (
                 <a
                   key={link.href}
                   href={link.href}
                   onMouseEnter={() => setHoveredIndex(index)}
-                  className="relative rounded-full px-5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap"
+                  className="relative rounded-full px-3 lg:px-4 xl:px-5 py-2 text-[12px] lg:text-[13px] xl:text-sm font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap"
                 >
                   {hoveredIndex === index && (
                     <motion.div

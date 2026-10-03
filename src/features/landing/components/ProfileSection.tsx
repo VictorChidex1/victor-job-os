@@ -1,14 +1,18 @@
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Reveal } from '@/components/motion'
 import { landingContent } from '@/features/landing/data/landing-content'
 
 export function ProfileSection() {
   return (
-    <section className="border-b">
+    <section id="profile" className="border-b">
       <div className="mx-auto w-full max-w-screen-2xl px-4 py-16 sm:px-6 lg:py-24">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <Reveal>
             <div>
+              <Badge variant="outline" className="mb-3 text-[0.65rem] font-medium tracking-wide uppercase">
+                Built Around You
+              </Badge>
               <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                 {landingContent.profile.title}
               </h2>

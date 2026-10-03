@@ -19,6 +19,9 @@ export function ProductPreviewSection() {
     <section id="product" className="border-b">
       <div className="mx-auto w-full max-w-screen-2xl px-4 py-16 sm:px-6 lg:py-24">
         <Reveal>
+          <Badge variant="outline" className="mb-3 text-[0.65rem] font-medium tracking-wide uppercase">
+            Product
+          </Badge>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             See the product
           </h2>

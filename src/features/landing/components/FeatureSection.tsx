@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Reveal, StaggerContainer, StaggerItem } from '@/components/motion'
 import { landingContent } from '@/features/landing/data/landing-content'
@@ -7,6 +8,9 @@ export function FeatureSection() {
     <section id="features" className="border-b">
       <div className="mx-auto w-full max-w-screen-2xl px-4 py-16 sm:px-6 lg:py-24">
         <Reveal>
+          <Badge variant="outline" className="mb-3 text-[0.65rem] font-medium tracking-wide uppercase">
+            Features
+          </Badge>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Everything around the job, organized.
           </h2>
