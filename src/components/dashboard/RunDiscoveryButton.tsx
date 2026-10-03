@@ -11,7 +11,11 @@ interface DiscoveryResult {
   results: Array<{ source: string; boardTarget: string; count: number; error?: string }>
 }
 
-export function RunDiscoveryButton() {
+interface RunDiscoveryButtonProps {
+  onComplete?: () => void
+}
+
+export function RunDiscoveryButton({ onComplete }: RunDiscoveryButtonProps) {
   const [running, setRunning] = useState(false)
 
   async function run() {
@@ -29,6 +33,7 @@ export function RunDiscoveryButton() {
           description: `${result.stored} new, ${result.duplicates} duplicates skipped.`,
         })
       }
+      onComplete?.()
     } catch {
       toast('Unable to run discovery', {
         description: 'Make sure the emulators are running.',

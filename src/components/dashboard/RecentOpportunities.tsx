@@ -1,12 +1,15 @@
 import { Link } from 'react-router'
 import { Badge } from '@/components/ui/badge'
-import { useJobs } from '@/hooks/useJobs'
 import { LoadingState } from '@/components/states/LoadingState'
 import { EmptyState } from '@/components/states/EmptyState'
+import type { Job } from '@/types/jobs'
 
-export function RecentOpportunities() {
-  const { jobs, loading } = useJobs()
+interface RecentOpportunitiesProps {
+  jobs: Job[]
+  loading: boolean
+}
 
+export function RecentOpportunities({ jobs, loading }: RecentOpportunitiesProps) {
   if (loading) {
     return <LoadingState label="Loading recent opportunities…" rows={3} />
   }
@@ -15,7 +18,7 @@ export function RecentOpportunities() {
     return (
       <EmptyState
         title="No opportunities yet"
-        description="Run discovery from the actions above, then qualified roles appear here."
+        description="Run discovery from the actions above, then roles appear here."
       />
     )
   }

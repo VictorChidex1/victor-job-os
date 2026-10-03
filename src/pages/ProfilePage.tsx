@@ -1,8 +1,9 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -70,14 +71,45 @@ function VerifiableTagsField({
   onChange: (next: VerificationEntry[]) => void
   hint?: string
 }) {
+  const [draft, setDraft] = useState('')
+
   function updateItem(index: number, patch: Partial<VerificationEntry>) {
     onChange(value.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+  }
+
+  function removeItem(index: number) {
+    onChange(value.filter((_, i) => i !== index))
+  }
+
+  function addItem() {
+    const trimmed = draft.trim()
+    if (!trimmed) return
+    onChange([...value, { value: trimmed, status: 'needs-verification' }])
+    setDraft('')
   }
 
   return (
     <div className="flex flex-col gap-2">
       <Label>{label}</Label>
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      <div className="flex items-center gap-2">
+        <Input
+          value={draft}
+          placeholder={`Add ${label.toLowerCase()}…`}
+          aria-label={`Add ${label}`}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              addItem()
+            }
+          }}
+        />
+        <Button type="button" size="sm" onClick={addItem} disabled={!draft.trim()}>
+          <Plus />
+          Add
+        </Button>
+      </div>
       {value.length === 0 ? (
         <p className="text-sm text-muted-foreground">No entries yet.</p>
       ) : (
@@ -97,6 +129,15 @@ function VerifiableTagsField({
                 aria-label={`${entry.value} verification`}
               />
               <VerificationBadge status={entry.status} />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Remove ${entry.value}`}
+                onClick={() => removeItem(index)}
+              >
+                <X />
+              </Button>
             </div>
           ))}
         </div>
@@ -116,25 +157,66 @@ function StringArrayField({
   onChange: (next: string[]) => void
   placeholder: string
 }) {
+  const [draft, setDraft] = useState('')
+
   function updateItem(index: number, next: string) {
     onChange(value.map((item, i) => (i === index ? next : item)))
+  }
+
+  function removeItem(index: number) {
+    onChange(value.filter((_, i) => i !== index))
+  }
+
+  function addItem() {
+    const trimmed = draft.trim()
+    if (!trimmed) return
+    onChange([...value, trimmed])
+    setDraft('')
   }
 
   return (
     <div className="flex flex-col gap-2">
       <Label>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          value={draft}
+          placeholder={placeholder}
+          aria-label={`Add ${label}`}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              addItem()
+            }
+          }}
+        />
+        <Button type="button" size="sm" onClick={addItem} disabled={!draft.trim()}>
+          <Plus />
+          Add
+        </Button>
+      </div>
       {value.length === 0 ? (
         <p className="text-sm text-muted-foreground">No entries yet.</p>
       ) : (
         <div className="flex flex-col gap-2">
           {value.map((item, index) => (
-            <Input
-              key={index}
-              value={item}
-              placeholder={placeholder}
-              aria-label={`${label} ${index + 1}`}
-              onChange={(event) => updateItem(index, event.target.value)}
-            />
+            <div key={index} className="flex items-center gap-2">
+              <Input
+                value={item}
+                placeholder={placeholder}
+                aria-label={`${label} ${index + 1}`}
+                onChange={(event) => updateItem(index, event.target.value)}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Remove ${item}`}
+                onClick={() => removeItem(index)}
+              >
+                <X />
+              </Button>
+            </div>
           ))}
         </div>
       )}

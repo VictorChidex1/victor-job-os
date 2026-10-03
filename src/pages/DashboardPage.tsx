@@ -1,6 +1,7 @@
 import { PageContainer } from '@/components/layout/PageContainer'
 import { RunDiscoveryButton } from '@/components/dashboard/RunDiscoveryButton'
 import { RecentOpportunities } from '@/components/dashboard/RecentOpportunities'
+import { useJobs } from '@/hooks/useJobs'
 import { motion } from 'framer-motion'
 
 // --- Animations ---
@@ -69,11 +70,16 @@ function ActiveRadarState({ title, description }: { title: string, description: 
 
 // --- Main Page ---
 export function DashboardPage() {
+  const { jobs, loading, refresh } = useJobs()
+
+  const newCount = jobs.filter((job) => job.status === 'new').length
+  const qualifiedCount = jobs.filter((job) => job.status === 'qualified').length
+
   return (
     <PageContainer
       title="Good morning, Victor"
       description="Here's what needs your attention today."
-      actions={<RunDiscoveryButton />}
+      actions={<RunDiscoveryButton onComplete={() => void refresh()} />}
     >
       <motion.div 
         variants={containerVariants} 
@@ -85,8 +91,8 @@ export function DashboardPage() {
         {/* Metrics Grid */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[
-            { label: 'New opportunities', value: '0' },
-            { label: 'Qualified', value: '0' },
+            { label: 'New opportunities', value: String(newCount) },
+            { label: 'Qualified', value: String(qualifiedCount) },
             { label: 'Awaiting review', value: '0' },
             { label: 'Follow-ups due', value: '0' },
           ].map((metric) => (
@@ -130,7 +136,7 @@ export function DashboardPage() {
         {/* Recent Opportunities */}
         <motion.div variants={itemVariants} className="flex flex-col gap-3">
           <h2 className="text-sm font-bold text-foreground px-1">Recent opportunities</h2>
-          <RecentOpportunities />
+          <RecentOpportunities jobs={jobs} loading={loading} />
         </motion.div>
         
       </motion.div>

@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -65,21 +65,57 @@ function CommaListField({
   onChange: (next: string[]) => void
   placeholder: string
 }) {
+  const [draft, setDraft] = useState('')
+
+  function addItem() {
+    const trimmed = draft.trim()
+    if (!trimmed) return
+    onChange([...value, trimmed])
+    setDraft('')
+  }
+
+  function removeItem(index: number) {
+    onChange(value.filter((_, i) => i !== index))
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{label}</Label>
-      <Input
-        value={value.join(', ')}
-        placeholder={placeholder}
-        onChange={(event) =>
-          onChange(
-            event.target.value
-              .split(',')
-              .map((part) => part.trim())
-              .filter(Boolean),
-          )
-        }
-      />
+      <div className="flex items-center gap-2">
+        <Input
+          value={draft}
+          placeholder={placeholder}
+          aria-label={`Add ${label}`}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              addItem()
+            }
+          }}
+        />
+        <Button type="button" size="sm" onClick={addItem} disabled={!draft.trim()}>
+          <Plus />
+          Add
+        </Button>
+      </div>
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {value.map((item, index) => (
+            <Badge key={index} variant="secondary" className="gap-1 pr-1">
+              {item}
+              <button
+                type="button"
+                onClick={() => removeItem(index)}
+                aria-label={`Remove ${item}`}
+                className="rounded-full p-0.5 transition-colors hover:bg-muted-foreground/20"
+              >
+                <X className="size-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

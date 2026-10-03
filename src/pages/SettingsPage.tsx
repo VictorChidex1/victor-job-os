@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -65,20 +65,39 @@ function CommaListField({
   onChange: (next: string[]) => void
   placeholder: string
 }) {
+  const [text, setText] = useState(value.join(', '))
+  const focused = useRef(false)
+
+  useEffect(() => {
+    if (!focused.current) {
+      setText(value.join(', '))
+    }
+  }, [value])
+
+  function handleChange(next: string) {
+    setText(next)
+    onChange(
+      next
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean),
+    )
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{label}</Label>
       <Input
-        value={value.join(', ')}
+        value={text}
         placeholder={placeholder}
-        onChange={(event) =>
-          onChange(
-            event.target.value
-              .split(',')
-              .map((part) => part.trim())
-              .filter(Boolean),
-          )
-        }
+        onFocus={() => {
+          focused.current = true
+        }}
+        onBlur={() => {
+          focused.current = false
+          setText(value.join(', '))
+        }}
+        onChange={(event) => handleChange(event.target.value)}
       />
     </div>
   )

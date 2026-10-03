@@ -21,8 +21,7 @@
       "port": 9099
     },
     "firestore": {
-      "port": 8080,
-      "dataDir": ".firebase/emulator-data"
+      "port": 8080
     },
     "functions": {
       "port": 5001

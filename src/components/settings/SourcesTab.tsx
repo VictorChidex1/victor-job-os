@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -48,20 +49,39 @@ function CommaField({
   onChange: (next: string[]) => void
   placeholder: string
 }) {
+  const [text, setText] = useState(value.join(', '))
+  const focused = useRef(false)
+
+  useEffect(() => {
+    if (!focused.current) {
+      setText(value.join(', '))
+    }
+  }, [value])
+
+  function handleChange(next: string) {
+    setText(next)
+    onChange(
+      next
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean),
+    )
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{label}</Label>
       <Input
-        value={value.join(', ')}
+        value={text}
         placeholder={placeholder}
-        onChange={(event) =>
-          onChange(
-            event.target.value
-              .split(',')
-              .map((part) => part.trim())
-              .filter(Boolean),
-          )
-        }
+        onFocus={() => {
+          focused.current = true
+        }}
+        onBlur={() => {
+          focused.current = false
+          setText(value.join(', '))
+        }}
+        onChange={(event) => handleChange(event.target.value)}
       />
     </div>
   )
@@ -190,6 +210,23 @@ export function SourcesTab() {
                       <Trash2 />
                     </Button>
                   </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs text-muted-foreground">Board targets</Label>
+                  <Input
+                    defaultValue={source.boardTargets?.join(', ')}
+                    onBlur={(event) => {
+                      const next = event.target.value
+                        .split(',')
+                        .map((part) => part.trim())
+                        .filter(Boolean)
+                      if (JSON.stringify(next) !== JSON.stringify(source.boardTargets ?? [])) {
+                        void update(source.id, { boardTargets: next })
+                      }
+                    }}
+                    placeholder="vercel, linear, ashby"
+                    aria-label={`${source.source} board targets`}
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs text-muted-foreground">Search terms</Label>
