@@ -7,6 +7,7 @@ export interface JobSourceConfig {
   source: JobSourceId
   enabled: boolean
   searchTerms: string[]
+  boardTargets?: string[]
   lastRunAt?: Date
 }
 
