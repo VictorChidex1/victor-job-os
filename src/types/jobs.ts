@@ -9,6 +9,7 @@ export interface Job {
   source: JobSource
   sourceJobId: string
   companyId: string
+  companyName: string
   title: string
   description: string
   location?: string
@@ -40,4 +41,6 @@ export interface JobAnalysis {
   analyzedAt: Timestamp
   aiProvider: string
   model: string
+  matchedProjectIds?: string[]
+  projectMatchReasons?: Record<string, string>
 }

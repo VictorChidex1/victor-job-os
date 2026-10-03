@@ -7,10 +7,17 @@ export function fingerprintJob(source: JobSource, sourceJobId: string, title: st
     .digest('hex')
 }
 
+export function humanizeBoardSlug(slug: string): string {
+  return slug
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
 export function toNormalizedJob(source: JobSource, raw: RawJob): NormalizedJob {
   return {
     source,
     sourceJobId: raw.sourceJobId,
+    companyName: raw.companyName,
     title: raw.title,
     description: raw.description,
     location: raw.location,

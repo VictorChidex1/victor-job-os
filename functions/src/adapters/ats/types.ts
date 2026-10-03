@@ -5,6 +5,7 @@ export type JobStatus = 'new' | 'qualified' | 'rejected' | 'archived'
 export interface NormalizedJob {
   source: JobSource
   sourceJobId: string
+  companyName: string
   title: string
   description: string
   location?: string
@@ -23,6 +24,7 @@ export interface NormalizedJob {
 
 export interface RawJob {
   sourceJobId: string
+  companyName: string
   title: string
   description: string
   location?: string

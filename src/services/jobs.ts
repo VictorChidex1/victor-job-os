@@ -34,6 +34,7 @@ function toJob(id: string, data: DocumentData): Job {
     source: data.source,
     sourceJobId: data.sourceJobId,
     companyId: data.companyId ?? '',
+    companyName: data.companyName ?? '',
     title: data.title,
     description: data.description,
     location: data.location,

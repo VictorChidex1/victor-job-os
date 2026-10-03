@@ -4,7 +4,7 @@ import type {
   NormalizedJob,
   RawJob,
 } from './types.js'
-import { toNormalizedJob } from '../../utils/normalizeJob.js'
+import { humanizeBoardSlug, toNormalizedJob } from '../../utils/normalizeJob.js'
 
 interface AshbyJob {
   id: string
@@ -23,9 +23,10 @@ interface AshbyJob {
 
 const BASE_URL = 'https://api.ashbyhq.com/posting-api/job-board'
 
-function ashbyToRaw(job: AshbyJob): RawJob {
+function ashbyToRaw(job: AshbyJob, boardTarget: string): RawJob {
   return {
     sourceJobId: job.id,
+    companyName: humanizeBoardSlug(boardTarget),
     title: job.title,
     description: job.descriptionPlain ?? job.descriptionHtml ?? '',
     location: job.location,
@@ -53,7 +54,7 @@ export const ashbyAdapter: ATSAdapter = {
       throw new Error(`Ashby discover failed (${response.status}) for board "${boardTarget}"`)
     }
     const data = (await response.json()) as { jobs: AshbyJob[] }
-    return (data.jobs ?? []).map((job) => this.normalizeJob(ashbyToRaw(job)))
+    return (data.jobs ?? []).map((job) => this.normalizeJob(ashbyToRaw(job, boardTarget)))
   },
 
   async fetchJob(id: string): Promise<NormalizedJob | null> {
@@ -63,7 +64,7 @@ export const ashbyAdapter: ATSAdapter = {
     }
     const data = (await response.json()) as { jobs: AshbyJob[] }
     const job = data.jobs?.find((j) => j.id === id)
-    return job ? this.normalizeJob(ashbyToRaw(job)) : null
+    return job ? this.normalizeJob(ashbyToRaw(job, '')) : null
   },
 
   normalizeJob(raw: RawJob): NormalizedJob {

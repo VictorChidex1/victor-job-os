@@ -4,7 +4,7 @@ import type {
   NormalizedJob,
   RawJob,
 } from './types.js'
-import { toNormalizedJob } from '../../utils/normalizeJob.js'
+import { humanizeBoardSlug, toNormalizedJob } from '../../utils/normalizeJob.js'
 
 interface LeverPosting {
   id: string
@@ -25,12 +25,13 @@ interface LeverPosting {
 
 const BASE_URL = 'https://api.lever.co/v0/postings'
 
-function leverToRaw(posting: LeverPosting): RawJob {
+function leverToRaw(posting: LeverPosting, boardTarget: string): RawJob {
   const location = posting.categories?.allLocations?.join(', ') ?? posting.categories?.location ?? undefined
   const remote = /remote/i.test(location ?? '') || /remote/i.test(posting.workplaceType ?? '')
 
   return {
     sourceJobId: posting.id,
+    companyName: humanizeBoardSlug(boardTarget),
     title: posting.text,
     description: posting.descriptionPlain ?? posting.description ?? '',
     location,
@@ -61,7 +62,7 @@ export const leverAdapter: ATSAdapter = {
     if (!Array.isArray(data)) {
       throw new Error(`Lever returned unexpected payload for company "${boardTarget}"`)
     }
-    return data.map((posting) => this.normalizeJob(leverToRaw(posting)))
+    return data.map((posting) => this.normalizeJob(leverToRaw(posting, boardTarget)))
   },
 
   async fetchJob(id: string): Promise<NormalizedJob | null> {
@@ -70,7 +71,7 @@ export const leverAdapter: ATSAdapter = {
       return null
     }
     const posting = (await response.json()) as LeverPosting
-    return this.normalizeJob(leverToRaw(posting))
+    return this.normalizeJob(leverToRaw(posting, ''))
   },
 
   normalizeJob(raw: RawJob): NormalizedJob {

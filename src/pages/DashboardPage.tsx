@@ -1,5 +1,6 @@
 import { PageContainer } from '@/components/layout/PageContainer'
 import { RunDiscoveryButton } from '@/components/dashboard/RunDiscoveryButton'
+import { RecentOpportunities } from '@/components/dashboard/RecentOpportunities'
 import { motion } from 'framer-motion'
 
 // --- Animations ---
@@ -60,46 +61,6 @@ function ActiveRadarState({ title, description }: { title: string, description: 
          <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
          <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-emerald-600 dark:text-emerald-400">
            System Active
-         </span>
-      </div>
-    </div>
-  )
-}
-
-function SkeletonTableState() {
-  return (
-    <div className="flex flex-col rounded-2xl bg-background border border-border/60 overflow-hidden shadow-sm">
-      {/* Header Row */}
-      <div className="flex items-center gap-4 p-5 border-b border-border/60 bg-muted/10">
-        <div className="h-2.5 w-1/4 max-w-[100px] rounded-full bg-muted animate-pulse" />
-        <div className="h-2.5 w-1/4 max-w-[80px] rounded-full bg-muted animate-pulse" />
-        <div className="h-2.5 w-1/4 max-w-[120px] rounded-full bg-muted animate-pulse hidden md:block" />
-        <div className="h-2.5 w-1/4 max-w-[60px] rounded-full bg-muted animate-pulse hidden sm:block ml-auto" />
-      </div>
-      
-      {/* Faux Data Rows */}
-      {[1, 2, 3].map(i => (
-        <div key={i} className="flex items-center gap-4 p-5 border-b border-border/40 last:border-0 hover:bg-muted/5 transition-colors">
-          <div className="flex items-center gap-4 w-1/4 min-w-[150px]">
-             <div className="h-10 w-10 rounded-lg bg-muted animate-pulse shrink-0" />
-             <div className="flex flex-col gap-2 w-full">
-               <div className="h-3 w-full max-w-[120px] rounded-full bg-muted animate-pulse" />
-               <div className="h-2 w-2/3 max-w-[80px] rounded-full bg-muted/60 animate-pulse" />
-             </div>
-          </div>
-          <div className="h-3 w-1/4 max-w-[80px] rounded-full bg-muted animate-pulse" />
-          <div className="h-3 w-1/4 max-w-[150px] rounded-full bg-muted animate-pulse hidden md:block" />
-          <div className="w-1/4 flex justify-end hidden sm:flex ml-auto">
-             <div className="h-7 w-20 rounded-full bg-primary/10 animate-pulse" />
-          </div>
-        </div>
-      ))}
-      
-      {/* Bottom Status */}
-      <div className="p-4 flex items-center justify-center bg-muted/5 border-t border-border/60">
-         <span className="text-xs font-bold font-mono tracking-widest uppercase text-muted-foreground flex items-center gap-2">
-            <span className="flex h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-            Awaiting Data Ingestion
          </span>
       </div>
     </div>
@@ -169,7 +130,7 @@ export function DashboardPage() {
         {/* Recent Opportunities */}
         <motion.div variants={itemVariants} className="flex flex-col gap-3">
           <h2 className="text-sm font-bold text-foreground px-1">Recent opportunities</h2>
-          <SkeletonTableState />
+          <RecentOpportunities />
         </motion.div>
         
       </motion.div>

@@ -23,6 +23,14 @@ export const SettingsPage = lazy(() =>
   import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })),
 )
 
+export const OpportunitiesPage = lazy(() =>
+  import('@/pages/OpportunitiesPage').then((module) => ({ default: module.OpportunitiesPage })),
+)
+
+export const OpportunityViewPage = lazy(() =>
+  import('@/pages/OpportunityViewPage').then((module) => ({ default: module.OpportunityViewPage })),
+)
+
 export function AppShellLoader() {
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
@@ -71,6 +79,22 @@ export function SettingsRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <SettingsPage />
+    </Suspense>
+  )
+}
+
+export function OpportunitiesRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <OpportunitiesPage />
+    </Suspense>
+  )
+}
+
+export function OpportunityViewRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <OpportunityViewPage />
     </Suspense>
   )
 }

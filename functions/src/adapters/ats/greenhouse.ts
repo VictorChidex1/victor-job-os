@@ -4,12 +4,13 @@ import type {
   NormalizedJob,
   RawJob,
 } from './types.js'
-import { toNormalizedJob } from '../../utils/normalizeJob.js'
+import { humanizeBoardSlug, toNormalizedJob } from '../../utils/normalizeJob.js'
 
 interface GreenhouseJob {
   id: number
   title: string
   absolute_url: string
+  company_name?: string
   location?: { name?: string }
   content?: string
   first_published?: string
@@ -19,13 +20,14 @@ interface GreenhouseJob {
 
 const BASE_URL = 'https://boards-api.greenhouse.io/v1/boards'
 
-function greenhouseToRaw(job: GreenhouseJob): RawJob {
+function greenhouseToRaw(job: GreenhouseJob, boardTarget: string): RawJob {
   const locationName = job.location?.name ?? ''
   const content = job.content ?? ''
   const employmentType = job.metadata?.find((m) => m.name === 'Employment Type')?.value
 
   return {
     sourceJobId: String(job.id),
+    companyName: job.company_name ?? humanizeBoardSlug(boardTarget),
     title: job.title,
     description: content,
     location: locationName || undefined,
@@ -52,7 +54,7 @@ export const greenhouseAdapter: ATSAdapter = {
       throw new Error(`Greenhouse discover failed (${response.status}) for board "${boardTarget}"`)
     }
     const data = (await response.json()) as { jobs: GreenhouseJob[] }
-    return (data.jobs ?? []).map((job) => this.normalizeJob(greenhouseToRaw(job)))
+    return (data.jobs ?? []).map((job) => this.normalizeJob(greenhouseToRaw(job, boardTarget)))
   },
 
   async fetchJob(id: string): Promise<NormalizedJob | null> {
@@ -61,7 +63,7 @@ export const greenhouseAdapter: ATSAdapter = {
       return null
     }
     const job = (await response.json()) as GreenhouseJob
-    return this.normalizeJob(greenhouseToRaw(job))
+    return this.normalizeJob(greenhouseToRaw(job, ''))
   },
 
   normalizeJob(raw: RawJob): NormalizedJob {
