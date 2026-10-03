@@ -26,39 +26,59 @@ interface GeminiResponse {
   }>
 }
 
-async function generateStructured<T>(model: string, prompt: string): Promise<T> {
+async function generateStructured<T>(prompt: string): Promise<T> {
   const key = apiKey()
-  const response = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': key,
-    },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
-    }),
-  })
+  const attempts: Array<{ model: string; retries: number }> = [
+    { model: PRIMARY_MODEL, retries: 2 },
+    { model: FALLBACK_MODEL, retries: 1 },
+  ]
 
-  if (!response.ok) {
-    const body = await response.text()
-    throw new Error(`Gemini request failed (${response.status}): ${body.slice(0, 200)}`)
+  for (const { model, retries } of attempts) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const response = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': key,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
+        }),
+      })
+
+      if (response.ok) {
+        const data = (await response.json()) as GeminiResponse
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+        if (!text) {
+          throw new Error('Gemini returned an empty response.')
+        }
+        try {
+          return JSON.parse(text) as T
+        } catch {
+          throw new Error('Gemini returned invalid JSON.')
+        }
+      }
+
+      if (response.status === 503 && attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        continue
+      }
+
+      if (response.status === 503 && model !== FALLBACK_MODEL) {
+        break
+      }
+
+      const body = await response.text()
+      throw new Error(`Gemini request failed (${response.status}): ${body.slice(0, 200)}`)
+    }
   }
 
-  const data = (await response.json()) as GeminiResponse
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) {
-    throw new Error('Gemini returned an empty response.')
-  }
-
-  try {
-    return JSON.parse(text) as T
-  } catch {
-    throw new Error('Gemini returned invalid JSON.')
-  }
+  throw new Error('Gemini request failed: all models unavailable.')
 }
 
-const MODEL = 'gemini-2.0-flash'
+const PRIMARY_MODEL = 'gemini-3.8-flash'
+const FALLBACK_MODEL = 'gemini-3.1-flash-lite'
 
 export const geminiProvider: AIService = {
   async analyzeJob(input: JobAnalysisInput): Promise<JobAnalysisOutput> {
@@ -93,7 +113,7 @@ Return STRICT JSON only:
 }
 Do not fabricate candidate facts. Base everything only on the provided profile.`
 
-    const result = await generateStructured<JobAnalysisOutput>(MODEL, prompt)
+    const result = await generateStructured<JobAnalysisOutput>(prompt)
     return {
       fitScore: clamp(result.fitScore, 0, 100),
       technicalFit: sanitizeFit(result.technicalFit),
@@ -119,7 +139,7 @@ Return STRICT JSON only:
 }
 Only include facts you are confident about. If unknown, use null or empty arrays. Do not invent revenue, funding, or team size.`
 
-    const result = await generateStructured<CompanyResearchOutput>(MODEL, prompt)
+    const result = await generateStructured<CompanyResearchOutput>(prompt)
     return {
       industry: result.industry,
       description: result.description,
@@ -148,7 +168,7 @@ Return STRICT JSON only:
 }
 Use only the provided projects. If none are relevant, return empty arrays.`
 
-    const result = await generateStructured<PortfolioMatchOutput>(MODEL, prompt)
+    const result = await generateStructured<PortfolioMatchOutput>(prompt)
     const validIds = new Set(input.projects.map((p) => p.id))
     const projectIds = (result.projectIds ?? []).filter((id) => validIds.has(id)).slice(0, 3)
     const reasons: Record<string, string> = {}

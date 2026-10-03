@@ -1,8 +1,10 @@
+import { initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAIService } from '../ai/index.js'
-import { analyzeJobWithAI, storeAnalysis, getJob, getProfile, unanalyzedJobs } from './qualification.js'
+import { qualifyPendingJobs, analyzeJobWithAI, storeAnalysis, getJob, getProfile } from './qualification.js'
 
+initializeApp()
 const db = getFirestore()
 
 interface AnalyzeJobRequest {
@@ -100,30 +102,6 @@ export const qualifyNewJobs = onCall(
     if (!uid) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
-
-    const profile = await getProfile(uid)
-    const pending = await unanalyzedJobs(10)
-    let qualified = 0
-    const results: Array<{ jobId: string; fitScore?: number; status?: string; error?: string }> = []
-
-    for (const job of pending) {
-      try {
-        const record = await analyzeJobWithAI(job.id, job.data, profile)
-        await storeAnalysis(job.id, record)
-        qualified += 1
-        results.push({
-          jobId: job.id,
-          fitScore: record.fitScore,
-          status: (record.fitScore ?? 0) >= 60 ? 'qualified' : 'rejected',
-        })
-      } catch (error) {
-        results.push({
-          jobId: job.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        })
-      }
-    }
-
-    return { analyzed: qualified, results }
+    return qualifyPendingJobs(uid, 10)
   },
 )

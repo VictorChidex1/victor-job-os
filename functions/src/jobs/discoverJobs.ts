@@ -4,6 +4,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAdapter, type JobSource, type NormalizedJob } from '../adapters/ats/index.js'
 import { deduplicateJobs } from '../utils/deduplicateJob.js'
+import { qualifyPendingJobs } from './qualification.js'
 
 interface JobSourceDoc {
   source: JobSource
@@ -62,6 +63,17 @@ function stripUndefined<T extends object>(value: T): Partial<T> {
   ) as Partial<T>
 }
 
+function filterJobsBySearchTerms(jobs: NormalizedJob[], searchTerms: string[]): NormalizedJob[] {
+  if (!searchTerms || searchTerms.length === 0) {
+    return jobs
+  }
+  const terms = searchTerms.map((term) => term.toLowerCase())
+  return jobs.filter((job) => {
+    const haystack = [job.title, job.description, ...job.skills].join(' ').toLowerCase()
+    return terms.some((term) => haystack.includes(term))
+  })
+}
+
 async function recordActivity(message: string, metadata: Record<string, unknown> = {}): Promise<void> {
   await db.collection('activityLogs').add({
     type: 'job-discovery',
@@ -97,8 +109,9 @@ export async function runDiscovery(): Promise<{ stored: number; duplicates: numb
     for (const target of targets) {
       try {
         const discovered = await adapter.discover(target)
-        const unique = deduplicateJobs(discovered, fingerprints, urls)
-        duplicates += discovered.length - unique.length
+        const filtered = filterJobsBySearchTerms(discovered, source.searchTerms)
+        const unique = deduplicateJobs(filtered, fingerprints, urls)
+        duplicates += filtered.length - unique.length
         const count = await storeJobs(unique, source.searchTerms)
         stored += count
         results.push({ source: source.source, boardTarget: target, count: unique.length })
@@ -139,13 +152,29 @@ export const discoverJobs = onSchedule(
 export const runDiscoveryNow = onCall(
   {
     memory: '256MiB',
-    timeoutSeconds: 120,
+    timeoutSeconds: 300,
     maxInstances: 1,
   },
-  async () => {
+  async (request) => {
+    const uid = request.auth?.uid
+    if (!uid) {
+      throw new HttpsError('unauthenticated', 'Sign in required.')
+    }
     try {
       const result = await runDiscovery()
-      return result
+      let qualification
+      try {
+        qualification = await qualifyPendingJobs(uid, 10)
+      } catch (qualifyError) {
+        qualification = {
+          analyzed: 0,
+          results: [{
+            jobId: 'batch',
+            error: qualifyError instanceof Error ? qualifyError.message : 'Qualification failed.',
+          }],
+        }
+      }
+      return { ...result, qualified: qualification.analyzed, qualificationResults: qualification.results }
     } catch (error) {
       throw new HttpsError('internal', 'Discovery failed.', error instanceof Error ? error.message : undefined)
     }

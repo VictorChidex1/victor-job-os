@@ -8,6 +8,7 @@ import { functions } from '@/services/functions'
 interface DiscoveryResult {
   stored: number
   duplicates: number
+  qualified: number
   results: Array<{ source: string; boardTarget: string; count: number; error?: string }>
 }
 
@@ -24,20 +25,25 @@ export function RunDiscoveryButton({ onComplete }: RunDiscoveryButtonProps) {
       const callable = httpsCallable<undefined, DiscoveryResult>(functions, 'runDiscoveryNow')
       const response = await callable()
       const result = response.data
-      if (result.results.some((item) => item.error)) {
-        toast('Discovery completed with errors', {
-          description: `${result.stored} stored, ${result.duplicates} duplicates — some sources failed.`,
+      const qualificationSkipped =
+        result.qualified === 0 && result.results.some((item) => item.error === undefined)
+
+      if (qualificationSkipped || result.qualified === 0) {
+        toast('Discovery complete', {
+          description: `${result.stored} stored · ${result.duplicates} duplicates · no matches yet (run Analyze or add search terms).`,
         })
       } else {
         toast('Discovery complete', {
-          description: `${result.stored} new, ${result.duplicates} duplicates skipped.`,
+          description: `${result.stored} stored · ${result.qualified} matched · ${result.duplicates} duplicates.`,
         })
       }
       onComplete?.()
-    } catch {
-      toast('Unable to run discovery', {
-        description: 'Make sure the emulators are running.',
-      })
+    } catch (error) {
+      const message =
+        error instanceof Error && 'code' in error
+          ? 'Check your Gemini API key in functions/.env.'
+          : 'Make sure the emulators are running.'
+      toast('Unable to run discovery', { description: message })
     } finally {
       setRunning(false)
     }

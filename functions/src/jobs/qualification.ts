@@ -1,7 +1,9 @@
+import { initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue, type DocumentReference } from 'firebase-admin/firestore'
 import { getAIService } from '../ai/index.js'
 import type { PortfolioMatchOutput } from '../ai/types.js'
 
+initializeApp()
 const db = getFirestore()
 
 export interface JobDoc {
@@ -173,7 +175,7 @@ export async function unanalyzedJobs(limitCount: number): Promise<Array<{ id: st
     if (jobId) analyzed.add(jobId)
   }
 
-  const snapshot = await db.collection('jobs').orderBy('discoveredAt', 'desc').limit(limitCount).get()
+  const snapshot = await db.collection('jobs').orderBy('createdAt', 'desc').limit(limitCount).get()
   const jobs: Array<{ id: string; data: JobDoc }> = []
   for (const doc of snapshot.docs) {
     if (!analyzed.has(doc.id)) {
@@ -181,4 +183,41 @@ export async function unanalyzedJobs(limitCount: number): Promise<Array<{ id: st
     }
   }
   return jobs
+}
+
+export interface QualificationResult {
+  jobId: string
+  fitScore?: number
+  status?: string
+  error?: string
+}
+
+export async function qualifyPendingJobs(
+  uid: string,
+  limitCount: number,
+): Promise<{ analyzed: number; results: QualificationResult[] }> {
+  const profile = await getProfile(uid)
+  const pending = await unanalyzedJobs(limitCount)
+  let analyzed = 0
+  const results: QualificationResult[] = []
+
+  for (const job of pending) {
+    try {
+      const record = await analyzeJobWithAI(job.id, job.data, profile)
+      await storeAnalysis(job.id, record)
+      analyzed += 1
+      results.push({
+        jobId: job.id,
+        fitScore: record.fitScore,
+        status: (record.fitScore ?? 0) >= 60 ? 'qualified' : 'rejected',
+      })
+    } catch (error) {
+      results.push({
+        jobId: job.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  }
+
+  return { analyzed, results }
 }
