@@ -23,6 +23,9 @@ firebase-debug.log
 firestore-debug.log
 firebase-export-*.tar.gz
 
+# Private project documentation — local only, never committed or pushed
+project-explanations/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
