@@ -37,6 +37,7 @@ function toJobSource(id: string, data: DocumentData): JobSourceConfig {
     source: data.source,
     enabled: data.enabled ?? true,
     searchTerms: data.searchTerms ?? [],
+    boardTargets: data.boardTargets ?? [],
     lastRunAt: data.lastRunAt?.toDate?.() ?? undefined,
   }
 }

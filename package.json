@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "emulators": "firebase emulators:start",
-    "emulators:exec": "firebase emulators:exec"
+    "emulators": "npm --prefix functions run build && firebase emulators:start --import=.firebase/emulator-data --export-on-exit=.firebase/emulator-data",
+    "emulators:exec": "npm --prefix functions run build && firebase emulators:exec --import=.firebase/emulator-data --export-on-exit=.firebase/emulator-data"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

@@ -13,12 +13,16 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "functions": {
+    "source": "functions"
+  },
   "emulators": {
     "auth": {
       "port": 9099
     },
     "firestore": {
-      "port": 8080
+      "port": 8080,
+      "dataDir": ".firebase/emulator-data"
     },
     "functions": {
       "port": 5001

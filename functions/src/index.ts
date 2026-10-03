@@ -1,3 +1,3 @@
-import { discoverJobs, runDiscovery } from './jobs/discoverJobs.js'
+import { discoverJobs, runDiscovery, runDiscoveryNow } from './jobs/discoverJobs.js'
 
-export { discoverJobs, runDiscovery }
+export { discoverJobs, runDiscovery, runDiscoveryNow }

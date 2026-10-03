@@ -1,4 +1,5 @@
 import { PageContainer } from '@/components/layout/PageContainer'
+import { RunDiscoveryButton } from '@/components/dashboard/RunDiscoveryButton'
 import { motion } from 'framer-motion'
 
 // --- Animations ---
@@ -111,6 +112,7 @@ export function DashboardPage() {
     <PageContainer
       title="Good morning, Victor"
       description="Here's what needs your attention today."
+      actions={<RunDiscoveryButton />}
     >
       <motion.div 
         variants={containerVariants} 

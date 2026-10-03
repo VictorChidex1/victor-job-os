@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
+import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAdapter, type JobSource, type NormalizedJob } from '../adapters/ats/index.js'
 import { deduplicateJobs } from '../utils/deduplicateJob.js'
 
@@ -132,5 +133,21 @@ export const discoverJobs = onSchedule(
   },
   async () => {
     await runDiscovery()
+  },
+)
+
+export const runDiscoveryNow = onCall(
+  {
+    memory: '256MiB',
+    timeoutSeconds: 120,
+    maxInstances: 1,
+  },
+  async () => {
+    try {
+      const result = await runDiscovery()
+      return result
+    } catch (error) {
+      throw new HttpsError('internal', 'Discovery failed.', error instanceof Error ? error.message : undefined)
+    }
   },
 )

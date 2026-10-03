@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { LoadingState } from '@/components/states/LoadingState'
 import { EmptyState } from '@/components/states/EmptyState'
+import { SourcesTab } from '@/components/settings/SourcesTab'
 import { useSettings } from '@/hooks/useSettings'
 
 const opportunitySchema = z.object({
@@ -159,6 +160,7 @@ export function SettingsPage() {
         <TabsList>
           <TabsTrigger value="opportunity">Opportunities</TabsTrigger>
           <TabsTrigger value="outreach">Outreach</TabsTrigger>
+          <TabsTrigger value="sources">Sources</TabsTrigger>
           <TabsTrigger value="ai">AI</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
@@ -386,6 +388,10 @@ export function SettingsPage() {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="sources" className="mt-4">
+          <SourcesTab />
         </TabsContent>
 
         <TabsContent value="ai" className="mt-4">
