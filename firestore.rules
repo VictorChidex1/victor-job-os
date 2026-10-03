@@ -1,14 +1,68 @@
 rules_version = '2';
 
 // Victor's Job OS — Firestore security rules
-// Phase 1 placeholder: deny by default. Full least-privilege rules for the
-// V1 collections (profiles, jobs, companies, jobAnalyses, projects, outreach,
-// contacts, followUps, applications, settings, activityLogs, aiRuns) are
-// implemented in Phase 3 (ProjectOverview execution roadmap, step 20).
+//
+// Private single-user application. The real security boundary is these rules,
+// not UI checks. All V1 collections require authentication. Documents keyed
+// by the user's UID (profiles, settings) are additionally scoped to that UID.
+//
+// Future role model (owner/admin/viewer) will tighten this further.
+
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Deny everything else by default (least privilege).
     match /{document=**} {
       allow read, write: if false;
+    }
+
+    // Owned documents keyed by the authenticated user's UID.
+    match /profiles/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /settings/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Authenticated-only V1 collections.
+    match /projects/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /jobSources/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /jobs/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /companies/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /jobAnalyses/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /outreach/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /contacts/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /followUps/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /activityLogs/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /aiRuns/{documentId} {
+      allow read, write: if request.auth != null;
     }
   }
 }

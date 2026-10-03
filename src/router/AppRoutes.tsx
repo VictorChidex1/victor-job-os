@@ -11,6 +11,18 @@ export const DashboardPage = lazy(() =>
   import('@/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })),
 )
 
+export const ProfilePage = lazy(() =>
+  import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })),
+)
+
+export const ProjectsPage = lazy(() =>
+  import('@/pages/ProjectsPage').then((module) => ({ default: module.ProjectsPage })),
+)
+
+export const SettingsPage = lazy(() =>
+  import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })),
+)
+
 export function AppShellLoader() {
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
@@ -35,6 +47,30 @@ export function DashboardRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <DashboardPage />
+    </Suspense>
+  )
+}
+
+export function ProfileRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <ProfilePage />
+    </Suspense>
+  )
+}
+
+export function ProjectsRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <ProjectsPage />
+    </Suspense>
+  )
+}
+
+export function SettingsRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <SettingsPage />
     </Suspense>
   )
 }

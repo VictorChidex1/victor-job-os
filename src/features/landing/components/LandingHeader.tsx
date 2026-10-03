@@ -34,33 +34,33 @@ export function LandingHeader() {
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         <div
-          className={`relative flex w-full max-w-4xl items-center justify-between rounded-full border backdrop-blur-xl transition-all duration-500 ease-out ${
+          className={`relative flex w-full max-w-5xl items-center justify-between rounded-full border backdrop-blur-xl transition-all duration-500 ease-out ${
             isScrolled
               ? 'bg-background/80 border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] py-2.5 px-6'
               : 'bg-background/40 border-border/20 shadow-sm py-3.5 px-8'
           }`}
         >
           {/* Left: Logo */}
-          <div className="flex flex-1 items-center justify-start">
+          <div className="flex flex-1 items-center justify-start shrink-0">
             <Link to="/" className="flex items-center gap-2 relative z-10">
               <img
                 src="/assets/victor-chidera-logo.webp"
                 alt="Victor Job OS logo"
                 className="size-7 rounded object-contain"
               />
-              <span className="text-sm font-bold tracking-tight text-foreground">Victor Job OS</span>
+              <span className="text-sm font-bold tracking-tight text-foreground whitespace-nowrap">Victor Job OS</span>
             </Link>
           </div>
 
           {/* Center: Nav (Desktop) */}
-          <div className="hidden md:flex flex-1 items-center justify-center">
+          <div className="hidden md:flex flex-auto items-center justify-center">
             <nav className="flex items-center gap-1 relative z-10" aria-label="Landing navigation" onMouseLeave={() => setHoveredIndex(null)}>
               {navLinks.map((link, index) => (
                 <a
                   key={link.href}
                   href={link.href}
                   onMouseEnter={() => setHoveredIndex(index)}
-                  className="relative rounded-full px-5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className="relative rounded-full px-5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap"
                 >
                   {hoveredIndex === index && (
                     <motion.div

@@ -2,7 +2,10 @@ import { createBrowserRouter } from 'react-router'
 import {
   AppIndexRedirect,
   DashboardRoute,
+  ProfileRoute,
+  ProjectsRoute,
   ProtectedApp,
+  SettingsRoute,
 } from '@/router/AppRoutes'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -30,11 +33,11 @@ export const router = createBrowserRouter([
       { path: 'outreach/:id', element: <PlaceholderPage /> },
       { path: 'companies', element: <PlaceholderPage /> },
       { path: 'companies/:id', element: <PlaceholderPage /> },
-      { path: 'projects', element: <PlaceholderPage /> },
+      { path: 'projects', element: <ProjectsRoute /> },
       { path: 'activity', element: <PlaceholderPage /> },
       { path: 'automation', element: <PlaceholderPage /> },
-      { path: 'profile', element: <PlaceholderPage /> },
-      { path: 'settings', element: <PlaceholderPage /> },
+      { path: 'profile', element: <ProfileRoute /> },
+      { path: 'settings', element: <SettingsRoute /> },
     ],
   },
   {
