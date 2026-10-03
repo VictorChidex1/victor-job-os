@@ -1,4 +1,5 @@
 import { LandingHeader } from '@/features/landing/components/LandingHeader'
+import { ScrollToTopButton } from '@/components/ScrollToTopButton'
 import { HeroSection } from '@/features/landing/components/HeroSection'
 import { ProblemSection } from '@/features/landing/components/ProblemSection'
 import { SystemTransition } from '@/features/landing/components/SystemTransition'
@@ -28,6 +29,7 @@ export function LandingPage() {
         <FinalCTA />
       </main>
       <LandingFooter />
+      <ScrollToTopButton />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
 import { Menu, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 
 const navLinks = [
@@ -18,6 +18,7 @@ export function LandingHeader() {
   const [open, setOpen] = useState(false)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
+  const reduceMotion = useReducedMotion()
 
   useEffect(() => {
     const updateScroll = () => setIsScrolled(window.scrollY > 50)
@@ -44,7 +45,11 @@ export function LandingHeader() {
         >
           {/* Left: Logo */}
           <div className="flex flex-1 items-center justify-start shrink-0">
-            <Link to="/" className="flex items-center gap-2 relative z-10">
+            <Link
+              to="/"
+              onClick={() => window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })}
+              className="flex items-center gap-2 relative z-10"
+            >
               <img
                 src="/assets/victor-chidera-logo.webp"
                 alt="Victor Job OS logo"
