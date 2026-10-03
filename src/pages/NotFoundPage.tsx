@@ -14,7 +14,7 @@ export function NotFoundPage() {
         </CardHeader>
         <CardContent>
           <Link to="/" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-            Back to Overview
+            Back to homepage
           </Link>
         </CardContent>
       </Card>

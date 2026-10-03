@@ -27,42 +27,42 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Main',
     items: [
-      { label: 'Overview', to: '/', icon: LayoutDashboard, end: true },
-      { label: 'Opportunities', to: '/opportunities', icon: Briefcase },
-      { label: 'Outreach', to: '/outreach', icon: Send },
+      { label: 'Overview', to: '/app/dashboard', icon: LayoutDashboard, end: true },
+      { label: 'Opportunities', to: '/app/opportunities', icon: Briefcase },
+      { label: 'Outreach', to: '/app/outreach', icon: Send },
     ],
   },
   {
     label: 'Relationships',
     items: [
-      { label: 'Companies', to: '/companies', icon: Building2 },
-      { label: 'Projects', to: '/projects', icon: FolderKanban },
+      { label: 'Companies', to: '/app/companies', icon: Building2 },
+      { label: 'Projects', to: '/app/projects', icon: FolderKanban },
     ],
   },
   {
     label: 'Intelligence',
     items: [
-      { label: 'Activity', to: '/activity', icon: Activity },
-      { label: 'Automation', to: '/automation', icon: Bot },
+      { label: 'Activity', to: '/app/activity', icon: Activity },
+      { label: 'Automation', to: '/app/automation', icon: Bot },
     ],
   },
   {
     label: 'System',
     items: [
-      { label: 'Profile', to: '/profile', icon: User },
-      { label: 'Settings', to: '/settings', icon: Settings },
+      { label: 'Profile', to: '/app/profile', icon: User },
+      { label: 'Settings', to: '/app/settings', icon: Settings },
     ],
   },
 ]
 
 export const topBarTitles: Record<string, string> = {
-  '/': 'Overview',
-  '/opportunities': 'Opportunities',
-  '/outreach': 'Outreach',
-  '/companies': 'Companies',
-  '/projects': 'Projects',
-  '/activity': 'Activity',
-  '/automation': 'Automation',
-  '/profile': 'Profile',
-  '/settings': 'Settings',
+  '/app/dashboard': 'Overview',
+  '/app/opportunities': 'Opportunities',
+  '/app/outreach': 'Outreach',
+  '/app/companies': 'Companies',
+  '/app/projects': 'Projects',
+  '/app/activity': 'Activity',
+  '/app/automation': 'Automation',
+  '/app/profile': 'Profile',
+  '/app/settings': 'Settings',
 }

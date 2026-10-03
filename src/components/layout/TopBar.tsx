@@ -46,9 +46,9 @@ export function TopBar({ onMenuClick, onToggleSidebar }: TopBarProps) {
 
   const title =
     topBarTitles[pathname] ??
-    (pathname.startsWith('/opportunities/')
+    (pathname.startsWith('/app/opportunities/')
       ? 'Opportunity'
-      : pathname.startsWith('/outreach/')
+      : pathname.startsWith('/app/outreach/')
         ? 'Outreach'
         : 'Victor\u2019s Job OS')
 
