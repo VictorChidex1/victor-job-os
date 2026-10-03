@@ -32,11 +32,11 @@ export function MobileNavigation({ open, onOpenChange }: MobileNavigationProps) 
                         onClick={() => onOpenChange(false)}
                         className={cn(
                           buttonVariants({ variant: 'ghost', size: 'sm' }),
-                          'w-full justify-start gap-2.5',
+                          'w-full min-w-0 justify-start gap-2.5 overflow-hidden',
                         )}
                       >
-                        <Icon />
-                        <span className="truncate">{item.label}</span>
+                        <Icon className="shrink-0" />
+                        <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
                       </Link>
                     </li>
                   )

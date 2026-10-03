@@ -14,7 +14,7 @@ export function AppShell() {
     <TooltipProvider>
       <div className="flex h-svh w-full overflow-hidden bg-background text-foreground">
         <div className="hidden lg:block">
-          <AppSidebar collapsed={collapsed} />
+          <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar

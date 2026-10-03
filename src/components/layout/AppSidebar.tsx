@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router'
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -6,24 +7,28 @@ import { navGroups } from '@/components/layout/nav-config'
 
 interface AppSidebarProps {
   collapsed?: boolean
+  onToggle?: () => void
 }
 
-export function AppSidebar({ collapsed = false }: AppSidebarProps) {
+export function AppSidebar({ collapsed = false, onToggle }: AppSidebarProps) {
   const { pathname } = useLocation()
 
   return (
     <aside
       data-collapsed={collapsed}
-      className="flex h-full w-60 shrink-0 flex-col border-r bg-sidebar transition-[width] duration-200 data-collapsed:w-14"
+      className={cn(
+        "flex h-full shrink-0 flex-col border-r bg-sidebar transition-[width] duration-300 ease-in-out overflow-hidden",
+        collapsed ? "w-14" : "w-64"
+      )}
     >
-      <div className="flex h-14 items-center gap-2 border-b px-3">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
         <img
           src="/assets/victor-chidera-logo.webp"
           alt="Victor's Job OS logo"
           className="size-7 shrink-0 rounded-md object-contain"
         />
         {!collapsed && (
-          <div className="min-w-0 leading-tight">
+          <div className="min-w-0 flex-1 leading-tight">
             <div className="truncate text-sm font-semibold text-sidebar-foreground">
               Victor&apos;s Job OS
             </div>
@@ -75,12 +80,14 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
                         to={item.to}
                         className={cn(
                           buttonVariants({ variant: 'ghost', size: 'sm' }),
-                          'w-full justify-start gap-2.5 text-sidebar-foreground/80',
+                          'w-full min-w-0 justify-start gap-2.5 overflow-hidden text-sidebar-foreground/80',
                           isActive && 'bg-sidebar-accent text-sidebar-accent-foreground',
                         )}
                       >
-                        <Icon />
-                        <span className="truncate">{item.label}</span>
+                        <Icon className="shrink-0" />
+                        <span className="min-w-0 flex-1 truncate text-left">
+                          {item.label}
+                        </span>
                       </Link>
                     )}
                   </li>
@@ -91,11 +98,41 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
         ))}
       </nav>
 
-      {!collapsed && (
-        <div className="border-t p-3 text-[0.7rem] text-muted-foreground">
-          V1 · Opportunity Intelligence
-        </div>
-      )}
+      <div className="shrink-0 border-t p-2">
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggle}
+                  aria-label="Expand sidebar"
+                  className="mx-auto flex size-8 text-sidebar-foreground/80"
+                />
+              }
+            >
+              <PanelLeftOpen className="size-4" />
+            </TooltipTrigger>
+            <TooltipContent side="right">Expand sidebar</TooltipContent>
+          </Tooltip>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate px-2 text-[0.7rem] text-muted-foreground">
+              V1 · Opportunity Intelligence
+            </span>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onToggle}
+              aria-label="Collapse sidebar"
+              className="shrink-0 text-sidebar-foreground/80"
+            >
+              <PanelLeftClose className="size-4" />
+            </Button>
+          </div>
+        )}
+      </div>
     </aside>
   )
 }
@@ -114,26 +151,11 @@ export function SidebarToggleButton({
       onClick={onToggle}
       aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
-      <PanelLeftIcon />
+      {collapsed ? (
+        <PanelLeftOpen className="size-4" />
+      ) : (
+        <PanelLeftClose className="size-4" />
+      )}
     </Button>
-  )
-}
-
-function PanelLeftIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect width="18" height="18" x="3" y="3" rx="2" />
-      <path d="M9 3v18" />
-    </svg>
   )
 }
