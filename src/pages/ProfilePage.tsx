@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { LoadingState } from '@/components/states/LoadingState'
 import { useProfile } from '@/hooks/useProfile'
+import { usePageMeta } from '@/hooks/usePageMeta'
 import type { VerificationEntry, VerificationStatus } from '@/types/profile'
 
 const verificationSchema = z.object({
@@ -236,6 +237,12 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function ProfilePage() {
+  usePageMeta({
+    title: 'Profile — Victor Job OS',
+    description: 'Manage your professional profile, skills, and preferences.',
+    noindex: true,
+    path: '/app/profile',
+  })
   const { profile, loading, saving, save } = useProfile()
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),

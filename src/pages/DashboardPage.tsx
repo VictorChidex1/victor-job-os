@@ -3,6 +3,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { RunDiscoveryButton } from '@/components/dashboard/RunDiscoveryButton'
 import { RecentOpportunities } from '@/components/dashboard/RecentOpportunities'
 import { useJobs } from '@/hooks/useJobs'
+import { usePageMeta } from '@/hooks/usePageMeta'
 import { motion } from 'framer-motion'
 
 // --- Animations ---
@@ -71,6 +72,12 @@ function ActiveRadarState({ title, description }: { title: string, description: 
 
 // --- Main Page ---
 export function DashboardPage() {
+  usePageMeta({
+    title: 'Dashboard — Victor Job OS',
+    description: "Here's what needs your attention today.",
+    noindex: true,
+    path: '/app/dashboard',
+  })
   const { jobs, loading, refresh } = useJobs()
 
   const newCount = jobs.filter((job) => job.status === 'new').length

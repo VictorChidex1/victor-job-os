@@ -24,6 +24,7 @@ import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { DataTable, type DataTableColumn } from '@/components/data-table/DataTable'
 import { useProjects } from '@/hooks/useProjects'
+import { usePageMeta } from '@/hooks/usePageMeta'
 import type { PortfolioProject } from '@/types/projects'
 
 const projectSchema = z.object({
@@ -296,6 +297,12 @@ function ProjectDialog({
 }
 
 export function ProjectsPage() {
+  usePageMeta({
+    title: 'Projects — Victor Job OS',
+    description: 'Manage verified portfolio projects used for opportunity matching.',
+    noindex: true,
+    path: '/app/projects',
+  })
   const { projects, loading, error, create, update, remove } = useProjects()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<PortfolioProject | null>(null)

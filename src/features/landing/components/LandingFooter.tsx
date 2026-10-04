@@ -20,7 +20,7 @@ export function LandingFooter() {
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3">
               <img
-                src="/assets/victor-chidera-logo.webp"
+                src="/assets/victor-job-os.png"
                 alt="Victor Job OS logo"
                 className="size-8 rounded object-contain shadow-sm"
               />

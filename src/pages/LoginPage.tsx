@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/useAuth'
+import { usePageMeta } from '@/hooks/usePageMeta'
 import { signInWithEmail, signInWithGoogle } from '@/services/auth'
 
 function toAuthErrorMessage(error: unknown): string {
@@ -25,6 +26,12 @@ function toAuthErrorMessage(error: unknown): string {
 }
 
 export function LoginPage() {
+  usePageMeta({
+    title: 'Sign in — Victor Job OS',
+    description: 'Sign in to your opportunity command center.',
+    noindex: true,
+    path: '/login',
+  })
   const { status } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -72,7 +79,7 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <img
-            src="/assets/victor-chidera-logo.webp"
+            src="/assets/victor-job-os.png"
             alt="Victor's Job OS logo"
             className="mx-auto mb-2 size-12 rounded-lg object-contain"
           />

@@ -14,6 +14,7 @@ import { LoadingState } from '@/components/states/LoadingState'
 import { EmptyState } from '@/components/states/EmptyState'
 import { SourcesTab } from '@/components/settings/SourcesTab'
 import { useSettings } from '@/hooks/useSettings'
+import { usePageMeta } from '@/hooks/usePageMeta'
 
 const opportunitySchema = z.object({
   preferredRoles: z.array(z.string()),
@@ -104,6 +105,12 @@ function CommaListField({
 }
 
 export function SettingsPage() {
+  usePageMeta({
+    title: 'Settings — Victor Job OS',
+    description: 'Configure your job search, outreach, and automation preferences.',
+    noindex: true,
+    path: '/app/settings',
+  })
   const { settings, loading, error, saving, save } = useSettings()
 
   const opportunityForm = useForm<OpportunityFormValues>({

@@ -35,18 +35,20 @@ export function HeroSection() {
           </FadeIn>
           
           <div className="mt-2 flex flex-col">
-            {titleLines.map((line, i) => (
-              <div key={i} className="overflow-hidden pb-2">
-                <motion.h1
-                  initial={{ y: "100%" }}
-                  animate={{ y: 0 }}
-                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: i * 0.1 }}
-                  className="text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-[4.5rem] lg:leading-[1.05]"
-                >
-                  {line}
-                </motion.h1>
-              </div>
-            ))}
+            <h1 className="text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-[4.5rem] lg:leading-[1.05]">
+              {titleLines.map((line, i) => (
+                <div key={i} className="overflow-hidden pb-2">
+                  <motion.span
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: i * 0.1 }}
+                    className="block"
+                  >
+                    {line}
+                  </motion.span>
+                </div>
+              ))}
+            </h1>
           </div>
 
           <FadeIn delay={0.4}>

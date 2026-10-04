@@ -51,7 +51,7 @@ export function LandingHeader() {
               className="flex items-center gap-2 relative z-10"
             >
               <img
-                src="/assets/victor-chidera-logo.webp"
+                src="/assets/victor-job-os.png"
                 alt="Victor Job OS logo"
                 className="size-7 rounded object-contain"
               />

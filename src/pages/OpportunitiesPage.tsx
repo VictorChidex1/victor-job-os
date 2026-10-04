@@ -8,6 +8,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { useJobs } from '@/hooks/useJobs'
+import { usePageMeta } from '@/hooks/usePageMeta'
 import type { Job } from '@/types/jobs'
 
 const statusLabels: Record<string, string> = {
@@ -61,6 +62,12 @@ function OpportunityCard({ job }: { job: Job }) {
 }
 
 export function OpportunitiesPage() {
+  usePageMeta({
+    title: 'Opportunities — Victor Job OS',
+    description: 'Discover the roles worth pursuing.',
+    noindex: true,
+    path: '/app/opportunities',
+  })
   const { jobs, loading, error } = useJobs()
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')

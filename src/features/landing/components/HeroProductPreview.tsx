@@ -66,9 +66,9 @@ function DashboardMock() {
           </div>
         </div>
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-foreground">
+          <div className="text-lg font-semibold text-foreground">
             Good morning, Victor 👋
-          </h2>
+          </div>
           <p className="text-xs text-muted-foreground">
             Here's what's happening with your job search.
           </p>
@@ -203,9 +203,9 @@ function FloatingCard({
                 <Icon className="size-4" />
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-semibold text-foreground">
+                <div className="text-sm font-semibold text-foreground">
                   {title}
-                </h4>
+                </div>
                 <p className="mt-1 text-[0.65rem] leading-relaxed text-muted-foreground">
                   {subtitle}
                 </p>

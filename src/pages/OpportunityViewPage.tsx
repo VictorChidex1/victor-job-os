@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { httpsCallable } from 'firebase/functions'
 import { toast } from 'sonner'
-import { ArrowLeft, ExternalLink, Sparkles } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ExternalLink, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +15,7 @@ import { getJob } from '@/services/jobs'
 import { useJobAnalysis } from '@/hooks/useJobAnalysis'
 import { useCompany } from '@/hooks/useCompany'
 import { useProjects } from '@/hooks/useProjects'
+import { usePageMeta } from '@/hooks/usePageMeta'
 import type { Job } from '@/types/jobs'
 
 function FitMetric({ label, value }: { label: string; value: string }) {
@@ -30,6 +31,12 @@ function FitMetric({ label, value }: { label: string; value: string }) {
 
 export function OpportunityViewPage() {
   const { id } = useParams<{ id: string }>()
+  usePageMeta({
+    title: 'Opportunity — Victor Job OS',
+    description: 'Review an opportunity fit analysis and company research.',
+    noindex: true,
+    path: `/app/opportunities/${id ?? ''}`,
+  })
   const [job, setJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,6 +66,28 @@ export function OpportunityViewPage() {
       active = false
     }
   }, [id])
+
+  useEffect(() => {
+    if (!job) {
+      return
+    }
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.id = 'breadcrumb-jsonld'
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Opportunities', item: 'https://victor-job-os.vercel.app/app/opportunities' },
+        { '@type': 'ListItem', position: 2, name: job.title, item: `https://victor-job-os.vercel.app/app/opportunities/${job.id}` },
+      ],
+    })
+    document.head.querySelector('#breadcrumb-jsonld')?.remove()
+    document.head.appendChild(script)
+    return () => {
+      document.head.querySelector('#breadcrumb-jsonld')?.remove()
+    }
+  }, [job])
 
   const matchedProjects = (analysis?.matchedProjectIds ?? [])
     .map((projectId) => projects.find((project) => project.id === projectId))
@@ -148,11 +177,15 @@ export function OpportunityViewPage() {
         </div>
       }
     >
-      <div className="flex items-center gap-2">
-        <Link to="/app/opportunities" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
+        <Link to="/app/opportunities" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-3.5" />
           Opportunities
         </Link>
+        <ChevronRight className="size-3.5 text-muted-foreground/50" />
+        <span className="truncate font-medium text-foreground">{job.title}</span>
+      </nav>
+      <div className="flex items-center gap-2">
         <Badge variant={job.status === 'qualified' ? 'secondary' : 'outline'}>
           {job.status}
         </Badge>

@@ -2,7 +2,7 @@ export function AppFooter() {
   return (
     <footer className="flex shrink-0 items-center gap-2 border-t px-4 py-3">
       <img
-        src="/assets/victor-chidera-logo.webp"
+        src="/assets/victor-job-os.png"
         alt="Victor's Job OS logo"
         className="size-5 rounded object-contain"
       />

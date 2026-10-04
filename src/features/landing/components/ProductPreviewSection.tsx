@@ -122,8 +122,8 @@ export function ProductPreviewSection() {
             <div className="flex items-center px-4 py-3 border-b border-border/50">
               <div className="flex items-center gap-2">
                 <img
-                  src="/assets/victor-chidera-logo.webp"
-                  alt="Logo"
+                  src="/assets/victor-job-os.png"
+                  alt="Victor Job OS logo"
                   className="w-5 h-5 rounded"
                 />
                 <span className="text-[13px] font-bold text-foreground tracking-tight">
@@ -175,9 +175,9 @@ export function ProductPreviewSection() {
               <div className="flex-1 p-6 md:p-8 flex flex-col">
                 <div className="flex justify-between items-end mb-8">
                   <div>
-                    <h3 className="text-2xl font-bold text-foreground mb-1">
+                    <div className="text-2xl font-bold text-foreground mb-1">
                       Good morning, Victor 👋
-                    </h3>
+                    </div>
                     <p className="text-[13px] text-muted-foreground">
                       Here's what's happening with your job search.
                     </p>
@@ -241,9 +241,9 @@ export function ProductPreviewSection() {
                   {/* Opportunities */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-[14px] font-bold text-foreground">
+                      <div className="text-[14px] font-bold text-foreground">
                         Today's opportunities
-                      </h4>
+                      </div>
                       <span className="text-[12px] font-medium text-muted-foreground flex items-center gap-1 cursor-pointer hover:text-foreground">
                         View all <ChevronRight className="w-3 h-3" />
                       </span>
@@ -305,12 +305,12 @@ export function ProductPreviewSection() {
                   {/* Next Steps */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-[14px] font-bold text-foreground flex items-center gap-2">
+                      <div className="text-[14px] font-bold text-foreground flex items-center gap-2">
                         Next steps{" "}
                         <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[10px]">
                           4
                         </span>
-                      </h4>
+                      </div>
                       <span className="text-[12px] font-medium text-muted-foreground flex items-center gap-1 cursor-pointer hover:text-foreground">
                         View all <ChevronRight className="w-3 h-3" />
                       </span>
@@ -401,9 +401,9 @@ export function ProductPreviewSection() {
               <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
                 <Search className="w-3 h-3" />
               </div>
-              <h4 className="text-[13px] font-bold text-foreground">
+              <div className="text-[13px] font-bold text-foreground">
                 Discover opportunities
-              </h4>
+              </div>
             </div>
             <div className="flex flex-col gap-3">
               {[
@@ -477,9 +477,9 @@ export function ProductPreviewSection() {
               <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <Building2 className="w-3 h-3" />
               </div>
-              <h4 className="text-[13px] font-bold text-foreground">
+              <div className="text-[13px] font-bold text-foreground">
                 Research companies
-              </h4>
+              </div>
             </div>
             <div className="flex flex-col gap-3">
               {[
@@ -526,9 +526,9 @@ export function ProductPreviewSection() {
               <div className="w-6 h-6 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
                 <Mail className="w-3 h-3" />
               </div>
-              <h4 className="text-[13px] font-bold text-foreground">
+              <div className="text-[13px] font-bold text-foreground">
                 Write outreach
-              </h4>
+              </div>
             </div>
             <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
               <p className="text-[12px] font-medium text-foreground mb-3 leading-relaxed">
@@ -571,9 +571,9 @@ export function ProductPreviewSection() {
               <div className="w-6 h-6 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center">
                 <BarChart3 className="w-3 h-3" />
               </div>
-              <h4 className="text-[13px] font-bold text-foreground">
+              <div className="text-[13px] font-bold text-foreground">
                 Track progress
-              </h4>
+              </div>
             </div>
             <div className="flex flex-col gap-3">
               {[
@@ -617,9 +617,9 @@ export function ProductPreviewSection() {
               >
                 <stage.icon className="w-5 h-5" />
               </div>
-              <h4 className="text-[15px] lg:text-[14px] xl:text-[16px] font-bold text-foreground mb-2">
+              <div className="text-[15px] lg:text-[14px] xl:text-[16px] font-bold text-foreground mb-2">
                 {stage.title}
-              </h4>
+              </div>
               <p className="text-[13px] lg:text-[12px] xl:text-[13px] text-muted-foreground leading-relaxed">
                 {stage.desc}
               </p>
@@ -640,9 +640,9 @@ export function ProductPreviewSection() {
                 <stage.icon className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-[15px] font-bold text-foreground mb-1">
+                <div className="text-[15px] font-bold text-foreground mb-1">
                   {stage.title}
-                </h4>
+                </div>
                 <p className="text-[13px] text-muted-foreground leading-relaxed">
                   {stage.desc}
                 </p>

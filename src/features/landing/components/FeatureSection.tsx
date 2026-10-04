@@ -146,8 +146,8 @@ function FeatureDashboardPreview() {
       <div className="flex items-center px-4 py-3 border-b border-border/50">
         <div className="flex items-center gap-2">
           <img
-            src="/assets/victor-chidera-logo.webp"
-            alt="Logo"
+            src="/assets/victor-job-os.png"
+            alt="Victor Job OS logo"
             className="w-5 h-5 rounded"
           />
           <span className="text-[13px] font-bold text-foreground tracking-tight">
@@ -196,9 +196,9 @@ function FeatureDashboardPreview() {
         <div className="flex-1 p-5 md:p-6 flex flex-col">
           <div className="flex justify-between items-end mb-6">
             <div>
-              <h3 className="text-xl font-bold text-foreground mb-1">
+              <div className="text-xl font-bold text-foreground mb-1">
                 Good morning, Victor 👋
-              </h3>
+              </div>
               <p className="text-[12px] text-muted-foreground">
                 Here's what's happening with your job search.
               </p>
@@ -230,7 +230,7 @@ function FeatureDashboardPreview() {
             {/* Opportunities */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[13px] font-bold text-foreground">Today's opportunities</h4>
+                <div className="text-[13px] font-bold text-foreground">Today's opportunities</div>
                 <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 cursor-pointer">
                   View all <ChevronRight className="w-2.5 h-2.5" />
                 </span>
@@ -260,9 +260,9 @@ function FeatureDashboardPreview() {
             {/* Next Steps */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[13px] font-bold text-foreground flex items-center gap-2">
+                <div className="text-[13px] font-bold text-foreground flex items-center gap-2">
                   Next steps <span className="w-3.5 h-3.5 rounded-full bg-muted flex items-center justify-center text-[9px]">4</span>
-                </h4>
+                </div>
               </div>
               <div className="flex flex-col gap-2.5">
                 {[

@@ -79,7 +79,7 @@ export function ProfileSection() {
                {/* Internal Glow */}
                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
                <img 
-                 src="/assets/victor-chidera-logo.webp" 
+                 src="/assets/victor-job-os.png" 
                  alt="Victor Job OS" 
                  className="size-10 md:size-12 object-contain z-10" 
                />

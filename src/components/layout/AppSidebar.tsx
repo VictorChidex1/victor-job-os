@@ -23,7 +23,7 @@ export function AppSidebar({ collapsed = false, onToggle }: AppSidebarProps) {
     >
       <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
         <img
-          src="/assets/victor-chidera-logo.webp"
+          src="/assets/victor-job-os.png"
           alt="Victor's Job OS logo"
           className="size-7 shrink-0 rounded-md object-contain"
         />
