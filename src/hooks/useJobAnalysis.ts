@@ -6,12 +6,30 @@ export interface UseJobAnalysisResult {
   analysis: JobAnalysis | null
   loading: boolean
   error: string | null
+  refresh: () => Promise<void>
 }
 
 export function useJobAnalysis(jobId: string | undefined): UseJobAnalysisResult {
   const [analysis, setAnalysis] = useState<JobAnalysis | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  async function refresh() {
+    if (!jobId) {
+      setAnalysis(null)
+      setLoading(false)
+      return
+    }
+    try {
+      const data = await getAnalysisForJob(jobId)
+      setAnalysis(data)
+      setError(null)
+    } catch {
+      setError('Unable to load the fit analysis.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!jobId) {
@@ -35,5 +53,5 @@ export function useJobAnalysis(jobId: string | undefined): UseJobAnalysisResult 
     }
   }, [jobId])
 
-  return { analysis, loading, error }
+  return { analysis, loading, error, refresh }
 }

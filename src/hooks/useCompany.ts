@@ -6,12 +6,30 @@ export interface UseCompanyResult {
   company: Company | null
   loading: boolean
   error: string | null
+  refresh: () => Promise<void>
 }
 
 export function useCompany(companyId: string | undefined): UseCompanyResult {
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  async function refresh() {
+    if (!companyId) {
+      setCompany(null)
+      setLoading(false)
+      return
+    }
+    try {
+      const data = await getCompany(companyId)
+      setCompany(data)
+      setError(null)
+    } catch {
+      setError('Unable to load company research.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!companyId) {
@@ -35,5 +53,5 @@ export function useCompany(companyId: string | undefined): UseCompanyResult {
     }
   }, [companyId])
 
-  return { company, loading, error }
+  return { company, loading, error, refresh }
 }

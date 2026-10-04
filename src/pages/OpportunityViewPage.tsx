@@ -36,8 +36,8 @@ export function OpportunityViewPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [researching, setResearching] = useState(false)
 
-  const { analysis, loading: analysisLoading } = useJobAnalysis(id)
-  const { company, loading: companyLoading } = useCompany(job?.companyId)
+  const { analysis, loading: analysisLoading, refresh: refreshAnalysis } = useJobAnalysis(id)
+  const { company, loading: companyLoading, refresh: refreshCompany } = useCompany(job?.companyId)
   const { projects } = useProjects()
 
   useEffect(() => {
@@ -79,6 +79,11 @@ export function OpportunityViewPage() {
     try {
       const callable = httpsCallable<{ jobId: string }, { status: string }>(functions, 'analyzeJob')
       await callable({ jobId })
+      await refreshAnalysis()
+      const refreshed = await getJob(jobId)
+      if (refreshed) {
+        setJob(refreshed)
+      }
       toast('Analysis complete')
     } catch {
       toast('Unable to analyze', { description: 'Check your Gemini API key in functions/.env.' })
@@ -98,6 +103,7 @@ export function OpportunityViewPage() {
       if (refreshed) {
         setJob({ ...refreshed, companyId: companyId || refreshed.companyId })
       }
+      await refreshCompany()
       toast('Company research complete')
     } catch {
       toast('Unable to research', { description: 'Check your Gemini API key in functions/.env.' })

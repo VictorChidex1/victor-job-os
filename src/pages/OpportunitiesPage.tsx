@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -62,8 +62,12 @@ function OpportunityCard({ job }: { job: Job }) {
 
 export function OpportunitiesPage() {
   const { jobs, loading, error } = useJobs()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
+
+  const statusFilter = searchParams.get('status') ?? ''
+  const activeStatus = statusFilter && statusLabels[statusFilter] ? statusFilter : ''
 
   const sources = useMemo(() => {
     const values = jobs.map((job) => job.source)
@@ -73,6 +77,7 @@ export function OpportunitiesPage() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
     return jobs.filter((job) => {
+      if (activeStatus && job.status !== activeStatus) return false
       if (sourceFilter !== 'all' && job.source !== sourceFilter) return false
       if (!term) return true
       return (
@@ -81,12 +86,28 @@ export function OpportunitiesPage() {
         (job.location ?? '').toLowerCase().includes(term)
       )
     })
-  }, [jobs, search, sourceFilter])
+  }, [jobs, search, sourceFilter, activeStatus])
+
+  const title = activeStatus
+    ? statusLabels[activeStatus] === 'New'
+      ? 'New opportunities'
+      : `${statusLabels[activeStatus]} opportunities`
+    : 'Opportunities'
+
+  function clearStatus() {
+    const next = new URLSearchParams(searchParams)
+    next.delete('status')
+    setSearchParams(next)
+  }
 
   return (
     <PageContainer
-      title="Opportunities"
-      description="Discover the roles worth pursuing."
+      title={title}
+      description={
+        activeStatus
+          ? `Showing ${statusLabels[activeStatus].toLowerCase()} roles only.`
+          : 'Discover the roles worth pursuing.'
+      }
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input
@@ -96,6 +117,11 @@ export function OpportunitiesPage() {
           className="max-w-sm"
         />
         <div className="flex flex-wrap gap-1">
+          {activeStatus && (
+            <Button size="sm" variant="ghost" onClick={clearStatus}>
+              Clear {statusLabels[activeStatus]} filter
+            </Button>
+          )}
           {sources.map((source) => (
             <Button
               key={source}
@@ -119,7 +145,9 @@ export function OpportunitiesPage() {
           description={
             jobs.length === 0
               ? 'Run discovery from the dashboard, then opportunities will appear here.'
-              : 'Try a different search or clear the filters.'
+              : activeStatus
+                ? `No ${statusLabels[activeStatus].toLowerCase()} opportunities right now.`
+                : 'Try a different search or clear the filters.'
           }
         />
       ) : (

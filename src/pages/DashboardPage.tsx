@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { RunDiscoveryButton } from '@/components/dashboard/RunDiscoveryButton'
 import { RecentOpportunities } from '@/components/dashboard/RecentOpportunities'
@@ -74,6 +75,14 @@ export function DashboardPage() {
 
   const newCount = jobs.filter((job) => job.status === 'new').length
   const qualifiedCount = jobs.filter((job) => job.status === 'qualified').length
+  const awaitingCount = jobs.filter((job) => job.status === 'rejected').length
+
+  const metrics = [
+    { label: 'New opportunities', value: String(newCount), to: '/app/opportunities?status=new' },
+    { label: 'Qualified', value: String(qualifiedCount), to: '/app/opportunities?status=qualified' },
+    { label: 'Awaiting review', value: String(awaitingCount), to: '/app/opportunities?status=rejected' },
+    { label: 'Follow-ups due', value: '0', to: '/app/outreach' },
+  ]
 
   return (
     <PageContainer
@@ -90,17 +99,19 @@ export function DashboardPage() {
         
         {/* Metrics Grid */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {[
-            { label: 'New opportunities', value: String(newCount) },
-            { label: 'Qualified', value: String(qualifiedCount) },
-            { label: 'Awaiting review', value: '0' },
-            { label: 'Follow-ups due', value: '0' },
-          ].map((metric) => (
-            <motion.div 
-              key={metric.label} 
-              variants={itemVariants} 
+          {metrics.map((metric) => (
+            <motion.div
+              key={metric.label}
+              variants={itemVariants}
               className="relative group overflow-hidden rounded-2xl bg-background border border-border/60 p-6 shadow-sm hover:shadow-md transition-all"
             >
+              <Link
+                to={metric.to}
+                className="absolute inset-0 z-10 rounded-2xl"
+                aria-label={`View ${metric.label}`}
+              >
+                <span className="sr-only">{metric.label}</span>
+              </Link>
               {/* Glowing Top Edge on Hover */}
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               
