@@ -26,6 +26,9 @@ firebase-export-*.tar.gz
 # Private project documentation — local only, never committed or pushed
 project-explanations/
 
+# Agent rules & docs — local only, never committed or pushed
+.agents/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
