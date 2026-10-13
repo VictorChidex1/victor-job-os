@@ -3,4 +3,4 @@ Allow: /
 Disallow: /app/
 Disallow: /login
 
-Sitemap: https://victor-job-os.vercel.app/sitemap.xml
+Sitemap: https://victor-job-os.web.app/sitemap.xml

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-const SITE_URL = 'https://victor-job-os.vercel.app'
+const SITE_URL = 'https://victor-job-os.web.app'
 
 interface PageMetaOptions {
   title: string
