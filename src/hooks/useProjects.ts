@@ -42,17 +42,25 @@ export function useProjects(): UseProjectsResult {
   }, [user])
 
   async function create(data: Omit<PortfolioProject, 'id' | 'updatedAt'>) {
-    if (!user) return
+    if (!user) {
+      throw new Error('Authentication required to create a project.')
+    }
     await createProject(user.uid, data)
     await refresh()
   }
 
   async function update(id: string, data: Partial<Omit<PortfolioProject, 'id'>>) {
+    if (!user) {
+      throw new Error('Authentication required to update a project.')
+    }
     await updateProject(id, data)
     await refresh()
   }
 
   async function remove(id: string) {
+    if (!user) {
+      throw new Error('Authentication required to delete a project.')
+    }
     await deleteProject(id)
     await refresh()
   }

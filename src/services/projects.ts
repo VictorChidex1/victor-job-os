@@ -27,7 +27,21 @@ export async function createProject(
   uid: string,
   data: Omit<PortfolioProject, 'id' | 'updatedAt'>,
 ): Promise<string> {
-  const ref = await addDoc(projectsCollection, { ...data, userId: uid, updatedAt: new Date() })
+  const payload = {
+    title: data.title ?? '',
+    summary: data.summary ?? '',
+    technologies: data.technologies ?? [],
+    problem: data.problem ?? '',
+    solution: data.solution ?? '',
+    outcomes: data.outcomes ?? [],
+    verifiedMetrics: data.verifiedMetrics ?? [],
+    url: data.url ?? '',
+    relevanceTags: data.relevanceTags ?? [],
+    isActive: data.isActive ?? true,
+    userId: uid,
+    updatedAt: new Date(),
+  }
+  const ref = await addDoc(projectsCollection, payload)
   return ref.id
 }
 
@@ -35,7 +49,13 @@ export async function updateProject(
   id: string,
   data: Partial<Omit<PortfolioProject, 'id'>>,
 ): Promise<void> {
-  await updateDoc(doc(projectsCollection, id), { ...data, updatedAt: new Date() })
+  const payload: Record<string, unknown> = { updatedAt: new Date() }
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      payload[key] = value
+    }
+  }
+  await updateDoc(doc(projectsCollection, id), payload)
 }
 
 export async function deleteProject(id: string): Promise<void> {
