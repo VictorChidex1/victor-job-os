@@ -2,6 +2,8 @@ import {
   getAuth,
   connectAuthEmulator,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
   signInWithPopup,
   signOut,
   GoogleAuthProvider,
@@ -26,6 +28,18 @@ export function onAuthStateChange(callback: (user: User | null) => void) {
 
 export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
   return signInWithEmailAndPassword(auth, email, password)
+}
+
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  displayName?: string,
+): Promise<UserCredential> {
+  const credential = await createUserWithEmailAndPassword(auth, email, password)
+  if (displayName) {
+    await updateProfile(credential.user, { displayName })
+  }
+  return credential
 }
 
 export async function signInWithGoogle(): Promise<UserCredential> {

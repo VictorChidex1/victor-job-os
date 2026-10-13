@@ -16,3 +16,4 @@ export type {
 export type { Job, JobAnalysis, JobSource, JobStatus } from './jobs'
 export type { Company } from './companies'
 export type { Contact, FollowUp, Outreach, OutreachStatus } from './outreach'
+export type { AppUser, UserRole } from './users'

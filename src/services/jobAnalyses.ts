@@ -14,9 +14,15 @@ import type { JobAnalysis } from '@/types/jobs'
 
 const jobAnalysesCollection = collection(db, collections.jobAnalyses)
 
-export async function getAnalysisForJob(jobId: string): Promise<JobAnalysis | null> {
+export async function getAnalysisForJob(uid: string, jobId: string): Promise<JobAnalysis | null> {
   const snapshot = await getDocs(
-    query(jobAnalysesCollection, where('jobId', '==', jobId), orderBy('analyzedAt', 'desc'), limit(1)),
+    query(
+      jobAnalysesCollection,
+      where('userId', '==', uid),
+      where('jobId', '==', jobId),
+      orderBy('analyzedAt', 'desc'),
+      limit(1),
+    ),
   )
   if (snapshot.empty) {
     return null

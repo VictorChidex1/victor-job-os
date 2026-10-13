@@ -1,5 +1,6 @@
 export interface PortfolioProject {
   id: string
+  userId?: string
   title: string
   summary: string
   technologies: string[]

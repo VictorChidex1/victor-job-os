@@ -7,6 +7,7 @@ initializeApp()
 const db = getFirestore()
 
 export interface JobDoc {
+  userId?: string
   title: string
   description: string
   location?: string
@@ -66,6 +67,7 @@ export async function getProfile(uid: string): Promise<ProfileDoc> {
 }
 
 export interface AnalysisRecord {
+  userId: string
   jobId: string
   fitScore?: number
   technicalFit: string
@@ -83,6 +85,7 @@ export interface AnalysisRecord {
 }
 
 export async function analyzeJobWithAI(
+  uid: string,
   jobId: string,
   job: JobDoc,
   profile: ProfileDoc,
@@ -102,6 +105,7 @@ export async function analyzeJobWithAI(
 
   const projectsSnapshot = await db
     .collection('projects')
+    .where('userId', '==', uid)
     .where('isActive', '==', true)
     .limit(50)
     .get()
@@ -125,6 +129,7 @@ export async function analyzeJobWithAI(
   }
 
   return {
+    userId: uid,
     jobId,
     fitScore: analysis.fitScore,
     technicalFit: analysis.technicalFit,
@@ -138,7 +143,7 @@ export async function analyzeJobWithAI(
     projectMatchReasons: match.reasons,
     analyzedAt: FieldValue.serverTimestamp(),
     aiProvider: 'gemini',
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.8-flash',
   }
 }
 
@@ -151,9 +156,10 @@ export async function storeAnalysis(jobId: string, record: AnalysisRecord): Prom
   })
 }
 
-export async function analysisForJob(jobId: string): Promise<AnalysisRecord | null> {
+export async function analysisForJob(uid: string, jobId: string): Promise<AnalysisRecord | null> {
   const snapshot = await db
     .collection('jobAnalyses')
+    .where('userId', '==', uid)
     .where('jobId', '==', jobId)
     .orderBy('analyzedAt', 'desc')
     .limit(1)
@@ -167,15 +173,20 @@ export function jobRef(jobId: string): DocumentReference {
   return db.collection('jobs').doc(jobId)
 }
 
-export async function unanalyzedJobs(limitCount: number): Promise<Array<{ id: string; data: JobDoc }>> {
+export async function unanalyzedJobs(uid: string, limitCount: number): Promise<Array<{ id: string; data: JobDoc }>> {
   const analyzed = new Set<string>()
-  const analyses = await db.collection('jobAnalyses').get()
+  const analyses = await db.collection('jobAnalyses').where('userId', '==', uid).get()
   for (const doc of analyses.docs) {
     const jobId = doc.data().jobId
     if (jobId) analyzed.add(jobId)
   }
 
-  const snapshot = await db.collection('jobs').orderBy('createdAt', 'desc').limit(limitCount).get()
+  const snapshot = await db
+    .collection('jobs')
+    .where('userId', '==', uid)
+    .orderBy('createdAt', 'desc')
+    .limit(limitCount)
+    .get()
   const jobs: Array<{ id: string; data: JobDoc }> = []
   for (const doc of snapshot.docs) {
     if (!analyzed.has(doc.id)) {
@@ -197,13 +208,13 @@ export async function qualifyPendingJobs(
   limitCount: number,
 ): Promise<{ analyzed: number; results: QualificationResult[] }> {
   const profile = await getProfile(uid)
-  const pending = await unanalyzedJobs(limitCount)
+  const pending = await unanalyzedJobs(uid, limitCount)
   let analyzed = 0
   const results: QualificationResult[] = []
 
   for (const job of pending) {
     try {
-      const record = await analyzeJobWithAI(job.id, job.data, profile)
+      const record = await analyzeJobWithAI(uid, job.id, job.data, profile)
       await storeAnalysis(job.id, record)
       analyzed += 1
       results.push({

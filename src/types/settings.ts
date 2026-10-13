@@ -4,6 +4,7 @@ export type JobSourceId = 'greenhouse' | 'lever' | 'ashby' | 'workday' | 'custom
 
 export interface JobSourceConfig {
   id: string
+  userId?: string
   source: JobSourceId
   enabled: boolean
   searchTerms: string[]

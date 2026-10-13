@@ -6,6 +6,7 @@ import {
   deleteDoc,
   updateDoc,
   query,
+  where,
   orderBy,
   type DocumentData,
 } from 'firebase/firestore'
@@ -15,15 +16,18 @@ import type { PortfolioProject } from '@/types/projects'
 
 const projectsCollection = collection(db, collections.projects)
 
-export async function listProjects(): Promise<PortfolioProject[]> {
-  const snapshot = await getDocs(query(projectsCollection, orderBy('updatedAt', 'desc')))
+export async function listProjects(uid: string): Promise<PortfolioProject[]> {
+  const snapshot = await getDocs(
+    query(projectsCollection, where('userId', '==', uid), orderBy('updatedAt', 'desc')),
+  )
   return snapshot.docs.map((document) => toProject(document.id, document.data()))
 }
 
 export async function createProject(
+  uid: string,
   data: Omit<PortfolioProject, 'id' | 'updatedAt'>,
 ): Promise<string> {
-  const ref = await addDoc(projectsCollection, { ...data, updatedAt: new Date() })
+  const ref = await addDoc(projectsCollection, { ...data, userId: uid, updatedAt: new Date() })
   return ref.id
 }
 

@@ -27,9 +27,12 @@ export const analyzeJob = onCall(
     if (!job) {
       throw new HttpsError('not-found', 'Job not found.')
     }
+    if (job.userId !== undefined && job.userId !== uid) {
+      throw new HttpsError('permission-denied', 'This job does not belong to you.')
+    }
 
     const profile = await getProfile(uid)
-    const record = await analyzeJobWithAI(data.jobId, job, profile)
+    const record = await analyzeJobWithAI(uid, data.jobId, job, profile)
     await storeAnalysis(data.jobId, record)
 
     return {
@@ -56,17 +59,22 @@ export const researchOpportunity = onCall(
     if (!job) {
       throw new HttpsError('not-found', 'Job not found.')
     }
+    if (job.userId !== undefined && job.userId !== uid) {
+      throw new HttpsError('permission-denied', 'This job does not belong to you.')
+    }
 
     const ai = getAIService()
     const research = await ai.researchCompany({ companyName: job.companyName ?? 'Unknown' })
 
     const existing = await db
       .collection('companies')
+      .where('userId', '==', uid)
       .where('name', '==', job.companyName ?? '')
       .limit(1)
       .get()
 
     const companyDoc = {
+      userId: uid,
       name: job.companyName ?? 'Unknown',
       industry: research.industry ?? null,
       description: research.description ?? null,

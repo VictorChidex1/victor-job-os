@@ -5,6 +5,8 @@ import {
   getDocs,
   updateDoc,
   deleteDoc,
+  query,
+  where,
   type DocumentData,
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
@@ -13,13 +15,16 @@ import type { JobSourceConfig } from '@/types/settings'
 
 const jobSourcesCollection = collection(db, collections.jobSources)
 
-export async function listJobSources(): Promise<JobSourceConfig[]> {
-  const snapshot = await getDocs(jobSourcesCollection)
+export async function listJobSources(uid: string): Promise<JobSourceConfig[]> {
+  const snapshot = await getDocs(query(jobSourcesCollection, where('userId', '==', uid)))
   return snapshot.docs.map((document) => toJobSource(document.id, document.data()))
 }
 
-export async function createJobSource(data: Omit<JobSourceConfig, 'id'>): Promise<string> {
-  const ref = await addDoc(jobSourcesCollection, data)
+export async function createJobSource(
+  uid: string,
+  data: Omit<JobSourceConfig, 'id'>,
+): Promise<string> {
+  const ref = await addDoc(jobSourcesCollection, { ...data, userId: uid })
   return ref.id
 }
 

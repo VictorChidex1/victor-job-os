@@ -2,11 +2,9 @@ rules_version = '2';
 
 // Victor's Job OS — Firestore security rules
 //
-// Private single-user application. The real security boundary is these rules,
-// not UI checks. All V1 collections require authentication. Documents keyed
-// by the user's UID (profiles, settings) are additionally scoped to that UID.
-//
-// Future role model (owner/admin/viewer) will tighten this further.
+// Multi-user application. Every user-owned document carries a `userId` field
+// (or is keyed by the user's UID) and is readable/writable only by its owner.
+// The real security boundary is these rules, not UI checks.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -15,54 +13,92 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Documents keyed by the authenticated user's UID.
+    function isOwnerId(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Documents carrying a `userId` field owned by the authenticated user.
+    function ownsUserField(data) {
+      return signedIn() && data.userId == request.auth.uid;
+    }
+
     // Owned documents keyed by the authenticated user's UID.
+    match /users/{uid} {
+      allow read, write: if isOwnerId(uid);
+    }
+
     match /profiles/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isOwnerId(uid);
     }
 
     match /settings/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isOwnerId(uid);
     }
 
-    // Authenticated-only V1 collections.
+    // User-owned collections scoped by a `userId` field.
     match /projects/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /jobSources/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /jobs/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /companies/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /jobAnalyses/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /outreach/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /contacts/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /followUps/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /activityLogs/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /aiRuns/{documentId} {
-      allow read, write: if request.auth != null;
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
   }
 }

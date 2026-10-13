@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listProjects, createProject, updateProject, deleteProject } from '@/services/projects'
+import { useAuth } from '@/hooks/useAuth'
 import type { PortfolioProject } from '@/types/projects'
 
 export interface UseProjectsResult {
@@ -13,13 +14,19 @@ export interface UseProjectsResult {
 }
 
 export function useProjects(): UseProjectsResult {
+  const { user } = useAuth()
   const [projects, setProjects] = useState<PortfolioProject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   async function refresh() {
+    if (!user) {
+      setProjects([])
+      setLoading(false)
+      return
+    }
     try {
-      const data = await listProjects()
+      const data = await listProjects(user.uid)
       setProjects(data)
     } catch {
       setError('Unable to load your projects. Please try again.')
@@ -31,10 +38,12 @@ export function useProjects(): UseProjectsResult {
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- fetch-on-mount idiom; setState occurs after await
     void refresh()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   async function create(data: Omit<PortfolioProject, 'id' | 'updatedAt'>) {
-    await createProject(data)
+    if (!user) return
+    await createProject(user.uid, data)
     await refresh()
   }
 

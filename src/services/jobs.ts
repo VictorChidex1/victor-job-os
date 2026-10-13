@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   query,
+  where,
   orderBy,
   limit,
   type DocumentData,
@@ -15,8 +16,15 @@ import type { Job, JobStatus } from '@/types/jobs'
 
 const jobsCollection = collection(db, collections.jobs)
 
-export async function listJobs(limitCount = 50): Promise<Job[]> {
-  const snapshot = await getDocs(query(jobsCollection, orderBy('discoveredAt', 'desc'), limit(limitCount)))
+export async function listJobs(uid: string, limitCount = 50): Promise<Job[]> {
+  const snapshot = await getDocs(
+    query(
+      jobsCollection,
+      where('userId', '==', uid),
+      orderBy('discoveredAt', 'desc'),
+      limit(limitCount),
+    ),
+  )
   return snapshot.docs.map((document) => toJob(document.id, document.data()))
 }
 
@@ -31,6 +39,7 @@ export async function getJob(id: string): Promise<Job | null> {
 function toJob(id: string, data: DocumentData): Job {
   return {
     id,
+    userId: data.userId,
     source: data.source,
     sourceJobId: data.sourceJobId,
     companyId: data.companyId ?? '',

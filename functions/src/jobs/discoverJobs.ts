@@ -23,17 +23,17 @@ interface DiscoveryResult {
 initializeApp()
 const db = getFirestore()
 
-async function loadSources(): Promise<JobSourceDoc[]> {
-  const snapshot = await db.collection('jobSources').get()
+async function loadSources(uid: string): Promise<JobSourceDoc[]> {
+  const snapshot = await db.collection('jobSources').where('userId', '==', uid).get()
   return snapshot.docs
     .map((doc) => doc.data() as JobSourceDoc)
     .filter((source) => source.enabled === true)
 }
 
-async function existingJobKeys(): Promise<{ fingerprints: Set<string>; urls: Set<string> }> {
+async function existingJobKeys(uid: string): Promise<{ fingerprints: Set<string>; urls: Set<string> }> {
   const fingerprints = new Set<string>()
   const urls = new Set<string>()
-  const snapshot = await db.collection('jobs').get()
+  const snapshot = await db.collection('jobs').where('userId', '==', uid).get()
   for (const doc of snapshot.docs) {
     const data = doc.data()
     if (data.fingerprint) fingerprints.add(data.fingerprint as string)
@@ -42,12 +42,13 @@ async function existingJobKeys(): Promise<{ fingerprints: Set<string>; urls: Set
   return { fingerprints, urls }
 }
 
-async function storeJobs(jobs: NormalizedJob[], searchTerms: string[]): Promise<number> {
+async function storeJobs(jobs: NormalizedJob[], searchTerms: string[], uid: string): Promise<number> {
   const batch = db.batch()
   for (const job of jobs) {
     const ref = db.collection('jobs').doc()
     batch.set(ref, {
       ...stripUndefined(job),
+      userId: uid,
       searchTerms,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -74,8 +75,9 @@ function filterJobsBySearchTerms(jobs: NormalizedJob[], searchTerms: string[]): 
   })
 }
 
-async function recordActivity(message: string, metadata: Record<string, unknown> = {}): Promise<void> {
+async function recordActivity(uid: string, message: string, metadata: Record<string, unknown> = {}): Promise<void> {
   await db.collection('activityLogs').add({
+    userId: uid,
     type: 'job-discovery',
     status: 'completed',
     message,
@@ -84,14 +86,14 @@ async function recordActivity(message: string, metadata: Record<string, unknown>
   })
 }
 
-export async function runDiscovery(): Promise<{ stored: number; duplicates: number; results: DiscoveryResult[] }> {
-  const sources = await loadSources()
+export async function runDiscovery(uid: string): Promise<{ stored: number; duplicates: number; results: DiscoveryResult[] }> {
+  const sources = await loadSources(uid)
   if (sources.length === 0) {
-    await recordActivity('Job discovery skipped: no enabled sources.')
+    await recordActivity(uid, 'Job discovery skipped: no enabled sources.')
     return { stored: 0, duplicates: 0, results: [] }
   }
 
-  const { fingerprints, urls } = await existingJobKeys()
+  const { fingerprints, urls } = await existingJobKeys(uid)
   let stored = 0
   let duplicates = 0
   const results: DiscoveryResult[] = []
@@ -112,7 +114,7 @@ export async function runDiscovery(): Promise<{ stored: number; duplicates: numb
         const filtered = filterJobsBySearchTerms(discovered, source.searchTerms)
         const unique = deduplicateJobs(filtered, fingerprints, urls)
         duplicates += filtered.length - unique.length
-        const count = await storeJobs(unique, source.searchTerms)
+        const count = await storeJobs(unique, source.searchTerms, uid)
         stored += count
         results.push({ source: source.source, boardTarget: target, count: unique.length })
       } catch (error) {
@@ -125,14 +127,20 @@ export async function runDiscovery(): Promise<{ stored: number; duplicates: numb
   const errors = results.filter((result) => result.error)
   if (errors.length > 0) {
     await recordActivity(
+      uid,
       `Job discovery completed with ${errors.length} source error(s).`,
       { stored, duplicates, errors: errors.map((e) => ({ source: e.source, boardTarget: e.boardTarget, error: e.error })) },
     )
   } else {
-    await recordActivity('Job discovery completed.', { stored, duplicates, sources: results.length })
+    await recordActivity(uid, 'Job discovery completed.', { stored, duplicates, sources: results.length })
   }
 
   return { stored, duplicates, results }
+}
+
+async function allUserIds(): Promise<string[]> {
+  const snapshot = await db.collection('users').get()
+  return snapshot.docs.map((doc) => doc.id)
 }
 
 export const discoverJobs = onSchedule(
@@ -145,7 +153,14 @@ export const discoverJobs = onSchedule(
     retryCount: 1,
   },
   async () => {
-    await runDiscovery()
+    const uids = await allUserIds()
+    for (const uid of uids) {
+      try {
+        await runDiscovery(uid)
+      } catch {
+        // Keep processing other users; one user's failure must not stop the run.
+      }
+    }
   },
 )
 
@@ -161,7 +176,7 @@ export const runDiscoveryNow = onCall(
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
     try {
-      const result = await runDiscovery()
+      const result = await runDiscovery(uid)
       let qualification
       try {
         qualification = await qualifyPendingJobs(uid, 10)

@@ -6,6 +6,7 @@ export type JobStatus = 'new' | 'qualified' | 'rejected' | 'archived'
 
 export interface Job {
   id: string
+  userId?: string
   source: JobSource
   sourceJobId: string
   companyId: string

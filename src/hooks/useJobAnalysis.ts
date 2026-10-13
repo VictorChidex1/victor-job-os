@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAnalysisForJob } from '@/services/jobAnalyses'
+import { useAuth } from '@/hooks/useAuth'
 import type { JobAnalysis } from '@/types/jobs'
 
 export interface UseJobAnalysisResult {
@@ -10,18 +11,19 @@ export interface UseJobAnalysisResult {
 }
 
 export function useJobAnalysis(jobId: string | undefined): UseJobAnalysisResult {
+  const { user } = useAuth()
   const [analysis, setAnalysis] = useState<JobAnalysis | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   async function refresh() {
-    if (!jobId) {
+    if (!jobId || !user) {
       setAnalysis(null)
       setLoading(false)
       return
     }
     try {
-      const data = await getAnalysisForJob(jobId)
+      const data = await getAnalysisForJob(user.uid, jobId)
       setAnalysis(data)
       setError(null)
     } catch {
@@ -32,13 +34,13 @@ export function useJobAnalysis(jobId: string | undefined): UseJobAnalysisResult 
   }
 
   useEffect(() => {
-    if (!jobId) {
+    if (!jobId || !user) {
       // oxlint-disable-next-line react/set-state-in-effect -- no-id branch clears loading synchronously
       setLoading(false)
       return
     }
     let active = true
-    getAnalysisForJob(jobId)
+    getAnalysisForJob(user.uid, jobId)
       .then((data) => {
         if (active) setAnalysis(data)
       })
@@ -51,7 +53,7 @@ export function useJobAnalysis(jobId: string | undefined): UseJobAnalysisResult 
     return () => {
       active = false
     }
-  }, [jobId])
+  }, [jobId, user])
 
   return { analysis, loading, error, refresh }
 }
