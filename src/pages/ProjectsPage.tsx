@@ -3,9 +3,10 @@ import { Controller, useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, X, Loader2, ExternalLink } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Loader2, ExternalLink, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import {
   Sheet,
   SheetClose,
@@ -22,7 +23,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
-import { DataTable, type DataTableColumn } from '@/components/data-table/DataTable'
 import { useProjects } from '@/hooks/useProjects'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import type { PortfolioProject } from '@/types/projects'
@@ -489,6 +489,154 @@ function ProjectSheet({
   )
 }
 
+function ProjectCard({
+  project,
+  onEdit,
+  onDelete,
+}: {
+  project: PortfolioProject
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <Card className="group relative flex flex-col justify-between overflow-hidden border bg-card/60 transition-all duration-200 hover:border-foreground/20 hover:shadow-md">
+      <CardHeader className="p-5 pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex items-center gap-2">
+              <h3
+                onClick={onEdit}
+                className="cursor-pointer text-base font-semibold tracking-tight text-foreground transition-colors hover:text-primary line-clamp-1"
+                title={project.title}
+              >
+                {project.title}
+              </h3>
+              {project.url && (
+                <a
+                  href={project.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(event) => event.stopPropagation()}
+                  className="text-muted-foreground transition-colors hover:text-foreground inline-flex items-center p-1 rounded hover:bg-muted shrink-0"
+                  title="Open live project link"
+                >
+                  <ExternalLink className="size-3.5" />
+                </a>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Badge
+              variant={project.isActive ? 'secondary' : 'outline'}
+              className="text-xs font-normal"
+            >
+              {project.isActive ? 'Active' : 'Inactive'}
+            </Badge>
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Edit ${project.title}`}
+                onClick={onEdit}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Pencil className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Delete ${project.title}`}
+                onClick={onDelete}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="px-5 py-2 flex-1 flex flex-col gap-3">
+        {/* Summary */}
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+          {project.summary}
+        </p>
+
+        {/* Problem & Solution snippets if present */}
+        {(project.problem || project.solution) && (
+          <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground border border-border/40 space-y-1.5">
+            {project.problem && (
+              <div className="line-clamp-2">
+                <span className="font-semibold text-foreground/80">Challenge: </span>
+                <span>{project.problem}</span>
+              </div>
+            )}
+            {project.solution && (
+              <div className="line-clamp-2">
+                <span className="font-semibold text-foreground/80">Solution: </span>
+                <span>{project.solution}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tech Stack Chips */}
+        {project.technologies.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {project.technologies.slice(0, 5).map((tech) => (
+              <Badge key={tech} variant="secondary" className="text-[0.7rem] px-2 py-0.5 font-normal">
+                {tech}
+              </Badge>
+            ))}
+            {project.technologies.length > 5 && (
+              <Badge variant="outline" className="text-[0.7rem] px-2 py-0.5 text-muted-foreground font-normal">
+                +{project.technologies.length - 5}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Relevance Tags */}
+        {project.relevanceTags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {project.relevanceTags.slice(0, 4).map((tag) => (
+              <span key={tag} className="text-[0.65rem] text-muted-foreground/80 bg-muted/60 rounded px-1.5 py-0.5">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
+      <CardFooter className="px-5 py-3 border-t bg-muted/20 flex items-center justify-between mt-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3">
+          {project.verifiedMetrics.length > 0 ? (
+            <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-[0.7rem]">
+              <Sparkles className="size-3" />
+              {project.verifiedMetrics.length} {project.verifiedMetrics.length === 1 ? 'metric' : 'metrics'} verified
+            </span>
+          ) : (
+            <span className="text-muted-foreground/60 text-[0.7rem]">No metrics verified</span>
+          )}
+          {project.outcomes.length > 0 && (
+            <span className="text-[0.7rem] text-muted-foreground">
+              {project.outcomes.length} {project.outcomes.length === 1 ? 'outcome' : 'outcomes'}
+            </span>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onEdit}
+          className="text-xs h-7 px-2.5 font-medium hover:bg-background"
+        >
+          View Case Study →
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+}
+
 export function ProjectsPage() {
   usePageMeta({
     title: 'Projects — Victor Job OS',
@@ -499,97 +647,6 @@ export function ProjectsPage() {
   const { projects, loading, error, create, update, remove } = useProjects()
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editing, setEditing] = useState<PortfolioProject | null>(null)
-
-  const columns: DataTableColumn<PortfolioProject>[] = [
-    {
-      header: 'Project',
-      accessorKey: 'title',
-      cell: (project) => (
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5">
-            <span className="font-medium text-foreground">{project.title}</span>
-            {project.url && (
-              <a
-                href={project.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
-                title="Open project URL"
-              >
-                <ExternalLink className="size-3" />
-              </a>
-            )}
-          </div>
-          <span className="text-xs text-muted-foreground line-clamp-2">{project.summary}</span>
-        </div>
-      ),
-    },
-    {
-      header: 'Technologies',
-      cell: (project) => (
-        <div className="flex flex-wrap gap-1">
-          {project.technologies.slice(0, 4).map((tech) => (
-            <Badge key={tech} variant="outline" className="text-[0.65rem]">
-              {tech}
-            </Badge>
-          ))}
-          {project.technologies.length > 4 && (
-            <Badge variant="outline" className="text-[0.65rem] text-muted-foreground">
-              +{project.technologies.length - 4}
-            </Badge>
-          )}
-        </div>
-      ),
-    },
-    {
-      header: 'Verified metrics',
-      cell: (project) => (
-        <span className="text-sm text-muted-foreground">{project.verifiedMetrics.length}</span>
-      ),
-    },
-    {
-      header: 'Status',
-      cell: (project) =>
-        project.isActive ? (
-          <Badge variant="secondary" className="text-[0.65rem]">Active</Badge>
-        ) : (
-          <Badge variant="outline" className="text-[0.65rem]">Inactive</Badge>
-        ),
-    },
-    {
-      header: '',
-      cell: (project) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Edit ${project.title}`}
-            onClick={() => {
-              setEditing(project)
-              setSheetOpen(true)
-            }}
-          >
-            <Pencil />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Delete ${project.title}`}
-            onClick={async () => {
-              try {
-                await remove(project.id)
-                toast.success('Project deleted')
-              } catch {
-                toast.error('Failed to delete project')
-              }
-            }}
-          >
-            <Trash2 />
-          </Button>
-        </div>
-      ),
-    },
-  ]
 
   async function handleCreate(values: ProjectFormValues) {
     try {
@@ -642,13 +699,32 @@ export function ProjectsPage() {
     >
       {loading ? (
         <LoadingState label="Loading projects…" rows={4} />
-      ) : (
-        <DataTable
-          columns={columns}
-          data={projects}
-          emptyTitle="No projects yet"
-          emptyDescription="Add verified portfolio projects to use as evidence."
+      ) : projects.length === 0 ? (
+        <EmptyState
+          title="No projects yet"
+          description="Add verified portfolio projects to use as evidence."
         />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {projects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onEdit={() => {
+                setEditing(project)
+                setSheetOpen(true)
+              }}
+              onDelete={async () => {
+                try {
+                  await remove(project.id)
+                  toast.success('Project deleted')
+                } catch {
+                  toast.error('Failed to delete project')
+                }
+              }}
+            />
+          ))}
+        </div>
       )}
       <ProjectSheet
         open={sheetOpen}
