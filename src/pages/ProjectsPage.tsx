@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Controller, useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, X, Loader2, ExternalLink, Sparkles } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Loader2, ExternalLink, Sparkles, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
@@ -146,6 +146,7 @@ function CommaListField({
           variant="secondary"
           onClick={() => commitItems(draft)}
           disabled={!draft.trim()}
+          className="shrink-0"
         >
           <Plus className="size-4" />
           Add
@@ -154,19 +155,120 @@ function CommaListField({
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1">
           {value.map((item, index) => (
-            <Badge key={`${item}-${index}`} variant="secondary" className="gap-1.5 py-1 px-2.5 text-xs font-normal">
-              {item}
+            <Badge
+              key={`${item}-${index}`}
+              variant="secondary"
+              className="max-w-full gap-1.5 py-1 px-2.5 text-xs font-normal"
+            >
+              <span className="truncate">{item}</span>
               <button
                 type="button"
                 onClick={() => removeItem(index)}
                 aria-label={`Remove ${item}`}
-                className="rounded-full p-0.5 transition-colors hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground"
+                className="shrink-0 rounded-full p-0.5 transition-colors hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground"
               >
                 <X className="size-3" />
               </button>
             </Badge>
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+function ImpactListField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  helperText,
+  icon,
+}: {
+  label: string
+  value: string[]
+  onChange: (next: string[]) => void
+  placeholder: string
+  helperText?: string
+  icon?: ReactNode
+}) {
+  const [draft, setDraft] = useState('')
+
+  function commitItem(text: string) {
+    const raw = text.trim()
+    if (!raw) return
+    // Allow pasting bullet lists or multi-line text
+    const lines = raw
+      .split(/\r?\n/)
+      .map((l) => l.replace(/^[-•*]\s*/, '').trim())
+      .filter((l) => l.length > 0)
+
+    const newItems = lines.filter((item) => !value.includes(item))
+    if (newItems.length > 0) {
+      onChange([...value, ...newItems])
+    }
+    setDraft('')
+  }
+
+  function removeItem(index: number) {
+    onChange(value.filter((_, i) => i !== index))
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <Label className="font-medium text-foreground">{label}</Label>
+        {helperText && <span className="text-xs text-muted-foreground">{helperText}</span>}
+      </div>
+      <div className="flex items-center gap-2">
+        <Input
+          value={draft}
+          placeholder={placeholder}
+          aria-label={`Add ${label}`}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              commitItem(draft)
+            }
+          }}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => commitItem(draft)}
+          disabled={!draft.trim()}
+          className="shrink-0"
+        >
+          <Plus className="size-4 mr-1" />
+          Add
+        </Button>
+      </div>
+      {value.length > 0 && (
+        <ul className="flex flex-col gap-2 pt-1" aria-label={label}>
+          {value.map((item, index) => (
+            <li
+              key={`${item}-${index}`}
+              className="group flex items-start justify-between gap-3 rounded-lg border border-border/70 bg-muted/20 p-2.5 text-sm transition-colors hover:bg-muted/40"
+            >
+              <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                {icon && <span className="mt-0.5 shrink-0">{icon}</span>}
+                <span className="break-words leading-relaxed text-foreground select-text">{item}</span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => removeItem(index)}
+                aria-label={`Remove ${item}`}
+                className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )
@@ -402,20 +504,26 @@ function ProjectSheet({
 
             {/* Impact & Verification */}
             <div className="space-y-4 pt-2 border-t">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Impact & Verification
-              </h3>
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Impact & Verification
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Measurable outcomes and empirical metrics used for high-signal portfolio proof.
+                </p>
+              </div>
+              <div className="flex flex-col gap-6">
                 <Controller
                   name="outcomes"
                   control={form.control}
                   render={({ field }) => (
-                    <CommaListField
+                    <ImpactListField
                       label="Outcomes"
                       value={field.value}
                       onChange={field.onChange}
-                      placeholder="Outcome 1, Outcome 2"
-                      helperText="Key results achieved"
+                      placeholder="e.g. Cut deployment cycle time from 4 hours to 8 minutes across 30 microservices"
+                      helperText="Key results achieved (press Enter to add)"
+                      icon={<CheckCircle2 className="size-4 text-emerald-500" />}
                     />
                   )}
                 />
@@ -423,12 +531,13 @@ function ProjectSheet({
                   name="verifiedMetrics"
                   control={form.control}
                   render={({ field }) => (
-                    <CommaListField
+                    <ImpactListField
                       label="Verified metrics"
                       value={field.value}
                       onChange={field.onChange}
-                      placeholder="e.g. 99.9% uptime, <150ms latency"
-                      helperText="Empirical facts only"
+                      placeholder="e.g. 99.99% SLA uptime, 150k daily active users, $1.2M annual cloud savings"
+                      helperText="Empirical KPIs & numbers (press Enter to add)"
+                      icon={<Sparkles className="size-4 text-amber-500" />}
                     />
                   )}
                 />
