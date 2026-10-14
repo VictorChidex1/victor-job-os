@@ -95,9 +95,11 @@ export function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<"email" | "google" | null>(null);
 
@@ -125,6 +127,10 @@ export function LoginPage() {
   async function handleEmailSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Passwords do not match. Please ensure both passwords match.");
+      return;
+    }
     setSubmitting("email");
     try {
       if (mode === "signup") {
@@ -180,43 +186,44 @@ export function LoginPage() {
       {/* ============================================================ */}
       {/* LEFT STAGE: The Live Intelligence Showcase (Desktop 54% width) */}
       {/* ============================================================ */}
-      <section className="relative z-10 flex flex-1 flex-col justify-between p-8 sm:p-12 lg:p-16 border-b lg:border-b-0 lg:border-r border-slate-200/80 bg-white/40 backdrop-blur-xs">
+      <section className="relative z-10 flex flex-1 flex-col justify-between p-5 sm:p-10 lg:p-16 border-b lg:border-b-0 lg:border-r border-slate-200/80 bg-white/40 backdrop-blur-xs">
         <div>
-          {/* Top Header / Brand Badge */}
-          <div className="flex items-center justify-between gap-4">
-            <Link to="/" className="flex items-center gap-3 group">
+          {/* Top Header / Brand Badge (Responsive & Clean Single-Line Alignment) */}
+          <div className="flex items-center justify-between gap-3 w-full">
+            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
               <img
                 src="/assets/victor-job-os.png"
                 alt="Victor Job OS logo"
-                className="size-8 rounded-lg object-contain shadow-xs group-hover:scale-105 transition-transform"
+                className="size-7 sm:size-8 rounded-lg object-contain shadow-xs group-hover:scale-105 transition-transform shrink-0"
               />
-              <span className="text-base font-bold tracking-tight text-slate-900 group-hover:text-sky-600 transition-colors">
+              <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 whitespace-nowrap group-hover:text-sky-600 transition-colors">
                 Victor Job OS
               </span>
             </Link>
 
-            {/* Live Operational Status Pulse (Clean light-mode pill) */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50 px-3 py-1 text-xs shadow-xs">
-              <span className="relative flex size-2">
+            {/* Live Operational Status Pulse (Responsive & Never Wraps) */}
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/90 px-2.5 py-1 sm:px-3 text-xs shadow-xs shrink-0 whitespace-nowrap">
+              <span className="relative flex size-2 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
               </span>
-              <span className="font-mono text-[0.68rem] font-semibold tracking-wider text-emerald-700 uppercase">
-                System Active · v1.0 Secure
+              <span className="font-mono text-[0.65rem] sm:text-[0.68rem] font-semibold tracking-wider text-emerald-700 uppercase">
+                <span className="sm:hidden">Active · v1.0</span>
+                <span className="hidden sm:inline">System Active · v1.0 Secure</span>
               </span>
             </div>
           </div>
 
           {/* Editorial Headline */}
-          <div className="mt-14 max-w-xl">
-            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-600 mb-3">
+          <div className="mt-8 sm:mt-14 max-w-xl">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-600 mb-2.5 sm:mb-3">
               <Cpu className="size-3.5" />
               Autonomous Career Architecture
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-[1.12]">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-[1.15] sm:leading-[1.12]">
               Your job search, running like a sovereign system.
             </h1>
-            <p className="mt-4 text-base text-slate-600 leading-relaxed max-w-lg">
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-slate-600 leading-relaxed max-w-lg">
               Continuous opportunity discovery, algorithmic fit qualification,
               and verifiable evidence matching — private to you.
             </p>
@@ -224,8 +231,8 @@ export function LoginPage() {
         </div>
 
         {/* The "Expensive" Kinetic Telemetry Terminal Card (Light Mode Luxury) */}
-        <div className="my-10 max-w-xl">
-          <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 backdrop-blur-xl p-6 shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
+        <div className="my-6 sm:my-10 max-w-xl">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 backdrop-blur-xl p-4 sm:p-6 shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
             {/* The Hardware Laser Scan Line (Compositor-only CSS/Motion animation) */}
             <motion.div
               className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-sky-500 to-transparent pointer-events-none opacity-70 shadow-[0_0_12px_rgba(14,165,233,0.5)] z-20"
@@ -330,8 +337,8 @@ export function LoginPage() {
           </div>
         </div>
 
-        {/* Footer Meta */}
-        <div className="text-xs text-slate-500 flex items-center justify-between max-w-xl">
+        {/* Desktop Footer Meta (Hidden on mobile so it does not sit in the middle of the page) */}
+        <div className="hidden lg:flex text-xs text-slate-500 items-center justify-between max-w-xl">
           <span>© {currentYear} Victor Job OS. All rights reserved.</span>
           <span className="font-mono text-[0.7rem] text-slate-500">
             Single-Tenant Architecture
@@ -342,7 +349,7 @@ export function LoginPage() {
       {/* ============================================================ */}
       {/* RIGHT STAGE: The Biometric-Grade Auth Chamber (46% width)     */}
       {/* ============================================================ */}
-      <section className="relative z-10 flex flex-1 items-center justify-center p-6 sm:p-12 lg:p-16">
+      <section className="relative z-10 flex flex-1 flex-col items-center justify-center p-6 sm:p-12 lg:p-16">
         <div
           ref={cardRef}
           onMouseMove={handleCardMouseMove}
@@ -392,6 +399,8 @@ export function LoginPage() {
               onClick={() => {
                 setMode("signin");
                 setError(null);
+                setConfirmPassword("");
+                setShowConfirmPassword(false);
               }}
               className={`py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 mode === "signin"
@@ -406,6 +415,8 @@ export function LoginPage() {
               onClick={() => {
                 setMode("signup");
                 setError(null);
+                setConfirmPassword("");
+                setShowConfirmPassword(false);
               }}
               className={`py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 mode === "signup"
@@ -513,6 +524,48 @@ export function LoginPage() {
               </div>
             </div>
 
+            {/* Confirm Password Field with Show/Hide Eye Toggle (Signup only) */}
+            {mode === "signup" && (
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="confirm-password"
+                  className="text-xs font-medium text-slate-700"
+                >
+                  Confirm Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    required
+                    minLength={6}
+                    placeholder="••••••••••••"
+                    className="h-11 bg-slate-50/70 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-slate-900/10 focus-visible:border-slate-400 pl-10 pr-11 text-sm rounded-xl transition-all shadow-2xs"
+                  />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    aria-label={
+                      showConfirmPassword
+                        ? "Hide confirm password"
+                        : "Show confirm password"
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:text-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10 cursor-pointer"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="size-4" />
+                    ) : (
+                      <Eye className="size-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Error Message */}
             {error && (
               <div
@@ -581,6 +634,14 @@ export function LoginPage() {
               </span>
             </p>
           </div>
+        </div>
+
+        {/* Mobile Footer Meta (Positioned at the true end of the page on mobile) */}
+        <div className="lg:hidden mt-8 w-full max-w-[440px] text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 px-2 text-center sm:text-left">
+          <span>© {currentYear} Victor Job OS. All rights reserved.</span>
+          <span className="font-mono text-[0.7rem] text-slate-500">
+            Single-Tenant Architecture
+          </span>
         </div>
       </section>
     </main>
