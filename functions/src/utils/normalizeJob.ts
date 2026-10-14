@@ -7,6 +7,29 @@ export function fingerprintJob(source: JobSource, sourceJobId: string, title: st
     .digest('hex')
 }
 
+/** Lowercase, strip punctuation, collapse whitespace. */
+export function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
+/** Company + role key used to detect the same job cross-posted to multiple ATS. */
+export function companyTitleKey(companyName: string, title: string): string {
+  return `${normalizeText(companyName)}|${normalizeText(title)}`
+}
+
+/** Hash of the normalized description body, used as a duplicate signal. */
+export function fingerprintDescription(description: string): string {
+  const normalized = normalizeText(description).slice(0, 2000)
+  if (!normalized) {
+    return ''
+  }
+  return createHash('sha256').update(normalized).digest('hex')
+}
+
 export function humanizeBoardSlug(slug: string): string {
   return slug
     .replace(/[-_]/g, ' ')
@@ -32,5 +55,7 @@ export function toNormalizedJob(source: JobSource, raw: RawJob): NormalizedJob {
     sourceMetadata: raw.sourceMetadata,
     status: 'new',
     fingerprint: fingerprintJob(source, raw.sourceJobId, raw.title),
+    companyTitleKey: companyTitleKey(raw.companyName, raw.title),
+    descriptionFingerprint: fingerprintDescription(raw.description),
   }
 }

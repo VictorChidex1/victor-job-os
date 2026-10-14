@@ -20,6 +20,10 @@ export interface NormalizedJob {
   sourceMetadata: Record<string, unknown>
   status: JobStatus
   fingerprint: string
+  /** Normalized company + title, used for cross-source duplicate detection. */
+  companyTitleKey: string
+  /** Hash of the normalized description, used for duplicate detection. */
+  descriptionFingerprint: string
 }
 
 export interface RawJob {

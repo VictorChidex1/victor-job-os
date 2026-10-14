@@ -23,6 +23,7 @@ const opportunitySchema = z.object({
   remotePreference: z.boolean(),
   minFitScore: z.number().min(0).max(100),
   employmentTypes: z.array(z.string()),
+  seniorityLevels: z.array(z.string()),
   excludedRoles: z.array(z.string()),
   excludedCompanies: z.array(z.string()),
   dailyTarget: z.number().min(1).max(100),
@@ -44,6 +45,7 @@ const defaultOpportunity: OpportunityFormValues = {
   remotePreference: true,
   minFitScore: 60,
   employmentTypes: [],
+  seniorityLevels: [],
   excludedRoles: [],
   excludedCompanies: [],
   dailyTarget: 20,
@@ -131,6 +133,7 @@ export function SettingsPage() {
         remotePreference: settings.opportunity?.remotePreference ?? true,
         minFitScore: settings.opportunity?.minFitScore ?? 60,
         employmentTypes: settings.opportunity?.employmentTypes ?? [],
+        seniorityLevels: settings.opportunity?.seniorityLevels ?? [],
         excludedRoles: settings.opportunity?.excludedRoles ?? [],
         excludedCompanies: settings.opportunity?.excludedCompanies ?? [],
         dailyTarget: settings.opportunity?.dailyTarget ?? 20,
@@ -252,6 +255,18 @@ export function SettingsPage() {
                     )}
                   />
                   <Controller
+                    name="seniorityLevels"
+                    control={opportunityForm.control}
+                    render={({ field }) => (
+                      <CommaListField
+                        label="Seniority levels"
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Mid, Senior"
+                      />
+                    )}
+                  />
+                  <Controller
                     name="excludedRoles"
                     control={opportunityForm.control}
                     render={({ field }) => (
@@ -316,9 +331,9 @@ export function SettingsPage() {
                   render={({ field }) => (
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <Label htmlFor="remotePreference">Prefer remote</Label>
+                        <Label htmlFor="remotePreference">Remote only</Label>
                         <p className="text-xs text-muted-foreground">
-                          Remote opportunities are prioritized.
+                          When on, discovery and qualification are limited to remote opportunities.
                         </p>
                       </div>
                       <Switch

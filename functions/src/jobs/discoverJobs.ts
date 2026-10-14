@@ -3,7 +3,9 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAdapter, type JobSource, type NormalizedJob } from '../adapters/ats/index.js'
-import { deduplicateJobs } from '../utils/deduplicateJob.js'
+import { deduplicateJobs, type ExistingJobKeys } from '../utils/deduplicateJob.js'
+import { companyTitleKey, fingerprintDescription } from '../utils/normalizeJob.js'
+import { loadOpportunityFilters, jobMatchesFilters } from './filters.js'
 import { qualifyPendingJobs } from './qualification.js'
 
 interface JobSourceDoc {
@@ -30,16 +32,26 @@ async function loadSources(uid: string): Promise<JobSourceDoc[]> {
     .filter((source) => source.enabled === true)
 }
 
-async function existingJobKeys(uid: string): Promise<{ fingerprints: Set<string>; urls: Set<string> }> {
+async function existingJobKeys(uid: string): Promise<ExistingJobKeys> {
   const fingerprints = new Set<string>()
   const urls = new Set<string>()
+  const companyTitles = new Set<string>()
+  const descriptionFingerprints = new Set<string>()
   const snapshot = await db.collection('jobs').where('userId', '==', uid).get()
   for (const doc of snapshot.docs) {
     const data = doc.data()
     if (data.fingerprint) fingerprints.add(data.fingerprint as string)
     if (data.applicationUrl) urls.add(data.applicationUrl as string)
+    const companyTitle =
+      (data.companyTitleKey as string | undefined) ||
+      companyTitleKey((data.companyName as string) ?? '', (data.title as string) ?? '')
+    if (companyTitle !== '|') companyTitles.add(companyTitle)
+    const descriptionFingerprint =
+      (data.descriptionFingerprint as string | undefined) ||
+      fingerprintDescription((data.description as string) ?? '')
+    if (descriptionFingerprint) descriptionFingerprints.add(descriptionFingerprint)
   }
-  return { fingerprints, urls }
+  return { fingerprints, urls, companyTitles, descriptionFingerprints }
 }
 
 async function storeJobs(jobs: NormalizedJob[], searchTerms: string[], uid: string): Promise<number> {
@@ -93,7 +105,8 @@ export async function runDiscovery(uid: string): Promise<{ stored: number; dupli
     return { stored: 0, duplicates: 0, results: [] }
   }
 
-  const { fingerprints, urls } = await existingJobKeys(uid)
+  const filters = await loadOpportunityFilters(uid)
+  const existing = await existingJobKeys(uid)
   let stored = 0
   let duplicates = 0
   const results: DiscoveryResult[] = []
@@ -111,9 +124,17 @@ export async function runDiscovery(uid: string): Promise<{ stored: number; dupli
     for (const target of targets) {
       try {
         const discovered = await adapter.discover(target)
-        const filtered = filterJobsBySearchTerms(discovered, source.searchTerms)
-        const unique = deduplicateJobs(filtered, fingerprints, urls)
-        duplicates += filtered.length - unique.length
+        const byTerms = filterJobsBySearchTerms(discovered, source.searchTerms)
+        const filtered = byTerms.filter((job) => jobMatchesFilters(job, filters).ok)
+        const unique = deduplicateJobs(filtered, existing)
+        duplicates += byTerms.length - unique.length
+        // Accumulate keys so later sources/targets in this run dedupe against these too.
+        for (const job of unique) {
+          existing.fingerprints.add(job.fingerprint)
+          if (job.applicationUrl) existing.urls.add(job.applicationUrl)
+          if (job.companyTitleKey) existing.companyTitles.add(job.companyTitleKey)
+          if (job.descriptionFingerprint) existing.descriptionFingerprints.add(job.descriptionFingerprint)
+        }
         const count = await storeJobs(unique, source.searchTerms, uid)
         stored += count
         results.push({ source: source.source, boardTarget: target, count: unique.length })

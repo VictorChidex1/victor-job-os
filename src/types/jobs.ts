@@ -34,10 +34,13 @@ export interface JobAnalysis {
   fitScore?: number
   technicalFit: string
   experienceFit: string
+  remoteFit: string
+  roleType: string
   stackMatch: string[]
   matchedSkills: string[]
   missingSkills: string[]
   concerns: string[]
+  recommendation: string
   summary: string
   analyzedAt: Timestamp
   aiProvider: string

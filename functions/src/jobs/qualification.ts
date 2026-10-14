@@ -2,9 +2,21 @@ import { initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue, type DocumentReference } from 'firebase-admin/firestore'
 import { getAIService } from '../ai/index.js'
 import type { PortfolioMatchOutput } from '../ai/types.js'
+import { loadOpportunityFilters, jobMatchesFilters } from './filters.js'
 
 initializeApp()
 const db = getFirestore()
+
+function providerName(): string {
+  return (process.env.AI_PROVIDER ?? 'gemini').toLowerCase()
+}
+
+function providerModel(): string {
+  if (providerName() === 'openai') {
+    return process.env.OPENAI_MODEL ?? 'gpt-4o-mini'
+  }
+  return process.env.GEMINI_MODEL ?? 'gemini-3.8-flash'
+}
 
 export interface JobDoc {
   userId?: string
@@ -72,10 +84,13 @@ export interface AnalysisRecord {
   fitScore?: number
   technicalFit: string
   experienceFit: string
+  remoteFit: string
+  roleType: string
   stackMatch: string[]
   matchedSkills: string[]
   missingSkills: string[]
   concerns: string[]
+  recommendation: string
   summary: string
   matchedProjectIds?: string[]
   projectMatchReasons?: Record<string, string>
@@ -117,6 +132,11 @@ export async function analyzeJobWithAI(
       summary: data.summary ?? '',
       technologies: data.technologies ?? [],
       relevanceTags: data.relevanceTags ?? [],
+      problem: data.problem ?? undefined,
+      solution: data.solution ?? undefined,
+      outcomes: data.outcomes ?? [],
+      verifiedMetrics: data.verifiedMetrics ?? [],
+      url: data.url ?? undefined,
     }
   })
 
@@ -134,22 +154,25 @@ export async function analyzeJobWithAI(
     fitScore: analysis.fitScore,
     technicalFit: analysis.technicalFit,
     experienceFit: analysis.experienceFit,
+    remoteFit: analysis.remoteFit,
+    roleType: analysis.roleType,
     stackMatch: analysis.stackMatch,
     matchedSkills: analysis.matchedSkills,
     missingSkills: analysis.missingSkills,
     concerns: analysis.concerns,
+    recommendation: analysis.recommendation,
     summary: analysis.summary,
     matchedProjectIds: match.projectIds,
     projectMatchReasons: match.reasons,
     analyzedAt: FieldValue.serverTimestamp(),
-    aiProvider: 'gemini',
-    model: 'gemini-3.8-flash',
+    aiProvider: providerName(),
+    model: providerModel(),
   }
 }
 
-export async function storeAnalysis(jobId: string, record: AnalysisRecord): Promise<void> {
+export async function storeAnalysis(jobId: string, record: AnalysisRecord, threshold: number): Promise<void> {
   await db.collection('jobAnalyses').add(record)
-  const qualified = (record.fitScore ?? 0) >= 60
+  const qualified = (record.fitScore ?? 0) >= threshold
   await db.collection('jobs').doc(jobId).update({
     status: qualified ? 'qualified' : 'rejected',
     updatedAt: FieldValue.serverTimestamp(),
@@ -208,19 +231,22 @@ export async function qualifyPendingJobs(
   limitCount: number,
 ): Promise<{ analyzed: number; results: QualificationResult[] }> {
   const profile = await getProfile(uid)
-  const pending = await unanalyzedJobs(uid, limitCount)
+  const filters = await loadOpportunityFilters(uid)
+  const pending = (await unanalyzedJobs(uid, limitCount)).filter(
+    (job) => jobMatchesFilters(job.data, filters).ok,
+  )
   let analyzed = 0
   const results: QualificationResult[] = []
 
   for (const job of pending) {
     try {
       const record = await analyzeJobWithAI(uid, job.id, job.data, profile)
-      await storeAnalysis(job.id, record)
+      await storeAnalysis(job.id, record, filters.minFitScore)
       analyzed += 1
       results.push({
         jobId: job.id,
         fitScore: record.fitScore,
-        status: (record.fitScore ?? 0) >= 60 ? 'qualified' : 'rejected',
+        status: (record.fitScore ?? 0) >= filters.minFitScore ? 'qualified' : 'rejected',
       })
     } catch (error) {
       results.push({

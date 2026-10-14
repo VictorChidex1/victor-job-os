@@ -201,13 +201,30 @@ export function OpportunityViewPage() {
             <LoadingState label="Loading fit analysis…" rows={3} />
           ) : analysis ? (
             <div className="flex flex-col gap-3">
-              <div className="text-3xl font-bold text-foreground">
-                {analysis.fitScore ?? '—'}
-                <span className="ml-1 text-sm font-medium text-muted-foreground">/ 100</span>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-3xl font-bold text-foreground">
+                  {analysis.fitScore ?? '—'}
+                  <span className="ml-1 text-sm font-medium text-muted-foreground">/ 100</span>
+                </div>
+                {analysis.recommendation && (
+                  <Badge
+                    variant={analysis.recommendation === 'pursue' ? 'secondary' : 'outline'}
+                    className="capitalize"
+                  >
+                    {analysis.recommendation}
+                  </Badge>
+                )}
               </div>
               <Separator />
+              {analysis.roleType && (
+                <div className="flex items-center justify-between gap-3 py-1.5">
+                  <span className="text-sm text-muted-foreground">Role type</span>
+                  <Badge variant="outline" className="capitalize">{analysis.roleType}</Badge>
+                </div>
+              )}
               <FitMetric label="Technical fit" value={analysis.technicalFit} />
               <FitMetric label="Experience fit" value={analysis.experienceFit} />
+              {analysis.remoteFit && <FitMetric label="Remote fit" value={analysis.remoteFit} />}
               <Separator />
               <div>
                 <div className="text-xs font-medium text-muted-foreground">Matched skills</div>
@@ -281,7 +298,24 @@ export function OpportunityViewPage() {
                 </a>
               )}
               {company.industry && <div><span className="font-medium text-foreground">Industry:</span> {company.industry}</div>}
+              {company.product && <div><span className="font-medium text-foreground">Product/service:</span> {company.product}</div>}
               {company.description && <p>{company.description}</p>}
+              {company.roleContext && (
+                <div className="rounded-md bg-muted/40 p-3">
+                  <div className="text-xs font-semibold text-muted-foreground">Role context</div>
+                  <p className="mt-1">{company.roleContext}</p>
+                </div>
+              )}
+              {company.hiringSignals.length > 0 && (
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">Hiring signals</div>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {company.hiringSignals.map((signal, index) => (
+                      <Badge key={index} variant="outline" className="text-[0.65rem]">{signal}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               {company.researchSummary && (
                 <div className="rounded-md bg-muted/40 p-3">
                   <div className="text-xs font-semibold text-muted-foreground">AI summary</div>

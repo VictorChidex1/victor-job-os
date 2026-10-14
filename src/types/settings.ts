@@ -19,6 +19,7 @@ export interface OpportunitySettings {
   remotePreference: boolean
   minFitScore: number
   employmentTypes: string[]
+  seniorityLevels: string[]
   excludedRoles: string[]
   excludedCompanies: string[]
   dailyTarget: number

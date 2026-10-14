@@ -3,6 +3,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAIService } from '../ai/index.js'
 import { qualifyPendingJobs, analyzeJobWithAI, storeAnalysis, getJob, getProfile } from './qualification.js'
+import { loadOpportunityFilters } from './filters.js'
 
 initializeApp()
 const db = getFirestore()
@@ -32,13 +33,14 @@ export const analyzeJob = onCall(
     }
 
     const profile = await getProfile(uid)
+    const filters = await loadOpportunityFilters(uid)
     const record = await analyzeJobWithAI(uid, data.jobId, job, profile)
-    await storeAnalysis(data.jobId, record)
+    await storeAnalysis(data.jobId, record, filters.minFitScore)
 
     return {
       jobId: data.jobId,
       fitScore: record.fitScore,
-      status: (record.fitScore ?? 0) >= 60 ? 'qualified' : 'rejected',
+      status: (record.fitScore ?? 0) >= filters.minFitScore ? 'qualified' : 'rejected',
     }
   },
 )
@@ -79,6 +81,9 @@ export const researchOpportunity = onCall(
       industry: research.industry ?? null,
       description: research.description ?? null,
       website: research.website ?? null,
+      product: research.product ?? null,
+      roleContext: research.roleContext ?? null,
+      hiringSignals: research.hiringSignals ?? [],
       researchSummary: research.researchSummary ?? null,
       sourceUrls: research.sourceUrls ?? [],
       lastResearchedAt: FieldValue.serverTimestamp(),

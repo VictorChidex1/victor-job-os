@@ -1,3 +1,7 @@
+export type FitLevel = 'strong' | 'moderate' | 'weak'
+
+export type Recommendation = 'pursue' | 'maybe' | 'skip'
+
 export interface JobAnalysisInput {
   job: {
     title: string
@@ -19,12 +23,15 @@ export interface JobAnalysisInput {
 
 export interface JobAnalysisOutput {
   fitScore: number
-  technicalFit: 'strong' | 'moderate' | 'weak'
-  experienceFit: 'strong' | 'moderate' | 'weak'
+  technicalFit: FitLevel
+  experienceFit: FitLevel
+  remoteFit: FitLevel
+  roleType: string
   stackMatch: string[]
   matchedSkills: string[]
   missingSkills: string[]
   concerns: string[]
+  recommendation: Recommendation
   summary: string
 }
 
@@ -36,6 +43,9 @@ export interface CompanyResearchOutput {
   industry?: string
   description?: string
   website?: string
+  product?: string
+  roleContext?: string
+  hiringSignals: string[]
   researchSummary?: string
   sourceUrls: string[]
 }
@@ -52,6 +62,11 @@ export interface PortfolioMatchInput {
     summary: string
     technologies: string[]
     relevanceTags: string[]
+    problem?: string
+    solution?: string
+    outcomes?: string[]
+    verifiedMetrics?: string[]
+    url?: string
   }>
 }
 

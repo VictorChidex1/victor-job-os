@@ -11,6 +11,7 @@ export const defaultSettings: Omit<JobOsSettings, 'id' | 'updatedAt'> = {
     remotePreference: true,
     minFitScore: 60,
     employmentTypes: [],
+    seniorityLevels: [],
     excludedRoles: [],
     excludedCompanies: [],
     dailyTarget: 20,
