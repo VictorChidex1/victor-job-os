@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /app/
 Disallow: /login
+Disallow: /forgot-password
 
 Sitemap: https://victor-job-os.web.app/sitemap.xml

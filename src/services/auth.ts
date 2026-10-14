@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
   signInWithPopup,
   signOut,
   GoogleAuthProvider,
@@ -44,6 +45,13 @@ export async function signUpWithEmail(
 
 export async function signInWithGoogle(): Promise<UserCredential> {
   return signInWithPopup(auth, new GoogleAuthProvider())
+}
+
+export async function sendPasswordReset(email: string): Promise<void> {
+  return sendPasswordResetEmail(auth, email, {
+    url: `${window.location.origin}/login`,
+    handleCodeInApp: false,
+  })
 }
 
 export async function signOutUser(): Promise<void> {

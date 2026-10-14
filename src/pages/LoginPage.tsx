@@ -475,9 +475,12 @@ export function LoginPage() {
                   Password
                 </Label>
                 {mode === "signin" && (
-                  <span className="text-[0.7rem] text-slate-400 font-mono">
-                    Encrypted Auth
-                  </span>
+                  <Link
+                    to="/forgot-password"
+                    className="text-[0.7rem] font-medium text-sky-600 hover:text-sky-700 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
                 )}
               </div>
               <div className="relative">

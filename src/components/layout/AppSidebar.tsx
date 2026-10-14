@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router'
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Home, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { navGroups } from '@/components/layout/nav-config'
+import { signOutUser } from '@/services/auth'
 
 interface AppSidebarProps {
   collapsed?: boolean
@@ -98,39 +99,95 @@ export function AppSidebar({ collapsed = false, onToggle }: AppSidebarProps) {
         ))}
       </nav>
 
-      <div className="shrink-0 border-t p-2">
+      <div className="shrink-0 space-y-1 border-t p-2">
         {collapsed ? (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onToggle}
-                  aria-label="Expand sidebar"
-                  className="mx-auto flex size-8 text-sidebar-foreground/80"
-                />
-              }
-            >
-              <PanelLeftOpen className="size-4" />
-            </TooltipTrigger>
-            <TooltipContent side="right">Expand sidebar</TooltipContent>
-          </Tooltip>
+          <>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Link
+                    to="/"
+                    aria-label="Back to home"
+                    className={cn(
+                      buttonVariants({ variant: 'ghost', size: 'icon' }),
+                      'mx-auto flex size-8 text-sidebar-foreground/80',
+                    )}
+                  />
+                }
+              >
+                <Home className="size-4" />
+              </TooltipTrigger>
+              <TooltipContent side="right">Back to home</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => void signOutUser()}
+                    aria-label="Sign out"
+                    className="mx-auto flex size-8 text-sidebar-foreground/80"
+                  />
+                }
+              >
+                <LogOut className="size-4" />
+              </TooltipTrigger>
+              <TooltipContent side="right">Sign out</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onToggle}
+                    aria-label="Expand sidebar"
+                    className="mx-auto flex size-8 text-sidebar-foreground/80"
+                  />
+                }
+              >
+                <PanelLeftOpen className="size-4" />
+              </TooltipTrigger>
+              <TooltipContent side="right">Expand sidebar</TooltipContent>
+            </Tooltip>
+          </>
         ) : (
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate px-2 text-[0.7rem] text-muted-foreground">
-              V1 · Opportunity Intelligence
-            </span>
+          <>
+            <Link
+              to="/"
+              className={cn(
+                buttonVariants({ variant: 'ghost', size: 'sm' }),
+                'w-full justify-start gap-2.5 text-sidebar-foreground/80',
+              )}
+            >
+              <Home className="shrink-0" />
+              <span className="min-w-0 flex-1 truncate text-left">Back to home</span>
+            </Link>
             <Button
               variant="ghost"
-              size="icon-sm"
-              onClick={onToggle}
-              aria-label="Collapse sidebar"
-              className="shrink-0 text-sidebar-foreground/80"
+              size="sm"
+              onClick={() => void signOutUser()}
+              className="w-full justify-start gap-2.5 text-destructive hover:text-destructive"
             >
-              <PanelLeftClose className="size-4" />
+              <LogOut className="shrink-0" />
+              <span className="min-w-0 flex-1 truncate text-left">Sign out</span>
             </Button>
-          </div>
+            <div className="flex items-center justify-between gap-2 px-1 pt-1">
+              <span className="truncate text-[0.7rem] text-muted-foreground">
+                V1 · Opportunity Intelligence
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onToggle}
+                aria-label="Collapse sidebar"
+                className="shrink-0 text-sidebar-foreground/80"
+              >
+                <PanelLeftClose className="size-4" />
+              </Button>
+            </div>
+          </>
         )}
       </div>
     </aside>

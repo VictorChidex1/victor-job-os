@@ -102,11 +102,11 @@ export function TopBar({ onMenuClick, onToggleSidebar }: TopBarProps) {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="default" onSelect={() => navigate('/profile')}>
+          <DropdownMenuItem variant="default" onSelect={() => navigate('/app/profile')}>
             <User />
             Profile
           </DropdownMenuItem>
-          <DropdownMenuItem variant="default" onSelect={() => navigate('/settings')}>
+          <DropdownMenuItem variant="default" onSelect={() => navigate('/app/settings')}>
             <Settings />
             Settings
           </DropdownMenuItem>
