@@ -20,6 +20,7 @@ function providerModel(): string {
 
 export interface JobDoc {
   userId?: string
+  companyId?: string
   title: string
   description: string
   location?: string

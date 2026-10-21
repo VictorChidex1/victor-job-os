@@ -29,4 +29,6 @@ export type {
   CompanyResearchOutput,
   PortfolioMatchInput,
   PortfolioMatchOutput,
+  PitchInput,
+  PitchOutput,
 } from './types.js'

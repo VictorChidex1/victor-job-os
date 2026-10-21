@@ -31,6 +31,14 @@ export const OpportunityViewPage = lazy(() =>
   import('@/pages/OpportunityViewPage').then((module) => ({ default: module.OpportunityViewPage })),
 )
 
+export const OutreachPage = lazy(() =>
+  import('@/pages/OutreachPage').then((module) => ({ default: module.OutreachPage })),
+)
+
+export const OutreachEditorPage = lazy(() =>
+  import('@/pages/OutreachEditorPage').then((module) => ({ default: module.OutreachEditorPage })),
+)
+
 export function AppShellLoader() {
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
@@ -95,6 +103,22 @@ export function OpportunityViewRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <OpportunityViewPage />
+    </Suspense>
+  )
+}
+
+export function OutreachRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <OutreachPage />
+    </Suspense>
+  )
+}
+
+export function OutreachEditorRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <OutreachEditorPage />
     </Suspense>
   )
 }

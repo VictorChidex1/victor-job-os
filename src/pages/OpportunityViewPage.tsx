@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { httpsCallable } from 'firebase/functions'
 import { toast } from 'sonner'
-import { ArrowLeft, ChevronRight, ExternalLink, Sparkles } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ExternalLink, Mail, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +31,7 @@ function FitMetric({ label, value }: { label: string; value: string }) {
 
 export function OpportunityViewPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   usePageMeta({
     title: 'Opportunity — Victor Job OS',
     description: 'Review an opportunity fit analysis and company research.',
@@ -42,6 +43,7 @@ export function OpportunityViewPage() {
   const [error, setError] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [researching, setResearching] = useState(false)
+  const [drafting, setDrafting] = useState(false)
 
   const { analysis, loading: analysisLoading, refresh: refreshAnalysis } = useJobAnalysis(id)
   const { company, loading: companyLoading, refresh: refreshCompany } = useCompany(job?.companyId)
@@ -141,6 +143,26 @@ export function OpportunityViewPage() {
     }
   }
 
+  async function runDraftOutreach() {
+    setDrafting(true)
+    try {
+      const callable = httpsCallable<{ jobId: string }, { outreachId: string; existing: boolean }>(
+        functions,
+        'generatePitch',
+      )
+      const response = await callable({ jobId })
+      toast(response.data.existing ? 'Outreach already drafted' : 'Outreach draft created')
+      navigate(`/app/outreach/${response.data.outreachId}`)
+    } catch (draftError) {
+      const message = draftError instanceof Error ? draftError.message : ''
+      toast('Unable to draft outreach', {
+        description: message || 'Cloud Functions are not available yet.',
+      })
+    } finally {
+      setDrafting(false)
+    }
+  }
+
   if (loading) {
     return (
       <PageContainer title="Opportunity">
@@ -169,6 +191,10 @@ export function OpportunityViewPage() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => void runResearch()} disabled={researching}>
             {researching ? 'Researching…' : 'Company research'}
+          </Button>
+          <Button size="sm" onClick={() => void runDraftOutreach()} disabled={drafting}>
+            <Mail />
+            {drafting ? 'Drafting…' : 'Draft outreach'}
           </Button>
           <Button size="sm" variant="outline" render={<a href={job.applicationUrl} target="_blank" rel="noreferrer" />}>
             <ExternalLink />

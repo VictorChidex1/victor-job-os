@@ -4,15 +4,19 @@ import type {
   CompanyResearchOutput,
   JobAnalysisInput,
   JobAnalysisOutput,
+  PitchInput,
+  PitchOutput,
   PortfolioMatchInput,
   PortfolioMatchOutput,
 } from './types.js'
 import {
   buildAnalyzeJobPrompt,
   buildCompanyPrompt,
+  buildPitchPrompt,
   buildPortfolioPrompt,
   mapAnalysis,
   mapCompany,
+  mapPitch,
   mapPortfolio,
 } from './prompts.js'
 
@@ -92,5 +96,10 @@ export const openaiProvider: AIService = {
   async matchPortfolio(input: PortfolioMatchInput): Promise<PortfolioMatchOutput> {
     const raw = await generateStructured<Partial<PortfolioMatchOutput>>(buildPortfolioPrompt(input))
     return mapPortfolio(raw, input)
+  },
+
+  async generatePitch(input: PitchInput): Promise<PitchOutput> {
+    const raw = await generateStructured<Partial<PitchOutput>>(buildPitchPrompt(input))
+    return mapPitch(raw)
   },
 }

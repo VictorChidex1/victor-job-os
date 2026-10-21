@@ -3,6 +3,8 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { RunDiscoveryButton } from '@/components/dashboard/RunDiscoveryButton'
 import { RecentOpportunities } from '@/components/dashboard/RecentOpportunities'
 import { useJobs } from '@/hooks/useJobs'
+import { useOutreach } from '@/hooks/useOutreach'
+import { useFollowUps } from '@/hooks/useFollowUps'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { motion } from 'framer-motion'
 
@@ -70,6 +72,43 @@ function ActiveRadarState({ title, description }: { title: string, description: 
   )
 }
 
+interface Metric {
+  label: string
+  value: string
+  to: string
+}
+
+function MetricGrid({ metrics }: { metrics: Metric[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {metrics.map((metric) => (
+        <motion.div
+          key={metric.label}
+          variants={itemVariants}
+          className="relative group overflow-hidden rounded-2xl bg-background border border-border/60 p-6 shadow-sm hover:shadow-md transition-all"
+        >
+          <Link
+            to={metric.to}
+            className="absolute inset-0 z-10 rounded-2xl"
+            aria-label={`View ${metric.label}`}
+          >
+            <span className="sr-only">{metric.label}</span>
+          </Link>
+          {/* Glowing Top Edge on Hover */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+          <div className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground mb-4">
+            {metric.label}
+          </div>
+          <div className="text-4xl font-black text-foreground font-mono tracking-tighter">
+            {metric.value}
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  )
+}
+
 // --- Main Page ---
 export function DashboardPage() {
   usePageMeta({
@@ -79,16 +118,43 @@ export function DashboardPage() {
     path: '/app/dashboard',
   })
   const { jobs, loading, refresh } = useJobs()
+  const { items: outreach } = useOutreach()
+  const { items: followUps } = useFollowUps()
 
   const newCount = jobs.filter((job) => job.status === 'new').length
   const qualifiedCount = jobs.filter((job) => job.status === 'qualified').length
   const awaitingCount = jobs.filter((job) => job.status === 'rejected').length
 
-  const metrics = [
+  const now = new Date()
+  const draftsAwaiting = outreach.filter(
+    (item) => item.status === 'needs-review' || item.status === 'draft',
+  ).length
+  const approvedCount = outreach.filter(
+    (item) => item.status === 'approved' || item.status === 'scheduled',
+  ).length
+  const sentToday = outreach.filter((item) => {
+    const sent = item.sentAt?.toDate?.()
+    return sent ? sent.toDateString() === now.toDateString() : false
+  }).length
+  const replies = outreach.filter((item) => item.status === 'replied').length
+  const followUpsDue = followUps.filter((item) => {
+    if (item.status !== 'pending') return false
+    const due = item.scheduledFor?.toDate?.() ?? now
+    return due <= now
+  }).length
+
+  const metrics: Metric[] = [
     { label: 'New opportunities', value: String(newCount), to: '/app/opportunities?status=new' },
     { label: 'Qualified', value: String(qualifiedCount), to: '/app/opportunities?status=qualified' },
     { label: 'Awaiting review', value: String(awaitingCount), to: '/app/opportunities?status=rejected' },
-    { label: 'Follow-ups due', value: '0', to: '/app/outreach' },
+    { label: 'Follow-ups due', value: String(followUpsDue), to: '/app/outreach' },
+  ]
+
+  const outreachMetrics: Metric[] = [
+    { label: 'Drafts awaiting review', value: String(draftsAwaiting), to: '/app/outreach' },
+    { label: 'Approved', value: String(approvedCount), to: '/app/outreach' },
+    { label: 'Sent today', value: String(sentToday), to: '/app/outreach' },
+    { label: 'Replies', value: String(replies), to: '/app/outreach' },
   ]
 
   return (
@@ -104,32 +170,13 @@ export function DashboardPage() {
         className="flex flex-col gap-8 pb-10"
       >
         
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {metrics.map((metric) => (
-            <motion.div
-              key={metric.label}
-              variants={itemVariants}
-              className="relative group overflow-hidden rounded-2xl bg-background border border-border/60 p-6 shadow-sm hover:shadow-md transition-all"
-            >
-              <Link
-                to={metric.to}
-                className="absolute inset-0 z-10 rounded-2xl"
-                aria-label={`View ${metric.label}`}
-              >
-                <span className="sr-only">{metric.label}</span>
-              </Link>
-              {/* Glowing Top Edge on Hover */}
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              
-              <div className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground mb-4">
-                {metric.label}
-              </div>
-              <div className="text-4xl font-black text-foreground font-mono tracking-tighter">
-                {metric.value}
-              </div>
-            </motion.div>
-          ))}
+        {/* Opportunity metrics */}
+        <MetricGrid metrics={metrics} />
+
+        {/* Outreach metrics */}
+        <div className="flex flex-col gap-3">
+          <h2 className="px-1 text-sm font-bold text-foreground">Outreach</h2>
+          <MetricGrid metrics={outreachMetrics} />
         </div>
 
         {/* Priority & Queue Grid */}
@@ -145,8 +192,8 @@ export function DashboardPage() {
           <motion.div variants={itemVariants} className="flex flex-col gap-3">
              <h2 className="text-sm font-bold text-foreground px-1">Outreach queue</h2>
              <ActiveRadarState 
-               title="No drafts awaiting review"
-               description="Outreach drafts that need your attention will appear here."
+               title={draftsAwaiting > 0 ? `${draftsAwaiting} draft${draftsAwaiting === 1 ? '' : 's'} awaiting review` : 'No drafts awaiting review'}
+               description={draftsAwaiting > 0 ? 'Open Outreach to review, approve, and send them.' : 'Outreach drafts that need your attention will appear here.'}
              />
           </motion.div>
         </div>

@@ -75,8 +75,58 @@ export interface PortfolioMatchOutput {
   reasons: Record<string, string>
 }
 
+export interface PitchInput {
+  job: {
+    title: string
+    description: string
+    location?: string
+  }
+  analysis?: {
+    fitScore?: number
+    roleType?: string
+    matchedSkills: string[]
+    missingSkills: string[]
+    summary?: string
+  }
+  company?: {
+    name: string
+    industry?: string
+    description?: string
+    product?: string
+    roleContext?: string
+    hiringSignals: string[]
+    researchSummary?: string
+  }
+  contact?: {
+    name?: string
+    role?: string
+  }
+  profile: {
+    headline: string
+    summary: string
+    skills: string[]
+    technologies: string[]
+    preferredRoles: string[]
+    experienceLevel?: string
+  }
+  projects: Array<{
+    title: string
+    summary: string
+    technologies: string[]
+    outcomes?: string[]
+    verifiedMetrics?: string[]
+    url?: string
+  }>
+}
+
+export interface PitchOutput {
+  subject: string
+  body: string
+}
+
 export interface AIService {
   analyzeJob(input: JobAnalysisInput): Promise<JobAnalysisOutput>
   researchCompany(input: CompanyResearchInput): Promise<CompanyResearchOutput>
   matchPortfolio(input: PortfolioMatchInput): Promise<PortfolioMatchOutput>
+  generatePitch(input: PitchInput): Promise<PitchOutput>
 }
