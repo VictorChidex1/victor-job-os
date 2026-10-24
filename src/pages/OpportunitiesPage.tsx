@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -7,9 +7,11 @@ import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
-import { useJobs } from '@/hooks/useJobs'
-import { usePageMeta } from '@/hooks/usePageMeta'
 import { QualifyNewButton } from '@/components/dashboard/QualifyNewButton'
+import { useJobCounts } from '@/hooks/useJobCounts'
+import { useJobsPage } from '@/hooks/useJobsPage'
+import { usePageMeta } from '@/hooks/usePageMeta'
+import { SELECTABLE_SOURCE_IDS, SOURCE_LABELS } from '@/lib/job-sources'
 import type { Job } from '@/types/jobs'
 
 const statusLabels: Record<string, string> = {
@@ -38,9 +40,14 @@ function OpportunityCard({ job }: { job: Job }) {
             {statusLabels[job.status] ?? job.status}
           </Badge>
         </div>
-        <div className="text-sm text-muted-foreground">
-          {job.remote ? 'Remote' : job.location || 'Location unknown'}
-          {job.employmentType ? ` · ${job.employmentType}` : ''}
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            {job.remote ? 'Remote' : job.location || 'Location unknown'}
+            {job.employmentType ? ` · ${job.employmentType}` : ''}
+          </span>
+          <Badge variant="outline" className="text-[0.6rem]">
+            {SOURCE_LABELS[job.source] ?? job.source}
+          </Badge>
         </div>
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-wrap gap-1">
@@ -62,6 +69,48 @@ function OpportunityCard({ job }: { job: Job }) {
   )
 }
 
+function PaginationBar({
+  page,
+  totalPages,
+  total,
+  isSearch,
+  hasPrev,
+  hasNext,
+  loading,
+  onPrev,
+  onNext,
+}: {
+  page: number
+  totalPages: number
+  total: number
+  isSearch: boolean
+  hasPrev: boolean
+  hasNext: boolean
+  loading: boolean
+  onPrev: () => void
+  onNext: () => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background px-4 py-2">
+      <div className="text-xs text-muted-foreground">
+        {total} {isSearch ? 'matching ' : ''}
+        {total === 1 ? 'job' : 'jobs'} · Page {page} of {totalPages}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={onPrev} disabled={!hasPrev || loading}>
+          Previous
+        </Button>
+        <span className="min-w-[100px] text-center text-sm font-medium">
+          Page {page} of {totalPages}
+        </span>
+        <Button variant="outline" size="sm" onClick={onNext} disabled={!hasNext || loading}>
+          Next
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function OpportunitiesPage() {
   usePageMeta({
     title: 'Opportunities — Victor Job OS',
@@ -69,38 +118,47 @@ export function OpportunitiesPage() {
     noindex: true,
     path: '/app/opportunities',
   })
-  const { jobs, loading, error, refresh } = useJobs()
+
   const [searchParams, setSearchParams] = useSearchParams()
-  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
 
   const statusFilter = searchParams.get('status') ?? ''
   const activeStatus = statusFilter && statusLabels[statusFilter] ? statusFilter : ''
 
-  const sources = useMemo(() => {
-    const values = jobs.map((job) => job.source)
-    return ['all', ...Array.from(new Set(values))]
-  }, [jobs])
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 350)
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    return jobs.filter((job) => {
-      if (activeStatus && job.status !== activeStatus) return false
-      if (sourceFilter !== 'all' && job.source !== sourceFilter) return false
-      if (!term) return true
-      return (
-        job.title.toLowerCase().includes(term) ||
-        (job.companyName ?? '').toLowerCase().includes(term) ||
-        (job.location ?? '').toLowerCase().includes(term)
-      )
-    })
-  }, [jobs, search, sourceFilter, activeStatus])
+  const {
+    jobs,
+    loading,
+    error,
+    isSearch,
+    page,
+    totalPages,
+    total,
+    hasNext,
+    hasPrev,
+    nextPage,
+    prevPage,
+    refresh,
+  } = useJobsPage({
+    source: sourceFilter !== 'all' ? sourceFilter : undefined,
+    status: activeStatus || undefined,
+    search: debouncedSearch,
+  })
+  const { counts } = useJobCounts()
 
-  const title = activeStatus
-    ? statusLabels[activeStatus] === 'New'
-      ? 'New opportunities'
-      : `${statusLabels[activeStatus]} opportunities`
-    : 'Opportunities'
+  const title = isSearch
+    ? `Search: ${debouncedSearch}`
+    : activeStatus
+      ? statusLabels[activeStatus] === 'New'
+        ? 'New opportunities'
+        : `${statusLabels[activeStatus]} opportunities`
+      : 'Opportunities'
 
   function clearStatus() {
     const next = new URLSearchParams(searchParams)
@@ -112,40 +170,50 @@ export function OpportunitiesPage() {
     <PageContainer
       title={title}
       description={
-        activeStatus
-          ? `Showing ${statusLabels[activeStatus].toLowerCase()} roles only.`
-          : 'Discover the roles worth pursuing.'
+        isSearch
+          ? 'Searching all sources. Clear the search to use source filters.'
+          : activeStatus
+            ? `Showing ${statusLabels[activeStatus].toLowerCase()} roles only.`
+            : 'Discover the roles worth pursuing.'
       }
       actions={
-        <QualifyNewButton
-          pendingCount={jobs.filter((job) => job.status === 'new').length}
-          onComplete={() => void refresh()}
-        />
+        <QualifyNewButton pendingCount={counts.new} onComplete={() => void refresh()} />
       }
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
           placeholder="Search roles, companies, locations…"
           className="max-w-sm"
         />
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           {activeStatus && (
             <Button size="sm" variant="ghost" onClick={clearStatus}>
               Clear {statusLabels[activeStatus]} filter
             </Button>
           )}
-          {sources.map((source) => (
-            <Button
-              key={source}
-              size="sm"
-              variant={sourceFilter === source ? 'default' : 'outline'}
-              onClick={() => setSourceFilter(source)}
-            >
-              {source === 'all' ? 'All' : source}
-            </Button>
-          ))}
+          {!isSearch && (
+            <>
+              <Button
+                size="sm"
+                variant={sourceFilter === 'all' ? 'default' : 'outline'}
+                onClick={() => setSourceFilter('all')}
+              >
+                All sources
+              </Button>
+              {SELECTABLE_SOURCE_IDS.map((source) => (
+                <Button
+                  key={source}
+                  size="sm"
+                  variant={sourceFilter === source ? 'default' : 'outline'}
+                  onClick={() => setSourceFilter(source)}
+                >
+                  {SOURCE_LABELS[source] ?? source}
+                </Button>
+              ))}
+            </>
+          )}
         </div>
       </div>
 
@@ -153,22 +221,44 @@ export function OpportunitiesPage() {
         <LoadingState label="Loading opportunities…" rows={5} />
       ) : error ? (
         <EmptyState title="Something went wrong" description={error} />
-      ) : filtered.length === 0 ? (
+      ) : jobs.length === 0 ? (
         <EmptyState
-          title={jobs.length === 0 ? 'No opportunities yet' : 'No matches found'}
+          title={isSearch ? 'No matches found' : 'No opportunities found'}
           description={
-            jobs.length === 0
-              ? 'Run discovery from the dashboard, then opportunities will appear here.'
-              : activeStatus
-                ? `No ${statusLabels[activeStatus].toLowerCase()} opportunities right now.`
-                : 'Try a different search or clear the filters.'
+            isSearch
+              ? 'Try a different search term.'
+              : 'Try a different source or status, or run discovery from the dashboard.'
           }
         />
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {filtered.map((job) => (
-            <OpportunityCard key={job.id} job={job} />
-          ))}
+        <div className="flex flex-col gap-4">
+          <PaginationBar
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            isSearch={isSearch}
+            hasPrev={hasPrev}
+            hasNext={hasNext}
+            loading={loading}
+            onPrev={() => void prevPage()}
+            onNext={() => void nextPage()}
+          />
+          <div className="grid gap-3 lg:grid-cols-2">
+            {jobs.map((job) => (
+              <OpportunityCard key={job.id} job={job} />
+            ))}
+          </div>
+          <PaginationBar
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            isSearch={isSearch}
+            hasPrev={hasPrev}
+            hasNext={hasNext}
+            loading={loading}
+            onPrev={() => void prevPage()}
+            onNext={() => void nextPage()}
+          />
         </div>
       )}
     </PageContainer>

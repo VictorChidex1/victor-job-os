@@ -3,7 +3,8 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { RunDiscoveryButton } from '@/components/dashboard/RunDiscoveryButton'
 import { QualifyNewButton } from '@/components/dashboard/QualifyNewButton'
 import { RecentOpportunities } from '@/components/dashboard/RecentOpportunities'
-import { useJobs } from '@/hooks/useJobs'
+import { useJobsPage } from '@/hooks/useJobsPage'
+import { useJobCounts } from '@/hooks/useJobCounts'
 import { useOutreach } from '@/hooks/useOutreach'
 import { useFollowUps } from '@/hooks/useFollowUps'
 import { usePageMeta } from '@/hooks/usePageMeta'
@@ -118,13 +119,19 @@ export function DashboardPage() {
     noindex: true,
     path: '/app/dashboard',
   })
-  const { jobs, loading, refresh } = useJobs()
+  const { counts, refresh: refreshCounts } = useJobCounts()
+  const { jobs: recentJobs, loading: recentLoading, refresh: refreshRecent } = useJobsPage({
+    pageSize: 5,
+    skipCount: true,
+  })
   const { items: outreach } = useOutreach()
   const { items: followUps } = useFollowUps()
 
-  const newCount = jobs.filter((job) => job.status === 'new').length
-  const qualifiedCount = jobs.filter((job) => job.status === 'qualified').length
-  const awaitingCount = jobs.filter((job) => job.status === 'rejected').length
+  const refresh = () => Promise.all([refreshCounts(), refreshRecent()])
+
+  const newCount = counts.new
+  const qualifiedCount = counts.qualified
+  const awaitingCount = counts.rejected
 
   const now = new Date()
   const draftsAwaiting = outreach.filter(
@@ -165,7 +172,7 @@ export function DashboardPage() {
       actions={
         <div className="flex items-center gap-2">
           <QualifyNewButton
-            pendingCount={jobs.filter((job) => job.status === 'new').length}
+            pendingCount={counts.new}
             onComplete={() => void refresh()}
           />
           <RunDiscoveryButton onComplete={() => void refresh()} />
@@ -210,7 +217,7 @@ export function DashboardPage() {
         {/* Recent Opportunities */}
         <motion.div variants={itemVariants} className="flex flex-col gap-3">
           <h2 className="text-sm font-bold text-foreground px-1">Recent opportunities</h2>
-          <RecentOpportunities jobs={jobs} loading={loading} />
+          <RecentOpportunities jobs={recentJobs} loading={recentLoading} />
         </motion.div>
         
       </motion.div>

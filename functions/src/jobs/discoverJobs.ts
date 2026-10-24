@@ -4,7 +4,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAdapter, isSearchSource, type JobSource, type NormalizedJob } from '../adapters/ats/index.js'
 import { deduplicateJobs, type ExistingJobKeys } from '../utils/deduplicateJob.js'
-import { companyTitleKey, fingerprintDescription } from '../utils/normalizeJob.js'
+import { buildSearchTokens, companyTitleKey, fingerprintDescription } from '../utils/normalizeJob.js'
 import { mapWithConcurrency } from '../utils/concurrency.js'
 import { loadOpportunityFilters, jobMatchesFilters } from './filters.js'
 
@@ -61,6 +61,7 @@ async function storeJobs(jobs: NormalizedJob[], searchTerms: string[], uid: stri
     batch.set(ref, {
       ...stripUndefined(job),
       userId: uid,
+      searchTokens: buildSearchTokens(job.title, job.companyName, job.location, job.skills),
       searchTerms,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),

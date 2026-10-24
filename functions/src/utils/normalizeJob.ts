@@ -68,6 +68,23 @@ export function stripHtml(value: string): string {
     .trim()
 }
 
+/** Build a normalized token set for keyword search (array-contains). */
+export function buildSearchTokens(
+  ...parts: Array<string | string[] | undefined>
+): string[] {
+  const tokens = new Set<string>()
+  for (const part of parts) {
+    if (!part) continue
+    const values = Array.isArray(part) ? part : [part]
+    for (const value of values) {
+      for (const token of normalizeText(value).split(' ')) {
+        if (token.length >= 2) tokens.add(token)
+      }
+    }
+  }
+  return Array.from(tokens).slice(0, 100)
+}
+
 export function toNormalizedJob(source: JobSource, raw: RawJob): NormalizedJob {
   return {
     source,
