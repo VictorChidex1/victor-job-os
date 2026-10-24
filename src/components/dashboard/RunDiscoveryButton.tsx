@@ -8,7 +8,6 @@ import { functions } from '@/services/functions'
 interface DiscoveryResult {
   stored: number
   duplicates: number
-  qualified: number
   results: Array<{ source: string; boardTarget: string; count: number; error?: string }>
 }
 
@@ -16,8 +15,28 @@ interface RunDiscoveryButtonProps {
   onComplete?: () => void
 }
 
+const QUALIFY_BATCH = 5
+
 export function RunDiscoveryButton({ onComplete }: RunDiscoveryButtonProps) {
   const [running, setRunning] = useState(false)
+
+  async function qualifyInBackground() {
+    try {
+      const callable = httpsCallable<{ limit: number }, { analyzed: number }>(
+        functions,
+        'qualifyNewJobs',
+      )
+      const response = await callable({ limit: QUALIFY_BATCH })
+      if (response.data.analyzed > 0) {
+        toast(`Qualified ${response.data.analyzed} new job${response.data.analyzed === 1 ? '' : 's'}`, {
+          description: 'Background qualification finished.',
+        })
+        onComplete?.()
+      }
+    } catch {
+      // Non-fatal: qualification is a background enhancement.
+    }
+  }
 
   async function run() {
     setRunning(true)
@@ -25,19 +44,16 @@ export function RunDiscoveryButton({ onComplete }: RunDiscoveryButtonProps) {
       const callable = httpsCallable<undefined, DiscoveryResult>(functions, 'runDiscoveryNow')
       const response = await callable()
       const result = response.data
-      const qualificationSkipped =
-        result.qualified === 0 && result.results.some((item) => item.error === undefined)
-
-      if (qualificationSkipped || result.qualified === 0) {
-        toast('Discovery complete', {
-          description: `${result.stored} stored · ${result.duplicates} duplicates · no matches yet (run Analyze or add search terms).`,
-        })
-      } else {
-        toast('Discovery complete', {
-          description: `${result.stored} stored · ${result.qualified} matched · ${result.duplicates} duplicates.`,
-        })
-      }
+      const errors = result.results.filter((item) => item.error).length
+      toast('Discovery complete', {
+        description:
+          `${result.stored} stored · ${result.duplicates} duplicates` +
+          (errors ? ` · ${errors} source error(s)` : '') +
+          '. Qualifying new jobs in the background…',
+      })
       onComplete?.()
+      // Decoupled: don't make the user wait for AI qualification.
+      void qualifyInBackground()
     } catch (error) {
       const message =
         error instanceof Error && 'code' in error

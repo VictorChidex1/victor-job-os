@@ -20,10 +20,21 @@ import {
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { useJobSources } from '@/hooks/useJobSources'
+import { SOURCE_LABELS, SELECTABLE_SOURCE_IDS, isSearchSource } from '@/lib/job-sources'
 import type { JobSourceId } from '@/types/settings'
 
 const sourceSchema = z.object({
-  source: z.enum(['greenhouse', 'lever', 'ashby']),
+  source: z.enum([
+    'greenhouse',
+    'lever',
+    'ashby',
+    'workable',
+    'smartrecruiters',
+    'hn',
+    'remotive',
+    'remoteok',
+    'arbeitnow',
+  ]),
   enabled: z.boolean(),
   searchTerms: z.array(z.string()),
   boardTargets: z.array(z.string()),
@@ -87,13 +98,7 @@ function CommaField({
   )
 }
 
-const sourceLabels: Record<JobSourceId, string> = {
-  greenhouse: 'Greenhouse',
-  lever: 'Lever',
-  ashby: 'Ashby',
-  workday: 'Workday',
-  custom: 'Custom',
-}
+const sourceLabels = SOURCE_LABELS
 
 export function SourcesTab() {
   const { sources, loading, error, create, update, remove } = useJobSources()
@@ -101,6 +106,8 @@ export function SourcesTab() {
     resolver: zodResolver(sourceSchema),
     defaultValues,
   })
+  const selectedSource = form.watch('source')
+  const selectedIsSearch = isSearchSource(selectedSource)
 
   async function handleCreate(values: SourceFormValues) {
     await create(values)
@@ -133,26 +140,35 @@ export function SourcesTab() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="greenhouse">Greenhouse</SelectItem>
-                      <SelectItem value="lever">Lever</SelectItem>
-                      <SelectItem value="ashby">Ashby</SelectItem>
+                      {SELECTABLE_SOURCE_IDS.map((id) => (
+                        <SelectItem key={id} value={id}>
+                          {SOURCE_LABELS[id]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
             />
-            <Controller
-              name="boardTargets"
-              control={form.control}
-              render={({ field }) => (
-                <CommaField
-                  label="Board targets"
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="vercel, netflix"
-                />
-              )}
-            />
+            {!selectedIsSearch && (
+              <Controller
+                name="boardTargets"
+                control={form.control}
+                render={({ field }) => (
+                  <CommaField
+                    label="Board targets"
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="vercel, netflix"
+                  />
+                )}
+              />
+            )}
+            {selectedIsSearch && (
+              <p className="text-xs text-muted-foreground">
+                Search-based source — discovery uses the search terms below. No board slug needed.
+              </p>
+            )}
             <Controller
               name="searchTerms"
               control={form.control}
@@ -187,9 +203,14 @@ export function SourcesTab() {
               <CardContent className="flex flex-col gap-4 pt-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{sourceLabels[source.source]}</Badge>
+                    <Badge variant="outline">{sourceLabels[source.source] ?? source.source}</Badge>
+                    {isSearchSource(source.source) && (
+                      <Badge variant="secondary" className="text-[0.6rem]">Search</Badge>
+                    )}
                     <span className="text-xs text-muted-foreground">
-                      {source.boardTargets?.join(', ') || 'No boards'}
+                      {isSearchSource(source.source)
+                        ? source.searchTerms.join(', ') || 'No search terms'
+                        : source.boardTargets?.join(', ') || 'No boards'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -211,23 +232,25 @@ export function SourcesTab() {
                     </Button>
                   </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs text-muted-foreground">Board targets</Label>
-                  <Input
-                    defaultValue={source.boardTargets?.join(', ')}
-                    onBlur={(event) => {
-                      const next = event.target.value
-                        .split(',')
-                        .map((part) => part.trim())
-                        .filter(Boolean)
-                      if (JSON.stringify(next) !== JSON.stringify(source.boardTargets ?? [])) {
-                        void update(source.id, { boardTargets: next })
-                      }
-                    }}
-                    placeholder="vercel, linear, ashby"
-                    aria-label={`${source.source} board targets`}
-                  />
-                </div>
+                {!isSearchSource(source.source) && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs text-muted-foreground">Board targets</Label>
+                    <Input
+                      defaultValue={source.boardTargets?.join(', ')}
+                      onBlur={(event) => {
+                        const next = event.target.value
+                          .split(',')
+                          .map((part) => part.trim())
+                          .filter(Boolean)
+                        if (JSON.stringify(next) !== JSON.stringify(source.boardTargets ?? [])) {
+                          void update(source.id, { boardTargets: next })
+                        }
+                      }}
+                      placeholder="vercel, linear, ashby"
+                      aria-label={`${source.source} board targets`}
+                    />
+                  </div>
+                )}
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs text-muted-foreground">Search terms</Label>
                   <Input

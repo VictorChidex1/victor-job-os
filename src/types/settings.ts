@@ -1,6 +1,17 @@
 export type AiProvider = 'gemini' | 'openai'
 
-export type JobSourceId = 'greenhouse' | 'lever' | 'ashby' | 'workday' | 'custom'
+export type JobSourceId =
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'workable'
+  | 'smartrecruiters'
+  | 'hn'
+  | 'remotive'
+  | 'remoteok'
+  | 'arbeitnow'
+  | 'workday'
+  | 'custom'
 
 export interface JobSourceConfig {
   id: string

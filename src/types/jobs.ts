@@ -1,6 +1,17 @@
 import type { Timestamp } from 'firebase/firestore'
 
-export type JobSource = 'greenhouse' | 'lever' | 'ashby' | 'workday' | 'custom'
+export type JobSource =
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'workable'
+  | 'smartrecruiters'
+  | 'hn'
+  | 'remotive'
+  | 'remoteok'
+  | 'arbeitnow'
+  | 'workday'
+  | 'custom'
 
 export type JobStatus = 'new' | 'qualified' | 'rejected' | 'archived'
 

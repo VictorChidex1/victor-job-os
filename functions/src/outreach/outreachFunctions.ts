@@ -4,6 +4,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { getAIService } from '../ai/index.js'
 import { getJob, getProfile } from '../jobs/qualification.js'
+import { toHttpsError } from '../utils/errors.js'
 
 initializeApp()
 const db = getFirestore()
@@ -116,6 +117,7 @@ export const generatePitch = onCall(
       throw new HttpsError('invalid-argument', 'jobId is required.')
     }
 
+    try {
     const job = await getJob(data.jobId)
     if (!job) {
       throw new HttpsError('not-found', 'Job not found.')
@@ -267,6 +269,9 @@ export const generatePitch = onCall(
     })
 
     return { outreachId: ref.id, existing: false }
+    } catch (error) {
+      throw toHttpsError(error, 'Outreach drafting failed. Please try again.')
+    }
   },
 )
 

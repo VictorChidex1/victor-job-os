@@ -3,6 +3,7 @@ import { getFirestore, FieldValue, type DocumentReference } from 'firebase-admin
 import { getAIService } from '../ai/index.js'
 import type { PortfolioMatchOutput } from '../ai/types.js'
 import { loadOpportunityFilters, jobMatchesFilters } from './filters.js'
+import { mapWithConcurrency } from '../utils/concurrency.js'
 
 initializeApp()
 const db = getFirestore()
@@ -15,7 +16,7 @@ function providerModel(): string {
   if (providerName() === 'openai') {
     return process.env.OPENAI_MODEL ?? 'gpt-4o-mini'
   }
-  return process.env.GEMINI_MODEL ?? 'gemini-3.8-flash'
+  return process.env.GEMINI_MODEL ?? 'gemini-3.5-flash'
 }
 
 export interface JobDoc {
@@ -105,6 +106,7 @@ export async function analyzeJobWithAI(
   jobId: string,
   job: JobDoc,
   profile: ProfileDoc,
+  threshold = 60,
 ): Promise<AnalysisRecord> {
   const ai = getAIService()
 
@@ -142,7 +144,7 @@ export async function analyzeJobWithAI(
   })
 
   let match: PortfolioMatchOutput = { projectIds: [], reasons: {} }
-  if (projects.length > 0) {
+  if (projects.length > 0 && (analysis.fitScore ?? 0) >= threshold) {
     match = await ai.matchPortfolio({
       job: { title: job.title, description: job.description, skills: job.skills ?? [] },
       projects,
@@ -236,26 +238,25 @@ export async function qualifyPendingJobs(
   const pending = (await unanalyzedJobs(uid, limitCount)).filter(
     (job) => jobMatchesFilters(job.data, filters).ok,
   )
-  let analyzed = 0
-  const results: QualificationResult[] = []
 
-  for (const job of pending) {
+  // Bounded concurrency keeps latency down without hammering the AI provider.
+  const results = await mapWithConcurrency(pending, 3, async (job): Promise<QualificationResult> => {
     try {
-      const record = await analyzeJobWithAI(uid, job.id, job.data, profile)
+      const record = await analyzeJobWithAI(uid, job.id, job.data, profile, filters.minFitScore)
       await storeAnalysis(job.id, record, filters.minFitScore)
-      analyzed += 1
-      results.push({
+      return {
         jobId: job.id,
         fitScore: record.fitScore,
         status: (record.fitScore ?? 0) >= filters.minFitScore ? 'qualified' : 'rejected',
-      })
+      }
     } catch (error) {
-      results.push({
+      return {
         jobId: job.id,
         error: error instanceof Error ? error.message : 'Unknown error',
-      })
+      }
     }
-  }
+  })
 
+  const analyzed = results.filter((result) => !result.error).length
   return { analyzed, results }
 }

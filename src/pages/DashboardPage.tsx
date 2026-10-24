@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { RunDiscoveryButton } from '@/components/dashboard/RunDiscoveryButton'
+import { QualifyNewButton } from '@/components/dashboard/QualifyNewButton'
 import { RecentOpportunities } from '@/components/dashboard/RecentOpportunities'
 import { useJobs } from '@/hooks/useJobs'
 import { useOutreach } from '@/hooks/useOutreach'
@@ -161,7 +162,15 @@ export function DashboardPage() {
     <PageContainer
       title="Good morning, Victor"
       description="Here's what needs your attention today."
-      actions={<RunDiscoveryButton onComplete={() => void refresh()} />}
+      actions={
+        <div className="flex items-center gap-2">
+          <QualifyNewButton
+            pendingCount={jobs.filter((job) => job.status === 'new').length}
+            onComplete={() => void refresh()}
+          />
+          <RunDiscoveryButton onComplete={() => void refresh()} />
+        </div>
+      }
     >
       <motion.div 
         variants={containerVariants} 

@@ -16,6 +16,8 @@ import { useJobAnalysis } from '@/hooks/useJobAnalysis'
 import { useCompany } from '@/hooks/useCompany'
 import { useProjects } from '@/hooks/useProjects'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import { SOURCE_LABELS, SOURCE_ATTRIBUTION_URL } from '@/lib/job-sources'
+import { aiErrorMessage } from '@/lib/ai-errors'
 import type { Job } from '@/types/jobs'
 
 function FitMetric({ label, value }: { label: string; value: string }) {
@@ -116,8 +118,10 @@ export function OpportunityViewPage() {
         setJob(refreshed)
       }
       toast('Analysis complete')
-    } catch {
-      toast('Unable to analyze', { description: 'Check your Gemini API key in functions/.env.' })
+    } catch (analyzeError) {
+      toast('Unable to analyze', {
+        description: aiErrorMessage(analyzeError, 'Please try again.'),
+      })
     } finally {
       setAnalyzing(false)
     }
@@ -136,8 +140,10 @@ export function OpportunityViewPage() {
       }
       await refreshCompany()
       toast('Company research complete')
-    } catch {
-      toast('Unable to research', { description: 'Check your Gemini API key in functions/.env.' })
+    } catch (researchError) {
+      toast('Unable to research', {
+        description: aiErrorMessage(researchError, 'Please try again.'),
+      })
     } finally {
       setResearching(false)
     }
@@ -154,9 +160,8 @@ export function OpportunityViewPage() {
       toast(response.data.existing ? 'Outreach already drafted' : 'Outreach draft created')
       navigate(`/app/outreach/${response.data.outreachId}`)
     } catch (draftError) {
-      const message = draftError instanceof Error ? draftError.message : ''
       toast('Unable to draft outreach', {
-        description: message || 'Cloud Functions are not available yet.',
+        description: aiErrorMessage(draftError, 'Cloud Functions are not available yet.'),
       })
     } finally {
       setDrafting(false)
@@ -215,7 +220,17 @@ export function OpportunityViewPage() {
         <Badge variant={job.status === 'qualified' ? 'secondary' : 'outline'}>
           {job.status}
         </Badge>
-        <Badge variant="outline" className="capitalize">{job.source}</Badge>
+        <Badge variant="outline" className="capitalize">{SOURCE_LABELS[job.source] ?? job.source}</Badge>
+        {SOURCE_ATTRIBUTION_URL[job.source] && (
+          <a
+            href={SOURCE_ATTRIBUTION_URL[job.source]}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            via {SOURCE_LABELS[job.source]}
+          </a>
+        )}
       </div>
 
       <Card>
@@ -278,7 +293,7 @@ export function OpportunityViewPage() {
                 </div>
               </div>
               {analysis.summary && (
-                <p className="text-sm leading-relaxed text-muted-foreground">{analysis.summary}</p>
+                <p className="text-sm leading-relaxed text-foreground">{analysis.summary}</p>
               )}
             </div>
           ) : (
@@ -295,7 +310,7 @@ export function OpportunityViewPage() {
           <CardTitle className="text-sm">Job description</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="prose prose-sm max-w-none text-sm leading-relaxed text-muted-foreground">
+          <div className="space-y-3 text-sm leading-relaxed text-foreground">
             {job.description ? (
               job.description.split('\n').map((paragraph, index) =>
                 paragraph.trim() ? (
@@ -317,19 +332,31 @@ export function OpportunityViewPage() {
           {companyLoading ? (
             <LoadingState label="Loading company research…" rows={2} />
           ) : company ? (
-            <div className="flex flex-col gap-3 text-sm text-muted-foreground">
+            <div className="flex flex-col gap-3 text-sm text-foreground">
               {company.website && (
                 <a href={company.website} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">
                   {company.website}
                 </a>
               )}
-              {company.industry && <div><span className="font-medium text-foreground">Industry:</span> {company.industry}</div>}
-              {company.product && <div><span className="font-medium text-foreground">Product/service:</span> {company.product}</div>}
-              {company.description && <p>{company.description}</p>}
+              {company.industry && (
+                <div>
+                  <span className="font-medium text-muted-foreground">Industry:</span>{' '}
+                  <span className="text-foreground">{company.industry}</span>
+                </div>
+              )}
+              {company.product && (
+                <div>
+                  <span className="font-medium text-muted-foreground">Product/service:</span>{' '}
+                  <span className="text-foreground">{company.product}</span>
+                </div>
+              )}
+              {company.description && (
+                <p className="leading-relaxed text-foreground">{company.description}</p>
+              )}
               {company.roleContext && (
                 <div className="rounded-md bg-muted/40 p-3">
                   <div className="text-xs font-semibold text-muted-foreground">Role context</div>
-                  <p className="mt-1">{company.roleContext}</p>
+                  <p className="mt-1 leading-relaxed text-foreground">{company.roleContext}</p>
                 </div>
               )}
               {company.hiringSignals.length > 0 && (
@@ -345,7 +372,7 @@ export function OpportunityViewPage() {
               {company.researchSummary && (
                 <div className="rounded-md bg-muted/40 p-3">
                   <div className="text-xs font-semibold text-muted-foreground">AI summary</div>
-                  <p className="mt-1">{company.researchSummary}</p>
+                  <p className="mt-1 leading-relaxed text-foreground">{company.researchSummary}</p>
                 </div>
               )}
               {company.sourceUrls.length > 0 && (
@@ -379,9 +406,9 @@ export function OpportunityViewPage() {
                   <Link to={`/app/projects`} className="font-medium text-foreground hover:underline">
                     {project.title}
                   </Link>
-                  <div className="text-sm text-muted-foreground">{project.summary}</div>
+                  <div className="text-sm leading-relaxed text-foreground">{project.summary}</div>
                   {analysis?.projectMatchReasons?.[project.id] && (
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs leading-relaxed text-foreground/80">
                       {analysis.projectMatchReasons[project.id]}
                     </div>
                   )}

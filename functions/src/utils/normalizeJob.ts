@@ -36,6 +36,38 @@ export function humanizeBoardSlug(slug: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+const HTML_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  '#39': "'",
+  '#x27': "'",
+  '#x2F': '/',
+  '#47': '/',
+}
+
+/** Strip HTML tags/entities and collapse whitespace. */
+export function stripHtml(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#(x?[0-9a-f]+);/gi, (match, code: string) => {
+      const key = code.toLowerCase()
+      if (HTML_ENTITIES[key]) return HTML_ENTITIES[key]
+      const numeric = key.startsWith('x') ? parseInt(key.slice(1), 16) : parseInt(key, 10)
+      return Number.isFinite(numeric) ? String.fromCodePoint(numeric) : match
+    })
+    .replace(/&(amp|lt|gt|quot|apos|nbsp);/gi, (_, name: string) => HTML_ENTITIES[name] ?? '')
+    .replace(/\r/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s*\n+/g, '\n\n')
+    .trim()
+}
+
 export function toNormalizedJob(source: JobSource, raw: RawJob): NormalizedJob {
   return {
     source,

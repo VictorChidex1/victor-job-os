@@ -21,8 +21,10 @@ import {
 } from './prompts.js'
 
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models'
-const PRIMARY_MODEL = 'gemini-3.8-flash'
-const FALLBACK_MODEL = 'gemini-3.1-flash-lite'
+// Configurable so a quota-exhausted or retired model can be swapped without a
+// code change. Defaults are verified working on the free tier.
+const PRIMARY_MODEL = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash'
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL ?? 'gemini-3.1-flash-lite'
 
 function apiKey(): string {
   const key = process.env.GEMINI_API_KEY
@@ -74,6 +76,12 @@ async function generateStructured<T>(prompt: string): Promise<T> {
         }
       }
 
+      // Quota exhaustion (429) and retired models (404) won't recover by
+      // retrying the same model — switch to the fallback immediately.
+      if ((response.status === 429 || response.status === 404) && model !== FALLBACK_MODEL) {
+        break
+      }
+
       if (response.status === 503 && attempt < retries) {
         await new Promise((resolve) => setTimeout(resolve, 1000))
         continue
@@ -84,6 +92,12 @@ async function generateStructured<T>(prompt: string): Promise<T> {
       }
 
       const body = await response.text()
+      if (response.status === 429) {
+        throw new Error(`Gemini quota exceeded (429): ${body.slice(0, 200)}`)
+      }
+      if (response.status === 404) {
+        throw new Error(`Gemini model "${model}" is unavailable (404): ${body.slice(0, 200)}`)
+      }
       throw new Error(`Gemini request failed (${response.status}): ${body.slice(0, 200)}`)
     }
   }

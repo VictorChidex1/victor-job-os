@@ -4,6 +4,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAIService } from '../ai/index.js'
 import { qualifyPendingJobs, analyzeJobWithAI, storeAnalysis, getJob, getProfile } from './qualification.js'
 import { loadOpportunityFilters } from './filters.js'
+import { toHttpsError } from '../utils/errors.js'
 
 initializeApp()
 const db = getFirestore()
@@ -24,23 +25,27 @@ export const analyzeJob = onCall(
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
 
-    const job = await getJob(data.jobId)
-    if (!job) {
-      throw new HttpsError('not-found', 'Job not found.')
-    }
-    if (job.userId !== undefined && job.userId !== uid) {
-      throw new HttpsError('permission-denied', 'This job does not belong to you.')
-    }
+    try {
+      const job = await getJob(data.jobId)
+      if (!job) {
+        throw new HttpsError('not-found', 'Job not found.')
+      }
+      if (job.userId !== undefined && job.userId !== uid) {
+        throw new HttpsError('permission-denied', 'This job does not belong to you.')
+      }
 
-    const profile = await getProfile(uid)
-    const filters = await loadOpportunityFilters(uid)
-    const record = await analyzeJobWithAI(uid, data.jobId, job, profile)
-    await storeAnalysis(data.jobId, record, filters.minFitScore)
+      const profile = await getProfile(uid)
+      const filters = await loadOpportunityFilters(uid)
+      const record = await analyzeJobWithAI(uid, data.jobId, job, profile, filters.minFitScore)
+      await storeAnalysis(data.jobId, record, filters.minFitScore)
 
-    return {
-      jobId: data.jobId,
-      fitScore: record.fitScore,
-      status: (record.fitScore ?? 0) >= filters.minFitScore ? 'qualified' : 'rejected',
+      return {
+        jobId: data.jobId,
+        fitScore: record.fitScore,
+        status: (record.fitScore ?? 0) >= filters.minFitScore ? 'qualified' : 'rejected',
+      }
+    } catch (error) {
+      throw toHttpsError(error, 'Analysis failed. Please try again.')
     }
   },
 )
@@ -57,54 +62,58 @@ export const researchOpportunity = onCall(
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
 
-    const job = await getJob(data.jobId)
-    if (!job) {
-      throw new HttpsError('not-found', 'Job not found.')
+    try {
+      const job = await getJob(data.jobId)
+      if (!job) {
+        throw new HttpsError('not-found', 'Job not found.')
+      }
+      if (job.userId !== undefined && job.userId !== uid) {
+        throw new HttpsError('permission-denied', 'This job does not belong to you.')
+      }
+
+      const ai = getAIService()
+      const research = await ai.researchCompany({ companyName: job.companyName ?? 'Unknown' })
+
+      const existing = await db
+        .collection('companies')
+        .where('userId', '==', uid)
+        .where('name', '==', job.companyName ?? '')
+        .limit(1)
+        .get()
+
+      const companyDoc = {
+        userId: uid,
+        name: job.companyName ?? 'Unknown',
+        industry: research.industry ?? null,
+        description: research.description ?? null,
+        website: research.website ?? null,
+        product: research.product ?? null,
+        roleContext: research.roleContext ?? null,
+        hiringSignals: research.hiringSignals ?? [],
+        researchSummary: research.researchSummary ?? null,
+        sourceUrls: research.sourceUrls ?? [],
+        lastResearchedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }
+
+      let companyId: string
+      if (existing.empty) {
+        const ref = await db.collection('companies').add({
+          ...companyDoc,
+          createdAt: FieldValue.serverTimestamp(),
+        })
+        companyId = ref.id
+      } else {
+        companyId = existing.docs[0].id
+        await existing.docs[0].ref.update(companyDoc)
+      }
+
+      await db.collection('jobs').doc(data.jobId).update({ companyId })
+
+      return { companyId, companyName: companyDoc.name }
+    } catch (error) {
+      throw toHttpsError(error, 'Company research failed. Please try again.')
     }
-    if (job.userId !== undefined && job.userId !== uid) {
-      throw new HttpsError('permission-denied', 'This job does not belong to you.')
-    }
-
-    const ai = getAIService()
-    const research = await ai.researchCompany({ companyName: job.companyName ?? 'Unknown' })
-
-    const existing = await db
-      .collection('companies')
-      .where('userId', '==', uid)
-      .where('name', '==', job.companyName ?? '')
-      .limit(1)
-      .get()
-
-    const companyDoc = {
-      userId: uid,
-      name: job.companyName ?? 'Unknown',
-      industry: research.industry ?? null,
-      description: research.description ?? null,
-      website: research.website ?? null,
-      product: research.product ?? null,
-      roleContext: research.roleContext ?? null,
-      hiringSignals: research.hiringSignals ?? [],
-      researchSummary: research.researchSummary ?? null,
-      sourceUrls: research.sourceUrls ?? [],
-      lastResearchedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }
-
-    let companyId: string
-    if (existing.empty) {
-      const ref = await db.collection('companies').add({
-        ...companyDoc,
-        createdAt: FieldValue.serverTimestamp(),
-      })
-      companyId = ref.id
-    } else {
-      companyId = existing.docs[0].id
-      await existing.docs[0].ref.update(companyDoc)
-    }
-
-    await db.collection('jobs').doc(data.jobId).update({ companyId })
-
-    return { companyId, companyName: companyDoc.name }
   },
 )
 
@@ -115,6 +124,8 @@ export const qualifyNewJobs = onCall(
     if (!uid) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
-    return qualifyPendingJobs(uid, 10)
+    const requested = Number((request.data as { limit?: number } | undefined)?.limit ?? 5)
+    const limit = Math.min(Math.max(Number.isFinite(requested) ? requested : 5, 1), 25)
+    return qualifyPendingJobs(uid, limit)
   },
 )

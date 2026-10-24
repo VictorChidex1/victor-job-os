@@ -26,6 +26,7 @@ import { LoadingState } from '@/components/states/LoadingState'
 import { useAuth } from '@/hooks/useAuth'
 import { useContacts } from '@/hooks/useContacts'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import { aiErrorMessage } from '@/lib/ai-errors'
 import { createContact } from '@/services/contacts'
 import { listFollowUpsForOutreach, updateFollowUp } from '@/services/followUps'
 import { functions } from '@/services/functions'
@@ -194,8 +195,9 @@ export function OutreachEditorPage() {
       }
       toast('Outreach updated')
     } catch (actionError) {
-      const message = actionError instanceof Error ? actionError.message : 'Please try again.'
-      toast('Unable to update outreach', { description: message })
+      toast('Unable to update outreach', {
+        description: aiErrorMessage(actionError, 'Please try again.'),
+      })
     } finally {
       setActing(false)
     }

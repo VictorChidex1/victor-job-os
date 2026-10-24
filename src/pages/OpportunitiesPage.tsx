@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { useJobs } from '@/hooks/useJobs'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import { QualifyNewButton } from '@/components/dashboard/QualifyNewButton'
 import type { Job } from '@/types/jobs'
 
 const statusLabels: Record<string, string> = {
@@ -68,7 +69,7 @@ export function OpportunitiesPage() {
     noindex: true,
     path: '/app/opportunities',
   })
-  const { jobs, loading, error } = useJobs()
+  const { jobs, loading, error, refresh } = useJobs()
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
@@ -114,6 +115,12 @@ export function OpportunitiesPage() {
         activeStatus
           ? `Showing ${statusLabels[activeStatus].toLowerCase()} roles only.`
           : 'Discover the roles worth pursuing.'
+      }
+      actions={
+        <QualifyNewButton
+          pendingCount={jobs.filter((job) => job.status === 'new').length}
+          onComplete={() => void refresh()}
+        />
       }
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

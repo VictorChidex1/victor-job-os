@@ -1,4 +1,15 @@
-export type JobSource = 'greenhouse' | 'lever' | 'ashby'
+export type JobSource =
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'workable'
+  | 'smartrecruiters'
+  | 'hn'
+  | 'remotive'
+  | 'remoteok'
+  | 'arbeitnow'
+
+export type JobSourceKind = 'board' | 'search'
 
 export type JobStatus = 'new' | 'qualified' | 'rejected' | 'archived'
 

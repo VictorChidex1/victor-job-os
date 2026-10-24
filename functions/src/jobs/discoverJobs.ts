@@ -2,11 +2,11 @@ import { initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
-import { getAdapter, type JobSource, type NormalizedJob } from '../adapters/ats/index.js'
+import { getAdapter, isSearchSource, type JobSource, type NormalizedJob } from '../adapters/ats/index.js'
 import { deduplicateJobs, type ExistingJobKeys } from '../utils/deduplicateJob.js'
 import { companyTitleKey, fingerprintDescription } from '../utils/normalizeJob.js'
+import { mapWithConcurrency } from '../utils/concurrency.js'
 import { loadOpportunityFilters, jobMatchesFilters } from './filters.js'
-import { qualifyPendingJobs } from './qualification.js'
 
 interface JobSourceDoc {
   source: JobSource
@@ -70,10 +70,24 @@ async function storeJobs(jobs: NormalizedJob[], searchTerms: string[], uid: stri
   return jobs.length
 }
 
-function stripUndefined<T extends object>(value: T): Partial<T> {
-  return Object.fromEntries(
-    Object.entries(value).filter(([, fieldValue]) => fieldValue !== undefined),
-  ) as Partial<T>
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripUndefined(item)) as unknown as T
+  }
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    Object.getPrototypeOf(value) === Object.prototype
+  ) {
+    const result: Record<string, unknown> = {}
+    for (const [key, fieldValue] of Object.entries(value as Record<string, unknown>)) {
+      if (fieldValue !== undefined) {
+        result[key] = stripUndefined(fieldValue)
+      }
+    }
+    return result as T
+  }
+  return value
 }
 
 function filterJobsBySearchTerms(jobs: NormalizedJob[], searchTerms: string[]): NormalizedJob[] {
@@ -111,38 +125,64 @@ export async function runDiscovery(uid: string): Promise<{ stored: number; dupli
   let duplicates = 0
   const results: DiscoveryResult[] = []
 
+  // Build fetch tasks: board sources use board slugs; search sources use the
+  // configured search terms as a single query.
+  const tasks: Array<{
+    source: JobSourceDoc
+    target: string
+    adapter: NonNullable<ReturnType<typeof getAdapter>>
+  }> = []
   for (const source of sources) {
     const adapter = getAdapter(source.source)
     if (!adapter) {
       continue
     }
-    const targets = source.boardTargets?.length ? source.boardTargets : []
+    const targets = isSearchSource(source.source)
+      ? [source.searchTerms.join(' ') || 'all']
+      : (source.boardTargets ?? [])
     if (targets.length === 0) {
       continue
     }
-
     for (const target of targets) {
-      try {
-        const discovered = await adapter.discover(target)
-        const byTerms = filterJobsBySearchTerms(discovered, source.searchTerms)
-        const filtered = byTerms.filter((job) => jobMatchesFilters(job, filters).ok)
-        const unique = deduplicateJobs(filtered, existing)
-        duplicates += byTerms.length - unique.length
-        // Accumulate keys so later sources/targets in this run dedupe against these too.
-        for (const job of unique) {
-          existing.fingerprints.add(job.fingerprint)
-          if (job.applicationUrl) existing.urls.add(job.applicationUrl)
-          if (job.companyTitleKey) existing.companyTitles.add(job.companyTitleKey)
-          if (job.descriptionFingerprint) existing.descriptionFingerprints.add(job.descriptionFingerprint)
-        }
-        const count = await storeJobs(unique, source.searchTerms, uid)
-        stored += count
-        results.push({ source: source.source, boardTarget: target, count: unique.length })
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        results.push({ source: source.source, boardTarget: target, count: 0, error: message })
+      tasks.push({ source, target, adapter })
+    }
+  }
+
+  // Fetch sources concurrently (bounded), then normalize/dedupe/store in order
+  // so duplicate keys accumulate correctly across sources.
+  const fetched = await mapWithConcurrency(tasks, 3, async (task) => {
+    try {
+      const jobs = await task.adapter.discover(task.target)
+      return { task, jobs, error: undefined as string | undefined }
+    } catch (error) {
+      return {
+        task,
+        jobs: [] as NormalizedJob[],
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
+  })
+
+  for (const { task, jobs, error } of fetched) {
+    if (error) {
+      results.push({ source: task.source.source, boardTarget: task.target, count: 0, error })
+      continue
+    }
+
+    const byTerms = filterJobsBySearchTerms(jobs, task.source.searchTerms)
+    const filtered = byTerms.filter((job) => jobMatchesFilters(job, filters).ok)
+    const unique = deduplicateJobs(filtered, existing)
+    duplicates += byTerms.length - unique.length
+    // Accumulate keys so later sources/targets in this run dedupe against these too.
+    for (const job of unique) {
+      existing.fingerprints.add(job.fingerprint)
+      if (job.applicationUrl) existing.urls.add(job.applicationUrl)
+      if (job.companyTitleKey) existing.companyTitles.add(job.companyTitleKey)
+      if (job.descriptionFingerprint) existing.descriptionFingerprints.add(job.descriptionFingerprint)
+    }
+    const count = await storeJobs(unique, task.source.searchTerms, uid)
+    stored += count
+    results.push({ source: task.source.source, boardTarget: task.target, count: unique.length })
   }
 
   const errors = results.filter((result) => result.error)
@@ -198,19 +238,9 @@ export const runDiscoveryNow = onCall(
     }
     try {
       const result = await runDiscovery(uid)
-      let qualification
-      try {
-        qualification = await qualifyPendingJobs(uid, 10)
-      } catch (qualifyError) {
-        qualification = {
-          analyzed: 0,
-          results: [{
-            jobId: 'batch',
-            error: qualifyError instanceof Error ? qualifyError.message : 'Qualification failed.',
-          }],
-        }
-      }
-      return { ...result, qualified: qualification.analyzed, qualificationResults: qualification.results }
+      // Qualification is intentionally decoupled: the client runs it in the
+      // background via qualifyNewJobs so discovery returns quickly.
+      return result
     } catch (error) {
       throw new HttpsError('internal', 'Discovery failed.', error instanceof Error ? error.message : undefined)
     }
