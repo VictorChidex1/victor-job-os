@@ -39,6 +39,14 @@ export const OutreachEditorPage = lazy(() =>
   import('@/pages/OutreachEditorPage').then((module) => ({ default: module.OutreachEditorPage })),
 )
 
+export const CompaniesPage = lazy(() =>
+  import('@/pages/CompaniesPage').then((module) => ({ default: module.CompaniesPage })),
+)
+
+export const CompanyViewPage = lazy(() =>
+  import('@/pages/CompanyViewPage').then((module) => ({ default: module.CompanyViewPage })),
+)
+
 export function AppShellLoader() {
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
@@ -119,6 +127,22 @@ export function OutreachEditorRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <OutreachEditorPage />
+    </Suspense>
+  )
+}
+
+export function CompaniesRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <CompaniesPage />
+    </Suspense>
+  )
+}
+
+export function CompanyViewRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <CompanyViewPage />
     </Suspense>
   )
 }

@@ -2,6 +2,7 @@ import type { Timestamp } from 'firebase/firestore'
 
 export interface Company {
   id: string
+  userId?: string
   name: string
   website?: string
   industry?: string
@@ -11,7 +12,11 @@ export interface Company {
   hiringSignals: string[]
   researchSummary?: string
   sourceUrls: string[]
+  location?: string
+  jobCount?: number
+  researched?: boolean
+  lastSeenAt?: Timestamp
   lastResearchedAt?: Timestamp
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
 }

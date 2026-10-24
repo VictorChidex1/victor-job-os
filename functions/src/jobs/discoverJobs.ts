@@ -5,6 +5,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAdapter, isSearchSource, type JobSource, type NormalizedJob } from '../adapters/ats/index.js'
 import { deduplicateJobs, type ExistingJobKeys } from '../utils/deduplicateJob.js'
 import { buildSearchTokens, companyTitleKey, fingerprintDescription } from '../utils/normalizeJob.js'
+import { companyDocId, companySearchTokens } from '../utils/companyId.js'
 import { mapWithConcurrency } from '../utils/concurrency.js'
 import { loadOpportunityFilters, jobMatchesFilters } from './filters.js'
 
@@ -54,19 +55,56 @@ async function existingJobKeys(uid: string): Promise<ExistingJobKeys> {
   return { fingerprints, urls, companyTitles, descriptionFingerprints }
 }
 
-async function storeJobs(jobs: NormalizedJob[], searchTerms: string[], uid: string): Promise<number> {
+async function storeJobs(
+  jobs: NormalizedJob[],
+  searchTerms: string[],
+  uid: string,
+  knownCompanyIds: Set<string>,
+): Promise<number> {
   const batch = db.batch()
+  const companyCounts = new Map<string, { name: string; count: number }>()
+
   for (const job of jobs) {
+    const companyName = job.companyName ?? ''
+    const companyId = companyName ? companyDocId(uid, companyName) : ''
     const ref = db.collection('jobs').doc()
     batch.set(ref, {
       ...stripUndefined(job),
       userId: uid,
+      companyId,
       searchTokens: buildSearchTokens(job.title, job.companyName, job.location, job.skills),
       searchTerms,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     })
+
+    if (companyName) {
+      const entry = companyCounts.get(companyId) ?? { name: companyName, count: 0 }
+      entry.count += 1
+      companyCounts.set(companyId, entry)
+    }
   }
+
+  // Materialize one company document per company seen in this batch.
+  for (const [companyId, { name, count }] of companyCounts) {
+    const isNew = !knownCompanyIds.has(companyId)
+    const companyRef = db.collection('companies').doc(companyId)
+    batch.set(
+      companyRef,
+      {
+        userId: uid,
+        name,
+        jobCount: FieldValue.increment(count),
+        lastSeenAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        searchTokens: companySearchTokens(name),
+        ...(isNew ? { researched: false, createdAt: FieldValue.serverTimestamp() } : {}),
+      },
+      { merge: true },
+    )
+    knownCompanyIds.add(companyId)
+  }
+
   await batch.commit()
   return jobs.length
 }
@@ -122,6 +160,9 @@ export async function runDiscovery(uid: string): Promise<{ stored: number; dupli
 
   const filters = await loadOpportunityFilters(uid)
   const existing = await existingJobKeys(uid)
+  const knownCompanyIds = new Set(
+    (await db.collection('companies').where('userId', '==', uid).get()).docs.map((doc) => doc.id),
+  )
   let stored = 0
   let duplicates = 0
   const results: DiscoveryResult[] = []
@@ -181,7 +222,7 @@ export async function runDiscovery(uid: string): Promise<{ stored: number; dupli
       if (job.companyTitleKey) existing.companyTitles.add(job.companyTitleKey)
       if (job.descriptionFingerprint) existing.descriptionFingerprints.add(job.descriptionFingerprint)
     }
-    const count = await storeJobs(unique, task.source.searchTerms, uid)
+    const count = await storeJobs(unique, task.source.searchTerms, uid, knownCompanyIds)
     stored += count
     results.push({ source: task.source.source, boardTarget: task.target, count: unique.length })
   }

@@ -39,6 +39,21 @@ export async function listOutreachForJob(uid: string, jobId: string): Promise<Ou
   return snapshot.docs.map((document) => toOutreach(document.id, document.data()))
 }
 
+export async function listOutreachForCompany(
+  uid: string,
+  companyId: string,
+): Promise<Outreach[]> {
+  const snapshot = await getDocs(
+    query(
+      outreachCollection,
+      where('userId', '==', uid),
+      where('companyId', '==', companyId),
+      orderBy('updatedAt', 'desc'),
+    ),
+  )
+  return snapshot.docs.map((document) => toOutreach(document.id, document.data()))
+}
+
 export async function createOutreach(uid: string, data: OutreachWriteData): Promise<string> {
   const ref = await addDoc(outreachCollection, {
     ...data,

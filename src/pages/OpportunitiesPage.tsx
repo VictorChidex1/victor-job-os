@@ -478,6 +478,7 @@ export function OpportunitiesPage() {
 
   const statusFilter = searchParams.get('status') ?? ''
   const activeStatus = statusFilter && statusLabels[statusFilter] ? statusFilter : ''
+  const companyFilter = searchParams.get('companyId') ?? ''
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 350)
@@ -500,6 +501,7 @@ export function OpportunitiesPage() {
   } = useJobsPage({
     source: sourceFilter !== 'all' ? sourceFilter : undefined,
     status: activeStatus || undefined,
+    companyId: companyFilter || undefined,
     search: debouncedSearch,
   })
   const { counts } = useJobCounts()
@@ -621,6 +623,21 @@ export function OpportunitiesPage() {
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70 shrink-0 mr-1">
                 Sources:
               </span>
+              {companyFilter && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0"
+                  onClick={() => {
+                    const next = new URLSearchParams(searchParams)
+                    next.delete('companyId')
+                    setSearchParams(next)
+                  }}
+                >
+                  <X className="size-3.5" />
+                  Clear company filter
+                </Button>
+              )}
               <button
                 type="button"
                 onClick={() => setSourceFilter('all')}

@@ -25,6 +25,7 @@ export interface JobPageOptions {
   cursor?: QueryDocumentSnapshot<DocumentData> | null
   source?: string
   status?: string
+  companyId?: string
 }
 
 export interface JobPage {
@@ -43,6 +44,7 @@ export interface JobCounts {
 export interface JobCountOptions {
   source?: string
   status?: string
+  companyId?: string
 }
 
 /** Count jobs matching the current source/status filters (server-side). */
@@ -50,6 +52,7 @@ export async function countJobs(uid: string, options: JobCountOptions = {}): Pro
   const constraints: QueryConstraint[] = [where('userId', '==', uid)]
   if (options.source) constraints.push(where('source', '==', options.source))
   if (options.status) constraints.push(where('status', '==', options.status))
+  if (options.companyId) constraints.push(where('companyId', '==', options.companyId))
   const snapshot = await getCountFromServer(query(jobsCollection, ...constraints))
   return snapshot.data().count
 }
@@ -85,6 +88,7 @@ export async function listJobsPage(uid: string, options: JobPageOptions = {}): P
 
   if (options.source) constraints.push(where('source', '==', options.source))
   if (options.status) constraints.push(where('status', '==', options.status))
+  if (options.companyId) constraints.push(where('companyId', '==', options.companyId))
 
   constraints.push(orderBy('discoveredAt', 'desc'))
   if (options.cursor) constraints.push(startAfter(options.cursor))
@@ -154,6 +158,23 @@ export async function getJobCounts(uid: string): Promise<JobCounts> {
     qualified: qualified.data().count,
     rejected: rejected.data().count,
   }
+}
+
+export async function listJobsForCompany(
+  uid: string,
+  companyId: string,
+  pageSize = 20,
+): Promise<Job[]> {
+  const snapshot = await getDocs(
+    query(
+      jobsCollection,
+      where('userId', '==', uid),
+      where('companyId', '==', companyId),
+      orderBy('discoveredAt', 'desc'),
+      limit(pageSize),
+    ),
+  )
+  return snapshot.docs.map((document) => toJob(document.id, document.data()))
 }
 
 export async function getJob(id: string): Promise<Job | null> {

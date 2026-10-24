@@ -7,6 +7,7 @@ import type { Job } from '@/types/jobs'
 export interface UseJobsPageOptions {
   source?: string
   status?: string
+  companyId?: string
   search?: string
   pageSize?: number
   /** Skip the total-count query (e.g. for a small "recent" list). */
@@ -30,7 +31,7 @@ export interface UseJobsPageResult {
 
 export function useJobsPage(options: UseJobsPageOptions = {}): UseJobsPageResult {
   const { user } = useAuth()
-  const { source, status, search, pageSize = 50, skipCount = false } = options
+  const { source, status, companyId, search, pageSize = 50, skipCount = false } = options
   const trimmedSearch = search?.trim() ?? ''
 
   const [jobs, setJobs] = useState<Job[]>([])
@@ -60,12 +61,12 @@ export function useJobsPage(options: UseJobsPageOptions = {}): UseJobsPageResult
       try {
         const pagePromise = trimmedSearch
           ? searchJobsPage(user.uid, trimmedSearch, { pageSize, cursor })
-          : listJobsPage(user.uid, { pageSize, cursor, source, status })
+          : listJobsPage(user.uid, { pageSize, cursor, source, status, companyId })
         const countPromise = skipCount
           ? Promise.resolve(0)
           : trimmedSearch
             ? countSearchJobs(user.uid, trimmedSearch)
-            : countJobs(user.uid, { source, status })
+            : countJobs(user.uid, { source, status, companyId })
 
         const [result, count] = await Promise.all([pagePromise, countPromise])
         if (requestId !== requestRef.current) {
@@ -87,7 +88,7 @@ export function useJobsPage(options: UseJobsPageOptions = {}): UseJobsPageResult
         }
       }
     },
-    [user, trimmedSearch, pageSize, source, status, skipCount],
+    [user, trimmedSearch, pageSize, source, status, companyId, skipCount],
   )
 
   // Reset to page 1 whenever the filters/search (or user) change.

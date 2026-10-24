@@ -4,6 +4,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAIService } from '../ai/index.js'
 import { qualifyPendingJobs, analyzeJobWithAI, storeAnalysis, getJob, getProfile } from './qualification.js'
 import { loadOpportunityFilters } from './filters.js'
+import { companyDocId, companySearchTokens } from '../utils/companyId.js'
 import { toHttpsError } from '../utils/errors.js'
 
 initializeApp()
@@ -72,18 +73,17 @@ export const researchOpportunity = onCall(
       }
 
       const ai = getAIService()
-      const research = await ai.researchCompany({ companyName: job.companyName ?? 'Unknown' })
+      const companyName = job.companyName ?? 'Unknown'
+      const research = await ai.researchCompany({ companyName })
 
-      const existing = await db
-        .collection('companies')
-        .where('userId', '==', uid)
-        .where('name', '==', job.companyName ?? '')
-        .limit(1)
-        .get()
+      const companyId = companyDocId(uid, companyName)
+      const companyRef = db.collection('companies').doc(companyId)
+      const existing = await companyRef.get()
 
       const companyDoc = {
         userId: uid,
-        name: job.companyName ?? 'Unknown',
+        name: companyName,
+        location: job.location ?? null,
         industry: research.industry ?? null,
         description: research.description ?? null,
         website: research.website ?? null,
@@ -92,25 +92,17 @@ export const researchOpportunity = onCall(
         hiringSignals: research.hiringSignals ?? [],
         researchSummary: research.researchSummary ?? null,
         sourceUrls: research.sourceUrls ?? [],
+        researched: true,
+        searchTokens: companySearchTokens(companyName, research.industry, job.location),
         lastResearchedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
+        ...(existing.exists ? {} : { createdAt: FieldValue.serverTimestamp(), jobCount: 0 }),
       }
 
-      let companyId: string
-      if (existing.empty) {
-        const ref = await db.collection('companies').add({
-          ...companyDoc,
-          createdAt: FieldValue.serverTimestamp(),
-        })
-        companyId = ref.id
-      } else {
-        companyId = existing.docs[0].id
-        await existing.docs[0].ref.update(companyDoc)
-      }
-
+      await companyRef.set(companyDoc, { merge: true })
       await db.collection('jobs').doc(data.jobId).update({ companyId })
 
-      return { companyId, companyName: companyDoc.name }
+      return { companyId, companyName }
     } catch (error) {
       throw toHttpsError(error, 'Company research failed. Please try again.')
     }
