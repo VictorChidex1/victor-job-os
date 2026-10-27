@@ -96,9 +96,16 @@ service cloud.firestore {
     }
 
     match /aiRuns/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data);
+      allow write: if false;
+    }
+
+    // Client-reported errors: a user may create and read their own records.
+    // Only the Cloud Functions (admin SDK, bypasses rules) may modify them.
+    match /errorLogs/{documentId} {
+      allow read: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
-      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
+      allow update, delete: if false;
     }
   }
 }

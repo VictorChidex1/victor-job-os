@@ -8,6 +8,12 @@ import { buildSearchTokens, companyTitleKey, fingerprintDescription } from '../u
 import { companyDocId, companySearchTokens } from '../utils/companyId.js'
 import { mapWithConcurrency } from '../utils/concurrency.js'
 import { loadOpportunityFilters, jobMatchesFilters } from './filters.js'
+import { recordActivity } from '../utils/activity.js'
+import { recordError } from '../utils/errorLog.js'
+import { toHttpsError } from '../utils/errors.js'
+import { logInfo, logWarn, withTiming } from '../utils/logger.js'
+import { withRetry } from '../utils/retry.js'
+import { acquireDiscoveryLock, releaseDiscoveryLock } from './discoveryLock.js'
 
 interface JobSourceDoc {
   source: JobSource
@@ -140,21 +146,15 @@ function filterJobsBySearchTerms(jobs: NormalizedJob[], searchTerms: string[]): 
   })
 }
 
-async function recordActivity(uid: string, message: string, metadata: Record<string, unknown> = {}): Promise<void> {
-  await db.collection('activityLogs').add({
-    userId: uid,
-    type: 'job-discovery',
-    status: 'completed',
-    message,
-    metadata,
-    createdAt: FieldValue.serverTimestamp(),
-  })
-}
-
 export async function runDiscovery(uid: string): Promise<{ stored: number; duplicates: number; results: DiscoveryResult[] }> {
   const sources = await loadSources(uid)
   if (sources.length === 0) {
-    await recordActivity(uid, 'Job discovery skipped: no enabled sources.')
+    await recordActivity(
+      uid,
+      'job-discovery',
+      'skipped',
+      'Job discovery skipped: no enabled sources.',
+    )
     return { stored: 0, duplicates: 0, results: [] }
   }
 
@@ -194,13 +194,30 @@ export async function runDiscovery(uid: string): Promise<{ stored: number; dupli
   // so duplicate keys accumulate correctly across sources.
   const fetched = await mapWithConcurrency(tasks, 3, async (task) => {
     try {
-      const jobs = await task.adapter.discover(task.target)
+      const jobs = await withRetry(() => task.adapter.discover(task.target), {
+        attempts: 2,
+        baseDelayMs: 300,
+        maxDelayMs: 2000,
+      })
+      logInfo('discovery.source.fetched', {
+        userId: uid,
+        source: task.source.source,
+        target: task.target,
+        jobs: jobs.length,
+      })
       return { task, jobs, error: undefined as string | undefined }
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      logWarn('discovery.source.failed', {
+        userId: uid,
+        source: task.source.source,
+        target: task.target,
+        error: message,
+      })
       return {
         task,
         jobs: [] as NormalizedJob[],
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: message,
       }
     }
   })
@@ -231,12 +248,30 @@ export async function runDiscovery(uid: string): Promise<{ stored: number; dupli
   if (errors.length > 0) {
     await recordActivity(
       uid,
+      'job-discovery',
+      'failed',
       `Job discovery completed with ${errors.length} source error(s).`,
-      { stored, duplicates, errors: errors.map((e) => ({ source: e.source, boardTarget: e.boardTarget, error: e.error })) },
+      {
+        stored,
+        duplicates,
+        errors: errors.map((e) => ({ source: e.source, boardTarget: e.boardTarget, error: e.error })),
+      },
     )
   } else {
-    await recordActivity(uid, 'Job discovery completed.', { stored, duplicates, sources: results.length })
+    await recordActivity(uid, 'job-discovery', 'completed', 'Job discovery completed.', {
+      stored,
+      duplicates,
+      sources: results.length,
+    })
   }
+
+  logInfo('discovery.completed', {
+    userId: uid,
+    stored,
+    duplicates,
+    sources: results.length,
+    errors: errors.length,
+  })
 
   return { stored, duplicates, results }
 }
@@ -257,13 +292,23 @@ export const discoverJobs = onSchedule(
   },
   async () => {
     const uids = await allUserIds()
+    logInfo('discovery.scheduled.started', { users: uids.length })
     for (const uid of uids) {
+      const token = await acquireDiscoveryLock(uid)
+      if (!token) {
+        logInfo('discovery.scheduled.skipped_locked', { userId: uid })
+        continue
+      }
       try {
-        await runDiscovery(uid)
-      } catch {
+        await withTiming('discovery.scheduled.user', { userId: uid }, () => runDiscovery(uid))
+      } catch (error) {
         // Keep processing other users; one user's failure must not stop the run.
+        await recordError('discoverJobs.scheduled', error, { userId: uid })
+      } finally {
+        await releaseDiscoveryLock(uid, token)
       }
     }
+    logInfo('discovery.scheduled.completed', { users: uids.length })
   },
 )
 
@@ -278,13 +323,24 @@ export const runDiscoveryNow = onCall(
     if (!uid) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
+
+    const token = await acquireDiscoveryLock(uid)
+    if (!token) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Discovery is already running. Please wait a few minutes.',
+      )
+    }
+
     try {
-      const result = await runDiscovery(uid)
       // Qualification is intentionally decoupled: the client runs it in the
       // background via qualifyNewJobs so discovery returns quickly.
-      return result
+      return await withTiming('discovery.manual', { userId: uid }, () => runDiscovery(uid))
     } catch (error) {
-      throw new HttpsError('internal', 'Discovery failed.', error instanceof Error ? error.message : undefined)
+      await recordError('runDiscoveryNow', error, { userId: uid })
+      throw toHttpsError(error, 'Discovery failed. Please try again.')
+    } finally {
+      await releaseDiscoveryLock(uid, token)
     }
   },
 )

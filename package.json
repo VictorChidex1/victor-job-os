@@ -7,6 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test:typecheck": "tsc -p tests/tsconfig.json",
+    "test": "npm --prefix functions run build && npm run test:typecheck && vitest run tests/unit",
+    "test:integration": "npm --prefix functions run build && npm run test:typecheck && firebase emulators:exec --config firebase.test.json --only firestore,auth --project demo-test \"vitest run tests/integration\"",
+    "test:all": "npm run test && npm run test:integration",
     "preview": "vite preview",
     "emulators": "npm --prefix functions run build && firebase emulators:start --import=.firebase/emulator-export --export-on-exit=.firebase/emulator-export",
     "emulators:exec": "npm --prefix functions run build && firebase emulators:exec --import=.firebase/emulator-export --export-on-exit=.firebase/emulator-export",
@@ -33,16 +37,19 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "firebase-admin": "^14.5.0",
     "firebase-tools": "^15.32.1",
     "oxlint": "^1.81.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^4.1.12"
   },
   "overrides": {
     "@grpc/grpc-js": "^1.13.6"

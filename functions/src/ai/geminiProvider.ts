@@ -19,6 +19,7 @@ import {
   mapPitch,
   mapPortfolio,
 } from './prompts.js'
+import { fetchWithTimeout } from '../utils/retry.js'
 
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models'
 // Configurable so a quota-exhausted or retired model can be swapped without a
@@ -51,7 +52,7 @@ async function generateStructured<T>(prompt: string): Promise<T> {
 
   for (const { model, retries } of attempts) {
     for (let attempt = 0; attempt <= retries; attempt++) {
-      const response = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
+      const response = await fetchWithTimeout(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

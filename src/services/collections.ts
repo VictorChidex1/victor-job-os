@@ -12,6 +12,8 @@ export const collections = {
   followUps: 'followUps',
   activityLogs: 'activityLogs',
   aiRuns: 'aiRuns',
+  errorLogs: 'errorLogs',
+  discoveryLocks: 'discoveryLocks',
 } as const
 
 export type CollectionName = (typeof collections)[keyof typeof collections]

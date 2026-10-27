@@ -4,6 +4,8 @@ import { getAIService } from '../ai/index.js'
 import type { PortfolioMatchOutput } from '../ai/types.js'
 import { loadOpportunityFilters, jobMatchesFilters } from './filters.js'
 import { mapWithConcurrency } from '../utils/concurrency.js'
+import { recordAiRun, currentProvider } from '../utils/aiUsage.js'
+import { logInfo, logWarn } from '../utils/logger.js'
 
 initializeApp()
 const db = getFirestore()
@@ -109,17 +111,43 @@ export async function analyzeJobWithAI(
   threshold = 60,
 ): Promise<AnalysisRecord> {
   const ai = getAIService()
+  const provider = currentProvider()
 
-  const analysis = await ai.analyzeJob({
-    job: {
-      title: job.title,
-      description: job.description,
-      location: job.location,
-      remote: job.remote ?? false,
-      skills: job.skills ?? [],
-    },
-    profile,
-  })
+  const analyzeStartedAt = Date.now()
+  let analysis
+  try {
+    analysis = await ai.analyzeJob({
+      job: {
+        title: job.title,
+        description: job.description,
+        location: job.location,
+        remote: job.remote ?? false,
+        skills: job.skills ?? [],
+      },
+      profile,
+    })
+    await recordAiRun({
+      userId: uid,
+      provider: provider.provider,
+      model: provider.model,
+      operation: 'analyzeJob',
+      status: 'success',
+      durationMs: Date.now() - analyzeStartedAt,
+      jobId,
+    })
+  } catch (error) {
+    await recordAiRun({
+      userId: uid,
+      provider: provider.provider,
+      model: provider.model,
+      operation: 'analyzeJob',
+      status: 'error',
+      durationMs: Date.now() - analyzeStartedAt,
+      jobId,
+      error: error instanceof Error ? error.message.slice(0, 500) : String(error),
+    })
+    throw error
+  }
 
   const projectsSnapshot = await db
     .collection('projects')
@@ -145,10 +173,34 @@ export async function analyzeJobWithAI(
 
   let match: PortfolioMatchOutput = { projectIds: [], reasons: {} }
   if (projects.length > 0 && (analysis.fitScore ?? 0) >= threshold) {
-    match = await ai.matchPortfolio({
-      job: { title: job.title, description: job.description, skills: job.skills ?? [] },
-      projects,
-    })
+    const matchStartedAt = Date.now()
+    try {
+      match = await ai.matchPortfolio({
+        job: { title: job.title, description: job.description, skills: job.skills ?? [] },
+        projects,
+      })
+      await recordAiRun({
+        userId: uid,
+        provider: provider.provider,
+        model: provider.model,
+        operation: 'matchPortfolio',
+        status: 'success',
+        durationMs: Date.now() - matchStartedAt,
+        jobId,
+      })
+    } catch (error) {
+      await recordAiRun({
+        userId: uid,
+        provider: provider.provider,
+        model: provider.model,
+        operation: 'matchPortfolio',
+        status: 'error',
+        durationMs: Date.now() - matchStartedAt,
+        jobId,
+        error: error instanceof Error ? error.message.slice(0, 500) : String(error),
+      })
+      throw error
+    }
   }
 
   return {
@@ -238,6 +290,11 @@ export async function qualifyPendingJobs(
   const pending = (await unanalyzedJobs(uid, limitCount)).filter(
     (job) => jobMatchesFilters(job.data, filters).ok,
   )
+  logInfo('qualification.batch.started', {
+    userId: uid,
+    requested: limitCount,
+    pending: pending.length,
+  })
 
   // Bounded concurrency keeps latency down without hammering the AI provider.
   const results = await mapWithConcurrency(pending, 3, async (job): Promise<QualificationResult> => {
@@ -250,6 +307,11 @@ export async function qualifyPendingJobs(
         status: (record.fitScore ?? 0) >= filters.minFitScore ? 'qualified' : 'rejected',
       }
     } catch (error) {
+      logWarn('qualification.job_failed', {
+        userId: uid,
+        jobId: job.id,
+        error: error instanceof Error ? error.message : String(error),
+      })
       return {
         jobId: job.id,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -258,5 +320,10 @@ export async function qualifyPendingJobs(
   })
 
   const analyzed = results.filter((result) => !result.error).length
+  logInfo('qualification.batch.completed', {
+    userId: uid,
+    analyzed,
+    failed: results.length - analyzed,
+  })
   return { analyzed, results }
 }

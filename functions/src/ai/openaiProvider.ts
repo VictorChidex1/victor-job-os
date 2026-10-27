@@ -19,6 +19,7 @@ import {
   mapPitch,
   mapPortfolio,
 } from './prompts.js'
+import { fetchWithTimeout } from '../utils/retry.js'
 
 const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions'
 const DEFAULT_MODEL = 'gpt-4o-mini'
@@ -40,7 +41,7 @@ async function generateStructured<T>(prompt: string): Promise<T> {
   const model = process.env.OPENAI_MODEL ?? DEFAULT_MODEL
 
   for (let attempt = 0; attempt <= 2; attempt++) {
-    const response = await fetch(OPENAI_ENDPOINT, {
+    const response = await fetchWithTimeout(OPENAI_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

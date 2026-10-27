@@ -6,6 +6,10 @@ import { qualifyPendingJobs, analyzeJobWithAI, storeAnalysis, getJob, getProfile
 import { loadOpportunityFilters } from './filters.js'
 import { companyDocId, companySearchTokens } from '../utils/companyId.js'
 import { toHttpsError } from '../utils/errors.js'
+import { recordAiRun, currentProvider } from '../utils/aiUsage.js'
+import { recordActivity } from '../utils/activity.js'
+import { recordError } from '../utils/errorLog.js'
+import { logInfo } from '../utils/logger.js'
 
 initializeApp()
 const db = getFirestore()
@@ -40,12 +44,20 @@ export const analyzeJob = onCall(
       const record = await analyzeJobWithAI(uid, data.jobId, job, profile, filters.minFitScore)
       await storeAnalysis(data.jobId, record, filters.minFitScore)
 
+      const status = (record.fitScore ?? 0) >= filters.minFitScore ? 'qualified' : 'rejected'
+      await recordActivity(uid, 'job-analysis', 'completed', 'Job analysis completed.', {
+        jobId: data.jobId,
+        fitScore: record.fitScore,
+        status,
+      })
+
       return {
         jobId: data.jobId,
         fitScore: record.fitScore,
-        status: (record.fitScore ?? 0) >= filters.minFitScore ? 'qualified' : 'rejected',
+        status,
       }
     } catch (error) {
+      await recordError('analyzeJob', error, { userId: uid, jobId: data.jobId })
       throw toHttpsError(error, 'Analysis failed. Please try again.')
     }
   },
@@ -74,7 +86,33 @@ export const researchOpportunity = onCall(
 
       const ai = getAIService()
       const companyName = job.companyName ?? 'Unknown'
-      const research = await ai.researchCompany({ companyName })
+      const provider = currentProvider()
+      const aiStartedAt = Date.now()
+      let research
+      try {
+        research = await ai.researchCompany({ companyName })
+        await recordAiRun({
+          userId: uid,
+          provider: provider.provider,
+          model: provider.model,
+          operation: 'researchCompany',
+          status: 'success',
+          durationMs: Date.now() - aiStartedAt,
+          jobId: data.jobId,
+        })
+      } catch (aiError) {
+        await recordAiRun({
+          userId: uid,
+          provider: provider.provider,
+          model: provider.model,
+          operation: 'researchCompany',
+          status: 'error',
+          durationMs: Date.now() - aiStartedAt,
+          jobId: data.jobId,
+          error: aiError instanceof Error ? aiError.message.slice(0, 500) : String(aiError),
+        })
+        throw aiError
+      }
 
       const companyId = companyDocId(uid, companyName)
       const companyRef = db.collection('companies').doc(companyId)
@@ -102,8 +140,14 @@ export const researchOpportunity = onCall(
       await companyRef.set(companyDoc, { merge: true })
       await db.collection('jobs').doc(data.jobId).update({ companyId })
 
+      await recordActivity(uid, 'company-research', 'completed', 'Company research completed.', {
+        jobId: data.jobId,
+        companyId,
+      })
+
       return { companyId, companyName }
     } catch (error) {
+      await recordError('researchOpportunity', error, { userId: uid, jobId: data.jobId })
       throw toHttpsError(error, 'Company research failed. Please try again.')
     }
   },
@@ -118,6 +162,13 @@ export const qualifyNewJobs = onCall(
     }
     const requested = Number((request.data as { limit?: number } | undefined)?.limit ?? 5)
     const limit = Math.min(Math.max(Number.isFinite(requested) ? requested : 5, 1), 25)
-    return qualifyPendingJobs(uid, limit)
+    try {
+      const result = await qualifyPendingJobs(uid, limit)
+      logInfo('qualifyNewJobs.completed', { userId: uid, limit, analyzed: result.analyzed })
+      return result
+    } catch (error) {
+      await recordError('qualifyNewJobs', error, { userId: uid, limit })
+      throw toHttpsError(error, 'Unable to qualify jobs. Please try again.')
+    }
   },
 )

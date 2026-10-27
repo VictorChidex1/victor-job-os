@@ -5,43 +5,16 @@ import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { getAIService } from '../ai/index.js'
 import { getJob, getProfile } from '../jobs/qualification.js'
 import { toHttpsError } from '../utils/errors.js'
+import { recordActivity } from '../utils/activity.js'
+import { recordAiRun, currentProvider } from '../utils/aiUsage.js'
+import { recordError } from '../utils/errorLog.js'
+import { logInfo, logWarn, withTiming } from '../utils/logger.js'
+import { ACTION_STATUS, isAllowedTransition, type OutreachAction } from './stateMachine.js'
 
 initializeApp()
 const db = getFirestore()
 
 const PROMPT_VERSION = 'pitch-v1'
-
-type OutreachAction =
-  | 'submit-review'
-  | 'approve'
-  | 'reject'
-  | 'archive'
-  | 'schedule'
-  | 'mark-sent'
-  | 'record-reply'
-  | 'close'
-
-const ACTION_STATUS: Record<OutreachAction, 'needs-review' | 'approved' | 'scheduled' | 'sent' | 'replied' | 'closed'> = {
-  'submit-review': 'needs-review',
-  approve: 'approved',
-  reject: 'closed',
-  archive: 'closed',
-  schedule: 'scheduled',
-  'mark-sent': 'sent',
-  'record-reply': 'replied',
-  close: 'closed',
-}
-
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  draft: ['needs-review', 'closed'],
-  'needs-review': ['approved', 'closed'],
-  approved: ['scheduled', 'sent', 'closed'],
-  scheduled: ['sent', 'closed'],
-  sent: ['replied', 'follow-up-due', 'closed'],
-  'follow-up-due': ['replied', 'sent', 'closed'],
-  replied: ['closed'],
-  closed: [],
-}
 
 interface GeneratePitchRequest {
   jobId?: string
@@ -94,15 +67,6 @@ async function cancelPendingFollowUps(uid: string, outreachId: string): Promise<
     batch.update(document.ref, { status: 'cancelled' })
   }
   await batch.commit()
-}
-
-function providerInfo(): { name: string; model: string } {
-  const name = (process.env.AI_PROVIDER ?? 'gemini').toLowerCase()
-  const model =
-    name === 'openai'
-      ? (process.env.OPENAI_MODEL ?? 'gpt-4o-mini')
-      : (process.env.GEMINI_MODEL ?? 'gemini-3.8-flash')
-  return { name, model }
 }
 
 export const generatePitch = onCall(
@@ -189,45 +153,71 @@ export const generatePitch = onCall(
     })
 
     const ai = getAIService()
-    const pitch = await ai.generatePitch({
-      job: {
-        title: job.title,
-        description: job.description,
-        location: job.location,
-      },
-      analysis: analysis
-        ? {
-            fitScore: analysis.fitScore,
-            roleType: analysis.roleType,
-            matchedSkills: analysis.matchedSkills ?? [],
-            missingSkills: analysis.missingSkills ?? [],
-            summary: analysis.summary,
-          }
-        : undefined,
-      company: company
-        ? {
-            name: (company.name as string) ?? job.companyName ?? '',
-            industry: company.industry as string | undefined,
-            description: company.description as string | undefined,
-            product: company.product as string | undefined,
-            roleContext: company.roleContext as string | undefined,
-            hiringSignals: (company.hiringSignals as string[]) ?? [],
-            researchSummary: company.researchSummary as string | undefined,
-          }
-        : undefined,
-      contact: contact
-        ? { name: contact.name as string | undefined, role: contact.role as string | undefined }
-        : undefined,
-      profile: {
-        headline: profile.headline,
-        summary: profile.summary,
-        skills: profile.skills,
-        technologies: profile.technologies,
-        preferredRoles: profile.preferredRoles,
-        experienceLevel: profile.experienceLevel,
-      },
-      projects,
-    })
+    const provider = currentProvider()
+    const aiStartedAt = Date.now()
+    let pitch
+    try {
+      pitch = await ai.generatePitch({
+        job: {
+          title: job.title,
+          description: job.description,
+          location: job.location,
+        },
+        analysis: analysis
+          ? {
+              fitScore: analysis.fitScore,
+              roleType: analysis.roleType,
+              matchedSkills: analysis.matchedSkills ?? [],
+              missingSkills: analysis.missingSkills ?? [],
+              summary: analysis.summary,
+            }
+          : undefined,
+        company: company
+          ? {
+              name: (company.name as string) ?? job.companyName ?? '',
+              industry: company.industry as string | undefined,
+              description: company.description as string | undefined,
+              product: company.product as string | undefined,
+              roleContext: company.roleContext as string | undefined,
+              hiringSignals: (company.hiringSignals as string[]) ?? [],
+              researchSummary: company.researchSummary as string | undefined,
+            }
+          : undefined,
+        contact: contact
+          ? { name: contact.name as string | undefined, role: contact.role as string | undefined }
+          : undefined,
+        profile: {
+          headline: profile.headline,
+          summary: profile.summary,
+          skills: profile.skills,
+          technologies: profile.technologies,
+          preferredRoles: profile.preferredRoles,
+          experienceLevel: profile.experienceLevel,
+        },
+        projects,
+      })
+      await recordAiRun({
+        userId: uid,
+        provider: provider.provider,
+        model: provider.model,
+        operation: 'generatePitch',
+        status: 'success',
+        durationMs: Date.now() - aiStartedAt,
+        jobId: data.jobId,
+      })
+    } catch (aiError) {
+      await recordAiRun({
+        userId: uid,
+        provider: provider.provider,
+        model: provider.model,
+        operation: 'generatePitch',
+        status: 'error',
+        durationMs: Date.now() - aiStartedAt,
+        jobId: data.jobId,
+        error: aiError instanceof Error ? aiError.message.slice(0, 500) : String(aiError),
+      })
+      throw aiError
+    }
 
     if (!pitch.subject || !pitch.body) {
       throw new HttpsError('internal', 'The AI returned an empty draft. Please try again.')
@@ -236,7 +226,6 @@ export const generatePitch = onCall(
       throw new HttpsError('internal', 'The AI draft did not follow the required format. Please try again.')
     }
 
-    const provider = providerInfo()
     const ref = await db.collection('outreach').add({
       userId: uid,
       jobId: data.jobId,
@@ -251,7 +240,7 @@ export const generatePitch = onCall(
       draftSubject: pitch.subject,
       draftBody: pitch.body,
       status: 'needs-review',
-      aiProvider: provider.name,
+      aiProvider: provider.provider,
       model: provider.model,
       promptVersion: PROMPT_VERSION,
       followUpCount: 0,
@@ -259,17 +248,14 @@ export const generatePitch = onCall(
       updatedAt: FieldValue.serverTimestamp(),
     })
 
-    await db.collection('activityLogs').add({
-      userId: uid,
-      type: 'outreach',
-      status: 'completed',
-      message: 'Outreach draft generated.',
-      metadata: { outreachId: ref.id, jobId: data.jobId },
-      createdAt: FieldValue.serverTimestamp(),
+    await recordActivity(uid, 'outreach', 'completed', 'Outreach draft generated.', {
+      outreachId: ref.id,
+      jobId: data.jobId,
     })
 
     return { outreachId: ref.id, existing: false }
     } catch (error) {
+      await recordError('generatePitch', error, { userId: uid, jobId: data.jobId })
       throw toHttpsError(error, 'Outreach drafting failed. Please try again.')
     }
   },
@@ -291,64 +277,86 @@ export const updateOutreachStatus = onCall(
       throw new HttpsError('invalid-argument', `Unknown action "${data.action}".`)
     }
 
-    const ref = db.collection('outreach').doc(data.outreachId)
-    const snapshot = await ref.get()
-    if (!snapshot.exists) {
-      throw new HttpsError('not-found', 'Outreach not found.')
-    }
-    const outreach = snapshot.data() as Record<string, unknown>
-    if (outreach.userId !== uid) {
-      throw new HttpsError('permission-denied', 'This outreach does not belong to you.')
-    }
-
-    const current = (outreach.status as string) ?? 'draft'
-    const allowed = ALLOWED_TRANSITIONS[current] ?? []
-    if (!allowed.includes(target)) {
-      throw new HttpsError(
-        'failed-precondition',
-        `Cannot ${data.action} an outreach in "${current}" state.`,
-      )
-    }
-
-    const update: Record<string, unknown> = {
-      status: target,
-      updatedAt: FieldValue.serverTimestamp(),
-    }
-    if (data.action === 'approve') update.approvedAt = FieldValue.serverTimestamp()
-    if (data.action === 'schedule') {
-      const when = data.scheduledAt ? new Date(data.scheduledAt) : null
-      if (!when || Number.isNaN(when.getTime())) {
-        throw new HttpsError('invalid-argument', 'A valid scheduledAt is required.')
+    try {
+      const ref = db.collection('outreach').doc(data.outreachId)
+      const snapshot = await ref.get()
+      if (!snapshot.exists) {
+        throw new HttpsError('not-found', 'Outreach not found.')
       }
-      update.scheduledAt = Timestamp.fromDate(when)
-    }
-    if (data.action === 'mark-sent') {
-      update.sentAt = FieldValue.serverTimestamp()
-      update.sentManually = true
-    }
-    if (data.action === 'record-reply') update.replyAt = FieldValue.serverTimestamp()
-    if (data.action === 'reject' || data.action === 'archive' || data.action === 'close') {
-      update.closedAt = FieldValue.serverTimestamp()
-      update.closedReason =
-        data.action === 'reject' ? 'rejected' : data.action === 'archive' ? 'archived' : 'completed'
-    }
+      const outreach = snapshot.data() as Record<string, unknown>
+      if (outreach.userId !== uid) {
+        throw new HttpsError('permission-denied', 'This outreach does not belong to you.')
+      }
 
-    await ref.update(update)
+      const current = (outreach.status as string) ?? 'draft'
+      if (!isAllowedTransition(current, target)) {
+        throw new HttpsError(
+          'failed-precondition',
+          `Cannot ${data.action} an outreach in "${current}" state.`,
+        )
+      }
 
-    if (data.action === 'mark-sent') {
-      const count = await createFollowUps(uid, data.outreachId)
-      await ref.update({ followUpCount: count })
-    }
-    if (
-      data.action === 'record-reply' ||
-      data.action === 'reject' ||
-      data.action === 'archive' ||
-      data.action === 'close'
-    ) {
-      await cancelPendingFollowUps(uid, data.outreachId)
-    }
+      const update: Record<string, unknown> = {
+        status: target,
+        updatedAt: FieldValue.serverTimestamp(),
+      }
+      if (data.action === 'approve') update.approvedAt = FieldValue.serverTimestamp()
+      if (data.action === 'schedule') {
+        const when = data.scheduledAt ? new Date(data.scheduledAt) : null
+        if (!when || Number.isNaN(when.getTime())) {
+          throw new HttpsError('invalid-argument', 'A valid scheduledAt is required.')
+        }
+        update.scheduledAt = Timestamp.fromDate(when)
+      }
+      if (data.action === 'mark-sent') {
+        update.sentAt = FieldValue.serverTimestamp()
+        update.sentManually = true
+      }
+      if (data.action === 'record-reply') update.replyAt = FieldValue.serverTimestamp()
+      if (data.action === 'reject' || data.action === 'archive' || data.action === 'close') {
+        update.closedAt = FieldValue.serverTimestamp()
+        update.closedReason =
+          data.action === 'reject' ? 'rejected' : data.action === 'archive' ? 'archived' : 'completed'
+      }
 
-    return { status: target }
+      await ref.update(update)
+      logInfo('outreach.status.updated', {
+        userId: uid,
+        outreachId: data.outreachId,
+        action: data.action,
+        from: current,
+        to: target,
+      })
+
+      if (data.action === 'mark-sent') {
+        const count = await createFollowUps(uid, data.outreachId)
+        await ref.update({ followUpCount: count })
+        await recordActivity(uid, 'outreach', 'completed', 'Outreach marked as sent.', {
+          outreachId: data.outreachId,
+          followUps: count,
+        })
+      }
+      if (
+        data.action === 'record-reply' ||
+        data.action === 'reject' ||
+        data.action === 'archive' ||
+        data.action === 'close'
+      ) {
+        await cancelPendingFollowUps(uid, data.outreachId)
+        await recordActivity(uid, 'outreach', 'completed', `Outreach ${data.action}.`, {
+          outreachId: data.outreachId,
+        })
+      }
+
+      return { status: target }
+    } catch (error) {
+      await recordError('updateOutreachStatus', error, {
+        userId: uid,
+        outreachId: data.outreachId,
+        action: data.action,
+      })
+      throw toHttpsError(error, 'Unable to update outreach. Please try again.')
+    }
   },
 )
 
@@ -365,11 +373,20 @@ async function flagDueFollowUps(uid?: string): Promise<number> {
     const outreachSnapshot = await db.collection('outreach').doc(followUp.outreachId as string).get()
     if (!outreachSnapshot.exists) {
       await document.ref.update({ status: 'cancelled' })
+      logWarn('followUps.outreach_missing', {
+        followUpId: document.id,
+        outreachId: followUp.outreachId,
+      })
       continue
     }
     const outreach = outreachSnapshot.data() as Record<string, unknown>
     if (outreach.status === 'replied' || outreach.status === 'closed') {
       await document.ref.update({ status: 'cancelled' })
+      logInfo('followUps.cancelled', {
+        followUpId: document.id,
+        outreachId: followUp.outreachId,
+        outreachStatus: outreach.status,
+      })
       continue
     }
     if (outreach.status === 'sent') {
@@ -380,6 +397,7 @@ async function flagDueFollowUps(uid?: string): Promise<number> {
       flagged += 1
     }
   }
+  logInfo('followUps.flagged', { scope: uid ?? 'all', flagged })
   return flagged
 }
 
@@ -392,7 +410,11 @@ export const processFollowUps = onSchedule(
     maxInstances: 1,
   },
   async () => {
-    await flagDueFollowUps()
+    try {
+      await withTiming('processFollowUps', {}, () => flagDueFollowUps())
+    } catch (error) {
+      await recordError('processFollowUps', error, {})
+    }
   },
 )
 
@@ -403,7 +425,14 @@ export const runFollowUpsNow = onCall(
     if (!uid) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
-    const flagged = await flagDueFollowUps(uid)
-    return { flagged }
+    try {
+      const flagged = await withTiming('runFollowUpsNow', { userId: uid }, () =>
+        flagDueFollowUps(uid),
+      )
+      return { flagged }
+    } catch (error) {
+      await recordError('runFollowUpsNow', error, { userId: uid })
+      throw toHttpsError(error, 'Unable to check follow-ups. Please try again.')
+    }
   },
 )
