@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock3,
   ExternalLink,
+  Loader2,
   MapPin,
   Search,
   Sparkles,
@@ -31,6 +32,7 @@ interface OpportunitiesListProps {
   jobHref?: (jobId: string) => string
   jobPatches?: Record<string, { status?: JobStatus }>
   countsRefreshToken?: number
+  onListTop?: () => void
 }
 
 const defaultJobHref = (jobId: string) => `/app/opportunities?job=${jobId}`
@@ -482,8 +484,16 @@ function PaginationBar({
           <ChevronLeft className="size-3.5" />
           <span>Previous</span>
         </Button>
-        <span className="min-w-[60px] text-center font-mono text-xs font-semibold text-foreground">
+        <span className="inline-flex min-w-[60px] items-center justify-center gap-1.5 text-center font-mono text-xs font-semibold text-foreground">
           {page} / {Math.max(1, totalPages)}
+          <span className="inline-flex size-3.5 items-center justify-center">
+            {loading && (
+              <Loader2
+                className="size-3 animate-spin text-muted-foreground"
+                aria-label="Loading page"
+              />
+            )}
+          </span>
         </span>
         <Button
           variant="outline"
@@ -506,6 +516,7 @@ export function OpportunitiesList({
   jobHref = defaultJobHref,
   jobPatches,
   countsRefreshToken = 0,
+  onListTop,
 }: OpportunitiesListProps) {
   const shouldReduceMotion = useReducedMotion()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -563,6 +574,9 @@ export function OpportunitiesList({
   const cardRefs = useRef(new Map<string, HTMLDivElement>())
   const lastSelectedRef = useRef<string | null>(null)
   const previousCompactRef = useRef(compact)
+  const suppressSelectedScrollRef = useRef(false)
+  const resultSetKey = `${activeStatus}|${companyFilter}|${sourceFilter}|${debouncedSearch}`
+  const previousResultSetKeyRef = useRef(resultSetKey)
 
   useEffect(() => {
     if (selectedJobId) {
@@ -570,9 +584,21 @@ export function OpportunitiesList({
     }
   }, [selectedJobId])
 
+  // A new filter/search/status/company result set starts at the top.
+  useEffect(() => {
+    if (previousResultSetKeyRef.current === resultSetKey) {
+      return
+    }
+    previousResultSetKeyRef.current = resultSetKey
+    onListTop?.()
+  }, [resultSetKey, onListTop])
+
   useEffect(() => {
     const wasCompact = previousCompactRef.current
     previousCompactRef.current = compact
+    if (suppressSelectedScrollRef.current) {
+      return
+    }
     const target =
       selectedJobId ??
       (wasCompact && !compact ? lastSelectedRef.current : null)
@@ -587,6 +613,18 @@ export function OpportunitiesList({
     })
     return () => cancelAnimationFrame(frame)
   }, [selectedJobId, compact, jobs])
+
+  async function changePage(action: () => Promise<void>): Promise<void> {
+    suppressSelectedScrollRef.current = true
+    try {
+      await action()
+    } finally {
+      requestAnimationFrame(() => {
+        onListTop?.()
+        suppressSelectedScrollRef.current = false
+      })
+    }
+  }
 
   const title = isSearch
     ? `Search: ${debouncedSearch}`
@@ -781,7 +819,7 @@ export function OpportunitiesList({
         </div>
 
         {/* Main Content Area */}
-        {loading ? (
+        {loading && jobs.length === 0 ? (
           <div className={cn('grid gap-4', compact ? 'grid-cols-1' : 'lg:grid-cols-2')}>
             {Array.from({ length: 6 }).map((_, i) => (
               <OpportunityCardSkeleton key={i} />
@@ -799,7 +837,7 @@ export function OpportunitiesList({
             }
           />
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4" aria-busy={loading}>
             <PaginationBar
               page={page}
               totalPages={totalPages}
@@ -809,15 +847,15 @@ export function OpportunitiesList({
               hasNext={hasNext}
               loading={loading}
               compact={compact}
-              onPrev={() => void prevPage()}
-              onNext={() => void nextPage()}
+              onPrev={() => void changePage(prevPage)}
+              onNext={() => void changePage(nextPage)}
             />
 
-            {/* 120 FPS Staggered Cascade Grid */}
+            {/* Keep the grid mounted across pages so pagination doesn't fade. */}
             <motion.div
-              key={`${page}-${activeStatus}-${sourceFilter}-${debouncedSearch}`}
+              key={`${activeStatus}-${companyFilter}-${sourceFilter}-${debouncedSearch}`}
               variants={shouldReduceMotion ? undefined : cardContainerVariants}
-              initial={shouldReduceMotion ? undefined : 'hidden'}
+              initial={false}
               animate={shouldReduceMotion ? undefined : 'show'}
               className={cn(
                 'grid w-full min-w-0 max-w-full gap-4',
@@ -850,8 +888,8 @@ export function OpportunitiesList({
               hasNext={hasNext}
               loading={loading}
               compact={compact}
-              onPrev={() => void prevPage()}
-              onNext={() => void nextPage()}
+              onPrev={() => void changePage(prevPage)}
+              onNext={() => void changePage(nextPage)}
             />
           </div>
         )}

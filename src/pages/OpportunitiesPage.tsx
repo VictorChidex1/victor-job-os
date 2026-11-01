@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { OpportunitiesList } from '@/components/opportunities/OpportunitiesList'
 import { OpportunityDetail } from '@/components/opportunities/OpportunityDetail'
@@ -19,6 +19,11 @@ export function OpportunitiesPage() {
   const isFullPage = searchParams.get('view') === 'full'
   const [jobPatches, setJobPatches] = useState<Record<string, { status?: JobStatus }>>({})
   const [countsRefreshToken, setCountsRefreshToken] = useState(0)
+  const listPaneRef = useRef<HTMLElement | null>(null)
+
+  const scrollListToTop = useCallback(() => {
+    listPaneRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+  }, [])
 
   usePageMeta({
     title: jobId ? 'Opportunity — Victor Job OS' : 'Opportunities — Victor Job OS',
@@ -64,6 +69,7 @@ export function OpportunitiesPage() {
   return (
     <div className="relative flex h-full min-h-0 w-full overflow-hidden">
       <aside
+        ref={listPaneRef}
         className={cn(
           'w-full shrink-0 overflow-y-auto bg-background',
           jobId && 'xl:w-[420px] xl:border-r',
@@ -75,6 +81,7 @@ export function OpportunitiesPage() {
           jobHref={jobHref}
           jobPatches={jobPatches}
           countsRefreshToken={countsRefreshToken}
+          onListTop={scrollListToTop}
         />
       </aside>
 
