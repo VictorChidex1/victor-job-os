@@ -47,6 +47,12 @@ export const CompanyViewPage = lazy(() =>
   import('@/pages/CompanyViewPage').then((module) => ({ default: module.CompanyViewPage })),
 )
 
+export const ApplicationViewPage = lazy(() =>
+  import('@/pages/ApplicationViewPage').then((module) => ({
+    default: module.ApplicationViewPage,
+  })),
+)
+
 export function AppShellLoader() {
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
@@ -143,6 +149,14 @@ export function CompanyViewRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <CompanyViewPage />
+    </Suspense>
+  )
+}
+
+export function ApplicationViewRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <ApplicationViewPage />
     </Suspense>
   )
 }

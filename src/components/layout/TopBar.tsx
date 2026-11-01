@@ -50,7 +50,9 @@ export function TopBar({ onMenuClick, onToggleSidebar }: TopBarProps) {
       ? 'Opportunity'
       : pathname.startsWith('/app/outreach/')
         ? 'Outreach'
-        : 'Victor\u2019s Job OS')
+        : pathname.startsWith('/app/applications/')
+          ? 'Application'
+          : 'Victor\u2019s Job OS')
 
   const displayName = user?.displayName ?? user?.email?.split('@')[0] ?? 'Victor'
 

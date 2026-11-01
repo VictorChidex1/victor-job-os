@@ -17,3 +17,12 @@ export type { Job, JobAnalysis, JobSource, JobStatus } from './jobs'
 export type { Company } from './companies'
 export type { Contact, FollowUp, Outreach, OutreachStatus } from './outreach'
 export type { AppUser, UserRole } from './users'
+export type {
+  Application,
+  ApplicationDetailsPatch,
+  ApplicationEvent,
+  ApplicationEventType,
+  ApplicationOrigin,
+  ApplicationOutcome,
+  ApplicationStatus,
+} from './applications'

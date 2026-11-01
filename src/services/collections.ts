@@ -8,6 +8,8 @@ export const collections = {
   companies: 'companies',
   jobAnalyses: 'jobAnalyses',
   outreach: 'outreach',
+  applications: 'applications',
+  applicationEvents: 'applicationEvents',
   contacts: 'contacts',
   followUps: 'followUps',
   activityLogs: 'activityLogs',

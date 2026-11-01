@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest'
 import {
   assertFails,
   assertSucceeds,
@@ -36,6 +36,7 @@ describe('Firestore security rules', () => {
     const db = testEnv.unauthenticatedContext().firestore()
     await assertFails(getDoc(doc(db, 'profiles', owner)))
     await assertFails(getDoc(doc(db, 'jobs', 'j1')))
+    await assertFails(getDoc(doc(db, 'applications', 'missing')))
   })
 
   it('allows the owner to read and write their profile', async () => {
@@ -79,6 +80,8 @@ describe('Firestore security rules', () => {
       'companies',
       'jobAnalyses',
       'outreach',
+      'applications',
+      'applicationEvents',
       'contacts',
       'followUps',
       'activityLogs',
@@ -94,6 +97,40 @@ describe('Firestore security rules', () => {
     for (const name of collections) {
       await assertFails(getDoc(doc(dbOther, name, `doc-${name}`)))
     }
+  })
+
+  it('lets a signed-in user probe a missing application but not read another user’s', async () => {
+    const dbOwner = testEnv.authenticatedContext(owner).firestore()
+    await assertSucceeds(getDoc(doc(dbOwner, 'applications', 'missing')))
+    await assertSucceeds(
+      setDoc(doc(dbOwner, 'applications', 'a1'), {
+        userId: owner,
+        jobId: 'job-1',
+        status: 'not-started',
+      }),
+    )
+
+    const dbOther = testEnv.authenticatedContext(other).firestore()
+    await assertFails(getDoc(doc(dbOther, 'applications', 'a1')))
+    await assertFails(
+      updateDoc(doc(dbOther, 'applications', 'a1'), { status: 'preparing' }),
+    )
+  })
+
+  it('keeps application events immutable', async () => {
+    const dbOwner = testEnv.authenticatedContext(owner).firestore()
+    await assertSucceeds(
+      setDoc(doc(dbOwner, 'applicationEvents', 'event-1'), {
+        userId: owner,
+        applicationId: 'a1',
+        type: 'created',
+      }),
+    )
+    await assertFails(
+      updateDoc(doc(dbOwner, 'applicationEvents', 'event-1'), {
+        type: 'status-changed',
+      }),
+    )
   })
 
   it('makes aiRuns read-only for clients', async () => {

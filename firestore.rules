@@ -77,6 +77,24 @@ service cloud.firestore {
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
+    // Applications are the V2 execution records. A deterministic document id
+    // means clients may probe for an existing application before creating it,
+    // so reads of a missing document are allowed for signed-in users.
+    match /applications/{documentId} {
+      allow read: if signedIn() && (resource == null || ownsUserField(resource.data));
+      allow delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
+    }
+
+    // Application timeline entries are immutable: no edits. Owners may delete
+    // them only as part of deleting the parent application.
+    match /applicationEvents/{documentId} {
+      allow read, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if false;
+    }
+
     match /contacts/{documentId} {
       allow read, delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);

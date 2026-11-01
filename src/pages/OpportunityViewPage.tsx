@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { httpsCallable } from 'firebase/functions'
 import { toast } from 'sonner'
-import { ArrowLeft, ChevronRight, ExternalLink, Mail, Sparkles } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ClipboardList, ExternalLink, Mail, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,8 +16,12 @@ import { useJobAnalysis } from '@/hooks/useJobAnalysis'
 import { useCompany } from '@/hooks/useCompany'
 import { useProjects } from '@/hooks/useProjects'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import { useAuth } from '@/hooks/useAuth'
+import { useJobApplication } from '@/hooks/useJobApplication'
+import { APPLICATION_STATUS_LABELS } from '@/lib/applications'
 import { SOURCE_LABELS, SOURCE_ATTRIBUTION_URL } from '@/lib/job-sources'
 import { aiErrorMessage } from '@/lib/ai-errors'
+import { createApplicationFromJob } from '@/services/applications'
 import type { Job } from '@/types/jobs'
 
 function FitMetric({ label, value }: { label: string; value: string }) {
@@ -46,7 +50,13 @@ export function OpportunityViewPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [researching, setResearching] = useState(false)
   const [drafting, setDrafting] = useState(false)
+  const [startingApplication, setStartingApplication] = useState(false)
 
+  const { user } = useAuth()
+  const {
+    application,
+    loading: applicationLoading,
+  } = useJobApplication(id)
   const { analysis, loading: analysisLoading, refresh: refreshAnalysis } = useJobAnalysis(id)
   const { company, loading: companyLoading, refresh: refreshCompany } = useCompany(job?.companyId)
   const { projects } = useProjects()
@@ -149,6 +159,25 @@ export function OpportunityViewPage() {
     }
   }
 
+  async function runStartApplication() {
+    if (!job || !user) {
+      return
+    }
+    setStartingApplication(true)
+    try {
+      const result = await createApplicationFromJob(user.uid, job.id)
+      toast(result.existing ? 'Application already started' : 'Application started')
+      navigate(`/app/applications/${result.id}`)
+    } catch (startError) {
+      toast('Unable to start the application', {
+        description:
+          startError instanceof Error ? startError.message : 'Please try again.',
+      })
+    } finally {
+      setStartingApplication(false)
+    }
+  }
+
   async function runDraftOutreach() {
     setDrafting(true)
     try {
@@ -189,7 +218,7 @@ export function OpportunityViewPage() {
       title={job.title}
       description={`${job.companyName || 'Unknown company'} · ${job.remote ? 'Remote' : job.location || 'Location unknown'}`}
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => void runAnalyze()} disabled={analyzing}>
             <Sparkles />
             {analyzing ? 'Analyzing…' : 'Analyze'}
@@ -201,6 +230,26 @@ export function OpportunityViewPage() {
             <Mail />
             {drafting ? 'Drafting…' : 'Draft outreach'}
           </Button>
+          {application ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/app/applications/${application.id}`)}
+            >
+              <ClipboardList />
+              View application
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void runStartApplication()}
+              disabled={startingApplication || applicationLoading || !job}
+            >
+              <ClipboardList />
+              {startingApplication ? 'Starting…' : 'Start application'}
+            </Button>
+          )}
           <Button size="sm" variant="outline" render={<a href={job.applicationUrl} target="_blank" rel="noreferrer" />}>
             <ExternalLink />
             Open source
@@ -220,6 +269,11 @@ export function OpportunityViewPage() {
         <Badge variant={job.status === 'qualified' ? 'secondary' : 'outline'}>
           {job.status}
         </Badge>
+        {application && (
+          <Badge variant="secondary">
+            Application · {APPLICATION_STATUS_LABELS[application.status]}
+          </Badge>
+        )}
         <Badge variant="outline" className="capitalize">{SOURCE_LABELS[job.source] ?? job.source}</Badge>
         {SOURCE_ATTRIBUTION_URL[job.source] && (
           <a
