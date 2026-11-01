@@ -11,6 +11,8 @@
     "test": "npm --prefix functions run build && npm run test:typecheck && vitest run tests/unit",
     "test:integration": "npm --prefix functions run build && npm run test:typecheck && firebase emulators:exec --config firebase.test.json --only firestore,auth --project demo-test \"vitest run tests/integration\"",
     "test:all": "npm run test && npm run test:integration",
+    "clean-job-text": "npm --prefix functions run build && node scripts/clean-job-text.mjs",
+    "clean-job-text:apply": "npm --prefix functions run build && node scripts/clean-job-text.mjs --apply --confirm",
     "preview": "vite preview",
     "emulators": "npm --prefix functions run build && firebase emulators:start --import=.firebase/emulator-export --export-on-exit=.firebase/emulator-export",
     "emulators:exec": "npm --prefix functions run build && firebase emulators:exec --import=.firebase/emulator-export --export-on-exit=.firebase/emulator-export",

@@ -15,6 +15,7 @@ import {
   type Timestamp,
 } from 'firebase/firestore'
 import { collections } from '@/services/collections'
+import { stripHtml } from '@/lib/html'
 import type { JobSource } from '@/types/jobs'
 import type {
   Application,
@@ -115,15 +116,19 @@ export function createApplicationService(firestore: Firestore): ApplicationServi
             companyId:
               typeof jobData.companyId === 'string' ? jobData.companyId : '',
             companyName:
-              typeof jobData.companyName === 'string' ? jobData.companyName : '',
-            title: typeof jobData.title === 'string' ? jobData.title : '',
+              typeof jobData.companyName === 'string'
+                ? stripHtml(jobData.companyName)
+                : '',
+            title: typeof jobData.title === 'string' ? stripHtml(jobData.title) : '',
             source: (jobData.source as JobSource) ?? 'custom',
             applicationUrl:
               typeof jobData.applicationUrl === 'string'
                 ? jobData.applicationUrl
                 : '',
             location:
-              typeof jobData.location === 'string' ? jobData.location : undefined,
+              typeof jobData.location === 'string'
+                ? stripHtml(jobData.location)
+                : undefined,
             remote: jobData.remote === true,
           },
           origin,
@@ -313,11 +318,11 @@ function toApplication(id: string, data: DocumentData): Application {
     userId: data.userId,
     jobId: data.jobId,
     companyId: data.companyId ?? '',
-    companyName: data.companyName ?? '',
-    jobTitle: data.jobTitle ?? '',
+    companyName: stripHtml(data.companyName ?? ''),
+    jobTitle: stripHtml(data.jobTitle ?? ''),
     jobSource: data.jobSource ?? 'custom',
     applicationUrl: data.applicationUrl ?? '',
-    location: data.location,
+    location: data.location ? stripHtml(data.location) : undefined,
     remote: data.remote ?? false,
     status: (data.status as ApplicationStatus) ?? 'not-started',
     outcome: data.outcome,

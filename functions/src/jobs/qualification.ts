@@ -6,6 +6,7 @@ import { loadOpportunityFilters, jobMatchesFilters } from './filters.js'
 import { mapWithConcurrency } from '../utils/concurrency.js'
 import { recordAiRun, currentProvider } from '../utils/aiUsage.js'
 import { logInfo, logWarn } from '../utils/logger.js'
+import { stripHtml } from '../utils/html.js'
 
 initializeApp()
 const db = getFirestore()
@@ -46,7 +47,14 @@ export interface ProfileDoc {
 export async function getJob(jobId: string): Promise<JobDoc | null> {
   const snapshot = await db.collection('jobs').doc(jobId).get()
   if (!snapshot.exists) return null
-  return snapshot.data() as JobDoc
+  const data = snapshot.data() as JobDoc
+  return {
+    ...data,
+    title: stripHtml(data.title ?? ''),
+    companyName: data.companyName ? stripHtml(data.companyName) : data.companyName,
+    location: data.location ? stripHtml(data.location) : data.location,
+    description: stripHtml(data.description ?? ''),
+  }
 }
 
 export async function getProfile(uid: string): Promise<ProfileDoc> {

@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
+import { stripHtml } from '@/lib/html'
 import type { Outreach } from '@/types/outreach'
 
 const outreachCollection = collection(db, collections.outreach)
@@ -79,10 +80,10 @@ function toOutreach(id: string, data: DocumentData): Outreach {
     jobId: data.jobId,
     companyId: data.companyId ?? '',
     contactId: data.contactId,
-    contactName: data.contactName,
+    contactName: data.contactName ? stripHtml(data.contactName) : data.contactName,
     contactEmail: data.contactEmail,
-    jobTitle: data.jobTitle,
-    companyName: data.companyName,
+    jobTitle: data.jobTitle ? stripHtml(data.jobTitle) : data.jobTitle,
+    companyName: data.companyName ? stripHtml(data.companyName) : data.companyName,
     subject: data.subject ?? '',
     body: data.body ?? '',
     draftSubject: data.draftSubject ?? data.subject ?? '',

@@ -10,16 +10,21 @@ import type {
   PortfolioMatchOutput,
   Recommendation,
 } from './types.js'
+import { stripHtml } from '../utils/html.js'
 
 export function buildAnalyzeJobPrompt(input: JobAnalysisInput): string {
+  const title = stripHtml(input.job.title ?? '')
+  const location = input.job.location ? stripHtml(input.job.location) : 'Unknown'
+  const description = stripHtml(input.job.description ?? '')
+
   return `You are a technical recruiter evaluating a job for a candidate.
 
 JOB
-Title: ${input.job.title}
-Location: ${input.job.location ?? 'Unknown'} (remote: ${input.job.remote})
+Title: ${title}
+Location: ${location} (remote: ${input.job.remote})
 Skills mentioned: ${input.job.skills.join(', ') || 'none listed'}
 Description:
-${input.job.description.slice(0, 6000)}
+${description.slice(0, 6000)}
 
 CANDIDATE PROFILE
 Headline: ${input.profile.headline}
@@ -48,7 +53,9 @@ Do not fabricate candidate facts. Base everything only on the provided profile.`
 }
 
 export function buildCompanyPrompt(input: CompanyResearchInput): string {
-  return `Research the company "${input.companyName}" for a job search.
+  const companyName = stripHtml(input.companyName ?? '')
+
+  return `Research the company "${companyName}" for a job search.
 
 Return STRICT JSON only:
 {
@@ -65,6 +72,8 @@ Only include facts you are confident about. If unknown, use null or empty arrays
 }
 
 export function buildPortfolioPrompt(input: PortfolioMatchInput): string {
+  const title = stripHtml(input.job.title ?? '')
+  const description = stripHtml(input.job.description ?? '')
   const projects = input.projects
     .map((p) => {
       const lines = [
@@ -84,10 +93,10 @@ export function buildPortfolioPrompt(input: PortfolioMatchInput): string {
   return `Match verified portfolio projects to a job opportunity.
 
 JOB
-Title: ${input.job.title}
+Title: ${title}
 Skills: ${input.job.skills.join(', ')}
 Description:
-${input.job.description.slice(0, 3000)}
+${description.slice(0, 3000)}
 
 AVAILABLE PROJECTS
 ${projects}
@@ -102,6 +111,9 @@ Use only the provided projects. Prefer projects with matching technologies, outc
 
 export function buildPitchPrompt(input: PitchInput): string {
   const contactName = input.contact?.name?.trim() || 'Hiring Manager'
+  const jobTitle = stripHtml(input.job.title ?? '')
+  const jobLocation = input.job.location ? stripHtml(input.job.location) : 'Unknown'
+  const jobDescription = stripHtml(input.job.description ?? '')
   const projects = input.projects.length
     ? input.projects
         .map((p) => {
@@ -120,11 +132,11 @@ export function buildPitchPrompt(input: PitchInput): string {
     : '- No verified projects provided. Do not cite any project or metric.'
 
   const company = input.company
-    ? `Company: ${input.company.name}
-Industry: ${input.company.industry ?? 'Unknown'}
-What they do: ${input.company.description ?? input.company.researchSummary ?? 'Unknown'}
-Product/service: ${input.company.product ?? 'Unknown'}
-Role context: ${input.company.roleContext ?? 'Unknown'}
+    ? `Company: ${stripHtml(input.company.name ?? '')}
+Industry: ${input.company.industry ? stripHtml(input.company.industry) : 'Unknown'}
+What they do: ${stripHtml(input.company.description ?? input.company.researchSummary ?? 'Unknown')}
+Product/service: ${input.company.product ? stripHtml(input.company.product) : 'Unknown'}
+Role context: ${input.company.roleContext ? stripHtml(input.company.roleContext) : 'Unknown'}
 Hiring signals: ${input.company.hiringSignals.join('; ') || 'none provided'}`
     : 'Company research: not provided. Do not invent company facts.'
 
@@ -141,10 +153,10 @@ Assessment summary: ${input.analysis.summary ?? 'n/a'}`
 CONTEXT
 Recipient name: ${contactName}
 Recipient role: ${input.contact?.role ?? 'Unknown'}
-Job title: ${input.job.title}
-Location: ${input.job.location ?? 'Unknown'}
+Job title: ${jobTitle}
+Location: ${jobLocation}
 Job description:
-${input.job.description.slice(0, 4000)}
+${jobDescription.slice(0, 4000)}
 
 ${company}
 

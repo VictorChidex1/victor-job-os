@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
+import { stripHtml } from '../utils/html.js'
 
 initializeApp()
 const db = getFirestore()
@@ -67,8 +68,8 @@ export interface FilterResult {
  * a missing value) to avoid over-filtering.
  */
 export function jobMatchesFilters(job: FilterableJob, filters: OpportunityFilters): FilterResult {
-  const haystack = `${job.title} ${job.description ?? ''}`.toLowerCase()
-  const company = (job.companyName ?? '').toLowerCase()
+  const haystack = `${stripHtml(job.title ?? '')} ${stripHtml(job.description ?? '')}`.toLowerCase()
+  const company = stripHtml(job.companyName ?? '').toLowerCase()
 
   for (const role of filters.excludedRoles) {
     if (role && haystack.includes(role.toLowerCase())) {
@@ -81,7 +82,7 @@ export function jobMatchesFilters(job: FilterableJob, filters: OpportunityFilter
     }
   }
 
-  const location = (job.location ?? '').toLowerCase()
+  const location = stripHtml(job.location ?? '').toLowerCase()
   const remote = job.remote === true || location.includes('remote')
 
   if (filters.remotePreference && !remote) {

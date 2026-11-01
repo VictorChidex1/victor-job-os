@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
+import { stripHtml } from '@/lib/html'
 import type { Company } from '@/types/companies'
 
 const companiesCollection = collection(db, collections.companies)
@@ -100,16 +101,18 @@ export function toCompany(id: string, data: DocumentData): Company {
   return {
     id,
     userId: data.userId,
-    name: data.name ?? 'Unknown company',
+    name: stripHtml(data.name ?? 'Unknown company'),
     website: data.website,
-    industry: data.industry,
-    description: data.description,
-    product: data.product,
-    roleContext: data.roleContext,
+    industry: data.industry ? stripHtml(data.industry) : data.industry,
+    description: data.description ? stripHtml(data.description) : data.description,
+    product: data.product ? stripHtml(data.product) : data.product,
+    roleContext: data.roleContext ? stripHtml(data.roleContext) : data.roleContext,
     hiringSignals: data.hiringSignals ?? [],
-    researchSummary: data.researchSummary,
+    researchSummary: data.researchSummary
+      ? stripHtml(data.researchSummary)
+      : data.researchSummary,
     sourceUrls: data.sourceUrls ?? [],
-    location: data.location,
+    location: data.location ? stripHtml(data.location) : data.location,
     jobCount: data.jobCount ?? 0,
     researched: data.researched ?? Boolean(data.lastResearchedAt),
     lastSeenAt: data.lastSeenAt as Timestamp | undefined,

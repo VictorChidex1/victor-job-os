@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
+import { stripHtml } from '@/lib/html'
 import type { Contact } from '@/types/outreach'
 
 const contactsCollection = collection(db, collections.contacts)
@@ -57,10 +58,10 @@ function toContact(id: string, data: DocumentData): Contact {
     id,
     userId: data.userId,
     companyId: data.companyId ?? '',
-    companyName: data.companyName,
-    name: data.name,
+    companyName: data.companyName ? stripHtml(data.companyName) : data.companyName,
+    name: data.name ? stripHtml(data.name) : data.name,
     email: data.email,
-    role: data.role,
+    role: data.role ? stripHtml(data.role) : data.role,
     sourceUrl: data.sourceUrl,
     confidence: data.confidence,
     verified: data.verified ?? false,

@@ -147,17 +147,20 @@ export function ApplicationViewPage() {
     )
   }
 
+  function goToOpportunity() {
+    if (!application) {
+      return
+    }
+    navigate(`/app/opportunities?job=${encodeURIComponent(application.jobId)}`)
+  }
+
   return (
     <PageContainer
       title={application.jobTitle}
       description={`${application.companyName || 'Unknown company'} · ${APPLICATION_STATUS_LABELS[application.status]}`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/app/opportunities/${application.jobId}`)}
-          >
+          <Button variant="outline" size="sm" onClick={goToOpportunity}>
             <ArrowLeft />
             Opportunity
           </Button>
@@ -371,7 +374,7 @@ export function ApplicationViewPage() {
                 variant="outline"
                 size="sm"
                 className="mt-2 w-fit"
-                onClick={() => navigate(`/app/opportunities/${application.jobId}`)}
+                onClick={goToOpportunity}
               >
                 View opportunity
               </Button>

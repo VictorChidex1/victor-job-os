@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
+import { stripHtml } from '@/lib/html'
 import type { Job, JobStatus } from '@/types/jobs'
 
 const jobsCollection = collection(db, collections.jobs)
@@ -192,10 +193,10 @@ function toJob(id: string, data: DocumentData): Job {
     source: data.source,
     sourceJobId: data.sourceJobId,
     companyId: data.companyId ?? '',
-    companyName: data.companyName ?? '',
-    title: data.title,
-    description: data.description,
-    location: data.location,
+    companyName: stripHtml(data.companyName ?? ''),
+    title: stripHtml(data.title ?? ''),
+    description: stripHtml(data.description ?? ''),
+    location: data.location ? stripHtml(data.location) : undefined,
     remote: data.remote ?? false,
     employmentType: data.employmentType,
     seniority: data.seniority,
