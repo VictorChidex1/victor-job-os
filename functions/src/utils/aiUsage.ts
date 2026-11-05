@@ -5,7 +5,13 @@ import { logInfo, logWarn } from './logger.js'
 initializeApp()
 const db = getFirestore()
 
-export type AiOperation = 'analyzeJob' | 'researchCompany' | 'matchPortfolio' | 'generatePitch'
+export type AiOperation =
+  | 'analyzeJob'
+  | 'researchCompany'
+  | 'matchPortfolio'
+  | 'generatePitch'
+  | 'generateCoverLetter'
+  | 'generateApplicationAnswers'
 
 export interface AiRunInput {
   userId: string
@@ -24,6 +30,8 @@ const ESTIMATED_COST_PER_CALL: Record<AiOperation, number> = {
   researchCompany: 0.0008,
   matchPortfolio: 0.0008,
   generatePitch: 0.0015,
+  generateCoverLetter: 0.0018,
+  generateApplicationAnswers: 0.0018,
 }
 
 export function currentProvider(): { provider: string; model: string } {

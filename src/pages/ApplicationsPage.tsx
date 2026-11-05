@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useCallback, useMemo } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { Briefcase, LayoutGrid, List, Loader2, Search, X } from 'lucide-react'
 import { ApplicationBoard } from '@/components/applications/ApplicationBoard'
 import { ApplicationDetail } from '@/components/applications/ApplicationDetail'
@@ -27,11 +27,35 @@ type PipelineView = 'board' | 'list'
 
 export function ApplicationsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const applicationId = searchParams.get('application')
+  const query = searchParams.get('q') ?? ''
+  const view: PipelineView = searchParams.get('view') === 'list' ? 'list' : 'board'
   const { items, loading, error, refresh } = useApplications()
-  const [query, setQuery] = useState('')
-  const [view, setView] = useState<PipelineView>('board')
+
+  const updateSearchParam = useCallback(
+    (key: string, value: string) => {
+      const next = new URLSearchParams(searchParams)
+      if (value) {
+        next.set(key, value)
+      } else {
+        next.delete(key)
+      }
+      setSearchParams(next, { replace: true })
+    },
+    [searchParams, setSearchParams],
+  )
+
+  const setQuery = useCallback(
+    (value: string) => updateSearchParam('q', value),
+    [updateSearchParam],
+  )
+
+  const setView = useCallback(
+    (value: PipelineView) => updateSearchParam('view', value === 'list' ? 'list' : ''),
+    [updateSearchParam],
+  )
 
   usePageMeta({
     title: applicationId
@@ -59,6 +83,16 @@ export function ApplicationsPage() {
     next.delete('application')
     setSearchParams(next, { replace: true })
   }, [searchParams, setSearchParams])
+
+  const openPreparation = useCallback(
+    (id: string) => {
+      const from = `${location.pathname}${location.search}`
+      navigate(`/app/applications/${encodeURIComponent(id)}/prepare`, {
+        state: { from },
+      })
+    },
+    [location.pathname, location.search, navigate],
+  )
 
   const description =
     items.length === 0
@@ -200,6 +234,7 @@ export function ApplicationsPage() {
               compact
               onClose={closeApplication}
               onChanged={() => void refresh()}
+              onPrepare={() => openPreparation(applicationId)}
             />
           )}
         </SheetContent>

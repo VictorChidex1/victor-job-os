@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ExternalLink, FileText } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,20 @@ interface ApplicationDetailProps {
   compact?: boolean
   onClose?: () => void
   onChanged?: () => void
+  onPrepare?: () => void
+}
+
+function preparationActionLabel(status: ApplicationStatus): string {
+  switch (status) {
+    case 'not-started':
+      return 'Start preparation'
+    case 'preparing':
+      return 'Continue preparing'
+    case 'needs-review':
+      return 'Review preparation'
+    default:
+      return 'View preparation'
+  }
 }
 
 function DetailRow({ label, value }: { label: string; value?: string }) {
@@ -59,6 +73,7 @@ export function ApplicationDetail({
   compact = false,
   onClose,
   onChanged,
+  onPrepare,
 }: ApplicationDetailProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -160,6 +175,12 @@ export function ApplicationDetail({
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {backButton}
+          {onPrepare && (
+            <Button variant="outline" size="sm" onClick={onPrepare}>
+              <FileText />
+              {preparationActionLabel(application.status)}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={goToOpportunity}>
             <ArrowLeft />
             Opportunity

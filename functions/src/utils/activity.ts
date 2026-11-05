@@ -10,6 +10,7 @@ export type ActivityType =
   | 'company-research'
   | 'outreach'
   | 'follow-up'
+  | 'application-preparation'
 
 export type ActivityStatus = 'completed' | 'failed' | 'skipped'
 

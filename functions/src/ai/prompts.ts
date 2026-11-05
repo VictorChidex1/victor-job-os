@@ -1,6 +1,10 @@
 import type {
+  ApplicationAnswersInput,
+  ApplicationAnswersOutput,
   CompanyResearchInput,
   CompanyResearchOutput,
+  CoverLetterInput,
+  CoverLetterOutput,
   FitLevel,
   JobAnalysisInput,
   JobAnalysisOutput,
@@ -196,6 +200,210 @@ export function mapPitch(raw: Partial<PitchOutput>): PitchOutput {
   return {
     subject: (raw.subject ?? '').trim(),
     body: (raw.body ?? '').trim(),
+  }
+}
+
+export function buildCoverLetterPrompt(input: CoverLetterInput): string {
+  const title = stripHtml(input.job.title ?? '')
+  const location = input.job.location ? stripHtml(input.job.location) : 'Unknown'
+  const description = stripHtml(input.job.description ?? '')
+  const fullName = input.profile.fullName?.trim() || 'Victor'
+
+  const company = input.company
+    ? `Company: ${stripHtml(input.company.name ?? '')}
+Industry: ${input.company.industry ? stripHtml(input.company.industry) : 'Unknown'}
+What they do: ${stripHtml(input.company.description ?? input.company.researchSummary ?? 'Unknown')}
+Product/service: ${input.company.product ? stripHtml(input.company.product) : 'Unknown'}
+Role context: ${input.company.roleContext ? stripHtml(input.company.roleContext) : 'Unknown'}
+Hiring signals: ${input.company.hiringSignals.join('; ') || 'none provided'}`
+    : 'Company research: not provided. Do not invent company facts.'
+
+  const analysis = input.analysis
+    ? `Fit score: ${input.analysis.fitScore ?? 'n/a'}
+Role classification: ${input.analysis.roleType ?? 'unknown'}
+Matched skills: ${input.analysis.matchedSkills.join(', ') || 'none'}
+Gaps: ${input.analysis.missingSkills.join(', ') || 'none'}
+Assessment summary: ${input.analysis.summary ?? 'n/a'}`
+    : 'Job analysis: not provided.'
+
+  const projects = input.projects.length
+    ? input.projects
+        .map((project) => {
+          const lines = [
+            `- ${project.title} (${project.technologies.join(', ')})`,
+            `  Summary: ${project.summary.slice(0, 280)}`,
+          ]
+          if (project.outcomes?.length) {
+            lines.push(`  Outcomes: ${project.outcomes.join('; ').slice(0, 240)}`)
+          }
+          if (project.verifiedMetrics?.length) {
+            lines.push(
+              `  Verified metrics: ${project.verifiedMetrics.join('; ').slice(0, 240)}`,
+            )
+          }
+          if (project.url) lines.push(`  Link: ${project.url}`)
+          return lines.join('\n')
+        })
+        .join('\n')
+    : '- No verified projects provided. Do not cite any project or metric.'
+
+  return `You are writing a tailored cover letter for a specific job application.
+
+JOB
+Title: ${title}
+Location: ${location} (remote: ${input.job.remote})
+Skills mentioned: ${input.job.skills.join(', ') || 'none listed'}
+Description:
+${description.slice(0, 6000)}
+
+${company}
+
+${analysis}
+
+CANDIDATE (use only verified facts below)
+Name: ${fullName}
+Headline: ${input.profile.headline}
+Experience level: ${input.profile.experienceLevel ?? 'Unknown'}
+Skills: ${input.profile.skills.join(', ') || 'none provided'}
+Technologies: ${input.profile.technologies.join(', ') || 'none provided'}
+Preferred roles: ${input.profile.preferredRoles.join(', ') || 'none provided'}
+Summary: ${input.profile.summary.slice(0, 1500)}
+
+VERIFIED PROOF (only use these; never invent projects or metrics)
+${projects}
+
+WRITING REQUIREMENTS
+- Write a complete cover letter of 250-400 words, in plain text.
+- Address the specific company and role. Do not write a generic letter.
+- Use a confident, direct, human voice. Avoid filler, generic praise, and clichés.
+- Prove at least one relevant claim with a project, outcome, or verified metric from the provided evidence.
+- Acknowledge a real gap only if it is provided in the analysis; never invent a weakness or a strength.
+- Do not mention AI, prompts, or that this is generated.
+- Do not use markdown, headings, bullet lists, or placeholders.
+- End with a concise sign-off using "${fullName}".
+- Do not invent company facts, team details, funding, revenue, or experience.
+
+Return STRICT JSON only:
+{
+  "body": string (the full cover letter, ready to paste, including greeting and sign-off)
+}`
+}
+
+export function mapCoverLetter(raw: Partial<CoverLetterOutput>): CoverLetterOutput {
+  return {
+    body: stripHtml(typeof raw.body === 'string' ? raw.body : '').trim(),
+  }
+}
+
+export function buildApplicationAnswersPrompt(
+  input: ApplicationAnswersInput,
+): string {
+  const title = stripHtml(input.job.title ?? '')
+  const description = stripHtml(input.job.description ?? '')
+  const fullName = input.profile.fullName?.trim() || 'Victor'
+
+  const company = input.company
+    ? `Company: ${stripHtml(input.company.name ?? '')}
+What they do: ${stripHtml(input.company.description ?? input.company.researchSummary ?? 'Unknown')}
+Product/service: ${input.company.product ? stripHtml(input.company.product) : 'Unknown'}
+Role context: ${input.company.roleContext ? stripHtml(input.company.roleContext) : 'Unknown'}`
+    : 'Company research: not provided. Do not invent company facts.'
+
+  const analysis = input.analysis
+    ? `Fit score: ${input.analysis.fitScore ?? 'n/a'}
+Matched skills: ${input.analysis.matchedSkills.join(', ') || 'none'}
+Gaps: ${input.analysis.missingSkills.join(', ') || 'none'}
+Assessment summary: ${input.analysis.summary ?? 'n/a'}`
+    : 'Job analysis: not provided.'
+
+  const projects = input.projects.length
+    ? input.projects
+        .map((project) => {
+          const lines = [
+            `- ${project.title} (${project.technologies.join(', ')})`,
+            `  Summary: ${project.summary.slice(0, 260)}`,
+          ]
+          if (project.outcomes?.length) {
+            lines.push(`  Outcomes: ${project.outcomes.join('; ').slice(0, 220)}`)
+          }
+          if (project.verifiedMetrics?.length) {
+            lines.push(
+              `  Verified metrics: ${project.verifiedMetrics.join('; ').slice(0, 220)}`,
+            )
+          }
+          if (project.url) lines.push(`  Link: ${project.url}`)
+          return lines.join('\n')
+        })
+        .join('\n')
+    : '- No verified projects provided. Do not cite any project or metric.'
+
+  const questions = input.questions
+    .map(
+      (question, index) =>
+        `${index + 1}. id=${question.id}\nQuestion: ${stripHtml(question.question)}`,
+    )
+    .join('\n')
+
+  return `You are drafting answers to application questions for a specific job.
+
+JOB
+Title: ${title}
+Description:
+${description.slice(0, 5000)}
+
+${company}
+
+${analysis}
+
+CANDIDATE (use only verified facts below)
+Name: ${fullName}
+Headline: ${input.profile.headline}
+Experience level: ${input.profile.experienceLevel ?? 'Unknown'}
+Skills: ${input.profile.skills.join(', ') || 'none provided'}
+Technologies: ${input.profile.technologies.join(', ') || 'none provided'}
+Summary: ${input.profile.summary.slice(0, 1200)}
+
+VERIFIED PROOF (only use these; never invent projects or metrics)
+${projects}
+
+QUESTIONS
+${questions}
+
+WRITING REQUIREMENTS
+- Answer every question exactly once, using its id.
+- Each answer should be 80-180 words, plain text, and specific to this role.
+- Use a confident, honest, human voice. Avoid filler and generic claims.
+- Ground claims in the provided profile, projects, outcomes, or verified metrics.
+- If the provided facts are insufficient, write an honest answer about what you can support and what you would clarify. Never invent experience.
+- Do not mention AI, prompts, or that this is generated.
+- Do not use markdown, headings, bullet lists, or placeholders.
+- Return the same question text for each answer, without rewriting the question.
+
+Return STRICT JSON only:
+{
+  "answers": [
+    { "id": string, "question": string, "answer": string }
+  ]
+}`
+}
+
+export function mapApplicationAnswers(
+  raw: Partial<ApplicationAnswersOutput>,
+  input: ApplicationAnswersInput,
+): ApplicationAnswersOutput {
+  const byId = new Map<string, string>()
+  for (const answer of raw.answers ?? []) {
+    if (answer && typeof answer.id === 'string' && typeof answer.answer === 'string') {
+      byId.set(answer.id, answer.answer)
+    }
+  }
+
+  return {
+    answers: input.questions.map((question) => ({
+      id: question.id,
+      question: stripHtml(question.question).trim(),
+      answer: stripHtml(byId.get(question.id) ?? '').trim(),
+    })),
   }
 }
 

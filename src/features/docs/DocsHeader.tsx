@@ -10,13 +10,14 @@ export function DocsHeader({ onOpenSearch }: { onOpenSearch?: () => void }) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-xl transition-all">
-      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex min-w-0 items-center gap-2.5">
+      <div className="mx-auto flex h-14 sm:h-16 w-full max-w-7xl items-center justify-between gap-2 px-3 sm:px-6">
+        {/* Left: Brand */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <Link to="/" className="flex min-w-0 items-center gap-2">
             <img
               src="/assets/victor-job-os.png"
               alt="Victor Job OS logo"
-              className="size-8 shrink-0 rounded-md object-contain"
+              className="size-7 sm:size-8 shrink-0 rounded-md object-contain"
             />
             <span className="hidden truncate text-sm font-bold tracking-tight text-foreground sm:inline">
               Victor Job OS
@@ -31,16 +32,17 @@ export function DocsHeader({ onOpenSearch }: { onOpenSearch?: () => void }) {
           </Badge>
         </div>
 
-        {/* Center / Action Search Trigger */}
+        {/* Center: Search Trigger (Responsive) */}
         {onOpenSearch && (
           <button
             type="button"
             onClick={onOpenSearch}
-            className="flex items-center gap-2.5 rounded-full border border-border/70 bg-muted/40 px-3.5 py-1.5 text-xs text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/70 hover:text-foreground shadow-2xs group"
+            aria-label="Search documentation"
+            className="flex items-center gap-2 rounded-full border border-border/70 bg-muted/40 p-2 sm:px-3.5 sm:py-1.5 text-xs text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/70 hover:text-foreground shadow-2xs group"
           >
-            <Search className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Search className="size-4 sm:size-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             <span className="hidden md:inline">Search docs, prompts & architecture...</span>
-            <span className="md:hidden">Search docs...</span>
+            <span className="hidden sm:inline md:hidden">Search docs...</span>
             <kbd className="hidden sm:inline-flex h-4.5 select-none items-center gap-0.5 rounded border border-border/80 bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
               ⌘K
             </kbd>
@@ -48,10 +50,13 @@ export function DocsHeader({ onOpenSearch }: { onOpenSearch?: () => void }) {
         )}
 
         {/* Right Navigation */}
-        <nav className="flex items-center gap-1.5" aria-label="Documentation navigation">
+        <nav className="flex items-center gap-1 sm:gap-1.5 shrink-0" aria-label="Documentation navigation">
           <Link
             to="/"
-            className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'text-muted-foreground hover:text-foreground')}
+            className={cn(
+              buttonVariants({ variant: 'ghost', size: 'sm' }),
+              'px-2 sm:px-3 text-xs sm:text-sm text-muted-foreground hover:text-foreground',
+            )}
           >
             Home
           </Link>
@@ -60,14 +65,18 @@ export function DocsHeader({ onOpenSearch }: { onOpenSearch?: () => void }) {
             aria-current="page"
             className={cn(
               buttonVariants({ variant: 'ghost', size: 'sm' }),
-              'bg-primary/10 text-primary font-semibold',
+              'px-2 sm:px-3 text-xs sm:text-sm bg-primary/10 text-primary font-semibold',
             )}
           >
             Docs
           </Link>
-          <Button size="sm" className="ml-1 rounded-full px-4.5 font-medium shadow-sm hover:shadow-md transition-shadow" render={<Link to="/login" />}>
-            <span className="hidden sm:inline">Open Job OS</span>
-            <span className="sm:hidden">Open</span>
+          <Button
+            size="sm"
+            className="ml-0.5 rounded-full px-3 sm:px-4.5 text-xs sm:text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
+            render={<Link to="/login" />}
+          >
+            <span>Open</span>
+            <span className="hidden sm:inline">&nbsp;Job OS</span>
           </Button>
         </nav>
       </div>

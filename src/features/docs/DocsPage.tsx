@@ -206,14 +206,14 @@ function DocsSectionBlock({
   index: number
 }) {
   return (
-    <section id={section.id} className="scroll-mt-28">
+    <section id={section.id} className="scroll-mt-28 min-w-0 max-w-full overflow-hidden">
       <SectionHeading
         id={section.id}
         index={index}
         title={section.title}
         description={section.description}
       />
-      <div className="space-y-6">{section.content}</div>
+      <div className="space-y-6 min-w-0 max-w-full">{section.content}</div>
       <PrevNextNav currentId={section.id} />
     </section>
   )
@@ -312,14 +312,14 @@ export function DocsPage({ mode = 'public' }: { mode?: DocsMode }) {
             mode={mode}
             onOpenSearch={handleOpenSearch}
           />
-          <article className="min-w-0">
+          <article className="min-w-0 max-w-full overflow-hidden">
             <MobileDocsToc
               sections={DOC_SECTION_LINKS}
               activeId={activeId}
               mode={mode}
               onOpenSearch={handleOpenSearch}
             />
-            <div className="space-y-16">
+            <div className="space-y-16 min-w-0 max-w-full">
               {DOC_SECTIONS.map((section, index) => (
                 <DocsSectionBlock key={section.id} section={section} index={index} />
               ))}
@@ -333,15 +333,15 @@ export function DocsPage({ mode = 'public' }: { mode?: DocsMode }) {
   )
 
   if (isApp) {
-    return <div className="flex min-h-full flex-col">{content}</div>
+    return <div className="flex min-h-full flex-col overflow-x-hidden">{content}</div>
   }
 
   return (
-    <div className="flex min-h-svh flex-col bg-background text-foreground">
+    <div className="flex min-h-svh flex-col bg-background text-foreground overflow-x-hidden">
       <DocsHeader onOpenSearch={handleOpenSearch} />
-      <main className="flex-1">{content}</main>
+      <main className="flex-1 min-w-0 max-w-full">{content}</main>
       <LandingFooter />
-      <ScrollToTopButton />
+      <ScrollToTopButton alwaysVisible />
     </div>
   )
 }

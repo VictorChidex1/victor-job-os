@@ -10,6 +10,7 @@ export const collections = {
   outreach: 'outreach',
   applications: 'applications',
   applicationEvents: 'applicationEvents',
+  applicationPreparations: 'applicationPreparations',
   contacts: 'contacts',
   followUps: 'followUps',
   activityLogs: 'activityLogs',

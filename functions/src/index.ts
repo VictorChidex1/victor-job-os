@@ -6,6 +6,10 @@ import {
   processFollowUps,
   runFollowUpsNow,
 } from './outreach/outreachFunctions.js'
+import {
+  generateCoverLetter,
+  generateApplicationAnswers,
+} from './applications/preparationFunctions.js'
 
 export {
   discoverJobs,
@@ -18,4 +22,6 @@ export {
   updateOutreachStatus,
   processFollowUps,
   runFollowUpsNow,
+  generateCoverLetter,
+  generateApplicationAnswers,
 }

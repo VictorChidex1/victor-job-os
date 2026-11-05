@@ -33,6 +33,7 @@ import {
   buildApplicationSeed,
   resolveApplicationOutcome,
 } from '@/lib/applications'
+import { preparationDocId } from '@/lib/applicationPreparation'
 
 export interface CreateApplicationResult {
   id: string
@@ -73,6 +74,7 @@ export interface ApplicationService {
 export function createApplicationService(firestore: Firestore): ApplicationService {
   const applications = collection(firestore, collections.applications)
   const events = collection(firestore, collections.applicationEvents)
+  const preparations = collection(firestore, collections.applicationPreparations)
 
   async function get(id: string): Promise<Application | null> {
     const snapshot = await getDoc(doc(applications, id))
@@ -279,6 +281,7 @@ export function createApplicationService(firestore: Firestore): ApplicationServi
 
     const batch = writeBatch(firestore)
     batch.delete(doc(applications, id))
+    batch.delete(doc(preparations, preparationDocId(uid, id)))
     for (const event of eventSnapshot.docs) {
       batch.delete(event.ref)
     }

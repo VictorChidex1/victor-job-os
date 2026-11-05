@@ -82,6 +82,7 @@ describe('Firestore security rules', () => {
       'outreach',
       'applications',
       'applicationEvents',
+      'applicationPreparations',
       'contacts',
       'followUps',
       'activityLogs',
@@ -129,6 +130,26 @@ describe('Firestore security rules', () => {
     await assertFails(
       updateDoc(doc(dbOwner, 'applicationEvents', 'event-1'), {
         type: 'status-changed',
+      }),
+    )
+  })
+
+  it('scopes application preparation content to the owner', async () => {
+    const dbOwner = testEnv.authenticatedContext(owner).firestore()
+    await assertSucceeds(getDoc(doc(dbOwner, 'applicationPreparations', 'missing')))
+    await assertSucceeds(
+      setDoc(doc(dbOwner, 'applicationPreparations', 'prep-1'), {
+        userId: owner,
+        applicationId: 'a1',
+        coverLetter: { body: 'Private draft', status: 'draft' },
+      }),
+    )
+
+    const dbOther = testEnv.authenticatedContext(other).firestore()
+    await assertFails(getDoc(doc(dbOther, 'applicationPreparations', 'prep-1')))
+    await assertFails(
+      updateDoc(doc(dbOther, 'applicationPreparations', 'prep-1'), {
+        coverLetter: { body: 'Hacked', status: 'approved' },
       }),
     )
   })

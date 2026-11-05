@@ -31,4 +31,12 @@ export type {
   PortfolioMatchOutput,
   PitchInput,
   PitchOutput,
+  ApplicationPreparationContext,
+  ApplicationPreparationProject,
+  ApplicationPreparationProfile,
+  CoverLetterInput,
+  CoverLetterOutput,
+  ApplicationAnswerQuestion,
+  ApplicationAnswersInput,
+  ApplicationAnswersOutput,
 } from './types.js'

@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router'
 import {
   AppIndexRedirect,
   ApplicationsRoute,
+  ApplicationPreparationRoute,
   ApplicationViewRoute,
   CompaniesRoute,
   CompanyViewRoute,
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
       { path: 'outreach', element: <OutreachRoute /> },
       { path: 'outreach/:id', element: <OutreachEditorRoute /> },
       { path: 'applications', element: <ApplicationsRoute /> },
+      { path: 'applications/:id/prepare', element: <ApplicationPreparationRoute /> },
       { path: 'applications/:id', element: <ApplicationViewRoute /> },
       { path: 'companies', element: <CompaniesRoute /> },
       { path: 'companies/:id', element: <CompanyViewRoute /> },

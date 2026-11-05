@@ -68,12 +68,12 @@ export function CodePromptTabs({ title = 'System Payload & Prompt Inspector', ta
       )}
 
       {/* Code Display Area */}
-      <div className="relative group bg-muted/25 p-4">
+      <div className="relative group bg-muted/25 p-3 sm:p-4 min-w-0 max-w-full overflow-hidden">
         <button
           type="button"
           onClick={handleCopy}
           aria-label="Copy code snippet"
-          className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg border border-border/80 bg-background/90 px-2.5 py-1 text-xs font-medium text-muted-foreground opacity-80 transition-opacity hover:opacity-100 hover:text-foreground shadow-2xs backdrop-blur-sm"
+          className="absolute right-2.5 top-2.5 sm:right-3 sm:top-3 flex items-center gap-1.5 rounded-lg border border-border/80 bg-background/90 px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-medium text-muted-foreground opacity-90 transition-opacity hover:opacity-100 hover:text-foreground shadow-2xs backdrop-blur-sm z-10"
         >
           {hasCopied ? (
             <>
@@ -88,9 +88,11 @@ export function CodePromptTabs({ title = 'System Payload & Prompt Inspector', ta
           )}
         </button>
 
-        <pre className="font-mono text-xs leading-relaxed text-foreground/90 overflow-x-auto pr-16 py-1">
-          <code>{activeTab?.code}</code>
-        </pre>
+        <div className="max-w-full overflow-x-auto pr-14 sm:pr-16 py-1">
+          <pre className="font-mono text-[10.5px] sm:text-xs leading-relaxed text-foreground/90 whitespace-pre">
+            <code>{activeTab?.code}</code>
+          </pre>
+        </div>
       </div>
     </div>
   )

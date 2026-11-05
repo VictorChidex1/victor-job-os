@@ -1,7 +1,11 @@
 import type {
   AIService,
+  ApplicationAnswersInput,
+  ApplicationAnswersOutput,
   CompanyResearchInput,
   CompanyResearchOutput,
+  CoverLetterInput,
+  CoverLetterOutput,
   JobAnalysisInput,
   JobAnalysisOutput,
   PitchInput,
@@ -11,11 +15,15 @@ import type {
 } from './types.js'
 import {
   buildAnalyzeJobPrompt,
+  buildApplicationAnswersPrompt,
   buildCompanyPrompt,
+  buildCoverLetterPrompt,
   buildPitchPrompt,
   buildPortfolioPrompt,
   mapAnalysis,
+  mapApplicationAnswers,
   mapCompany,
+  mapCoverLetter,
   mapPitch,
   mapPortfolio,
 } from './prompts.js'
@@ -102,5 +110,23 @@ export const openaiProvider: AIService = {
   async generatePitch(input: PitchInput): Promise<PitchOutput> {
     const raw = await generateStructured<Partial<PitchOutput>>(buildPitchPrompt(input))
     return mapPitch(raw)
+  },
+
+  async generateCoverLetter(
+    input: CoverLetterInput,
+  ): Promise<CoverLetterOutput> {
+    const raw = await generateStructured<Partial<CoverLetterOutput>>(
+      buildCoverLetterPrompt(input),
+    )
+    return mapCoverLetter(raw)
+  },
+
+  async generateApplicationAnswers(
+    input: ApplicationAnswersInput,
+  ): Promise<ApplicationAnswersOutput> {
+    const raw = await generateStructured<Partial<ApplicationAnswersOutput>>(
+      buildApplicationAnswersPrompt(input),
+    )
+    return mapApplicationAnswers(raw, input)
   },
 }

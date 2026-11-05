@@ -109,6 +109,7 @@ export const DOC_SECTIONS: DocsSection[] = [
               'Outreach drafting and approval',
               'Follow-up tracking',
               'Application pipeline and timeline',
+              'Application preparation workspace',
               'Profile and project evidence',
             ].map((item) => (
               <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -375,6 +376,10 @@ export const DOC_SECTIONS: DocsSection[] = [
             Open an application to see the role, company, source, key dates, next action, notes, and
             an append-only timeline of status changes.
           </FeatureCard>
+          <FeatureCard icon={ClipboardList} title="Preparation workspace">
+            Open a dedicated workspace for the application: review role context, record resume
+            notes, draft and approve a cover letter, and prepare answers to application questions.
+          </FeatureCard>
           <FeatureCard icon={ShieldCheck} title="Strict status flow">
             The app enforces legal status transitions. You cannot jump from Submitted straight to
             Offer or bypass the review stages.
@@ -387,11 +392,10 @@ export const DOC_SECTIONS: DocsSection[] = [
           visible.
         </Callout>
 
-        <Callout icon={Sparkles} title="Preparation workspace is next" tone="warning">
-          The application pipeline is available now. Resume variants, cover letters, application
-          questions, and a dedicated preparation workspace are planned next. Today, use the
-          opportunity and application records to keep the role organized while you prepare
-          externally.
+        <Callout icon={ShieldCheck} title="Preparation workspace is available now" tone="success">
+          Open an application and choose Prepare application. Work through the application
+          context, resume notes, cover letter, and application answers. Each item can be drafted,
+          edited, approved, and tracked separately. Resume variants and ATS metadata are next.
         </Callout>
 
         <Callout icon={Archive} title="Closed means closed" tone="muted">
@@ -586,8 +590,8 @@ export const DOC_SECTIONS: DocsSection[] = [
             and understand what changed.
           </FeatureCard>
           <FeatureCard icon={TriangleAlert} title="Current limitations">
-            Application preparation, resume variants, browser automation, and automatic submission
-            are not available yet. Do not treat generated content as verified fact.
+            Resume variants, ATS metadata, browser automation, and automatic submission are not
+            available yet. Do not treat generated content as verified fact.
           </FeatureCard>
         </FeatureGrid>
 
@@ -691,16 +695,12 @@ Rules:
         <div className="flex flex-wrap items-center gap-2">
           <Availability status="available" />
           <span className="text-sm text-muted-foreground">
-            Opportunity intelligence, outreach, applications, and company context are available now.
+            Opportunity intelligence, outreach, applications, preparation, and company context
+            are available now.
           </span>
         </div>
 
         <div className="space-y-3">
-          <RoadmapItem
-            status="next"
-            title="Application preparation workspace"
-            description="A dedicated place to prepare an application: resume variants, cover letters, application questions, and the supporting evidence for a specific role."
-          />
           <RoadmapItem
             status="next"
             title="Resume variants and ATS metadata"

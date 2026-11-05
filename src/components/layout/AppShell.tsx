@@ -17,6 +17,7 @@ export function AppShell() {
   const scrollPositions = useRef(new Map<string, number>())
   const previousPathnameRef = useRef(location.pathname)
   const isOpportunitiesWorkspace = location.pathname.startsWith('/app/opportunities')
+  const isDocsPage = location.pathname.startsWith('/app/docs')
 
   // Remember the scroll position for every history entry so going back to a
   // list (e.g. Opportunities) feels like returning, not reloading.
@@ -81,7 +82,9 @@ export function AppShell() {
           <AppFooter />
         </div>
       </div>
-      {!isOpportunitiesWorkspace && <ScrollToTopButton container={mainRef} />}
+      {!isOpportunitiesWorkspace && (
+        <ScrollToTopButton container={mainRef} alwaysVisible={isDocsPage} />
+      )}
       <MobileNavigation open={mobileOpen} onOpenChange={setMobileOpen} />
     </TooltipProvider>
   )

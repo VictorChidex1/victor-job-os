@@ -59,6 +59,12 @@ export const ApplicationViewPage = lazy(() =>
   })),
 )
 
+export const ApplicationPreparationPage = lazy(() =>
+  import('@/pages/ApplicationPreparationPage').then((module) => ({
+    default: module.ApplicationPreparationPage,
+  })),
+)
+
 export const DocumentationPage = lazy(() =>
   import('@/features/docs/DocsPage').then((module) => ({
     default: module.DocsPage,
@@ -177,6 +183,14 @@ export function ApplicationViewRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <ApplicationViewPage />
+    </Suspense>
+  )
+}
+
+export function ApplicationPreparationRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <ApplicationPreparationPage />
     </Suspense>
   )
 }

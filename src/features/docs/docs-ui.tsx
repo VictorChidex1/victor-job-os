@@ -29,7 +29,7 @@ export function Availability({ status }: { status: AvailabilityStatus }) {
 }
 
 export function FeatureGrid({ children }: { children: ReactNode }) {
-  return <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+  return <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2 min-w-0 max-w-full">{children}</div>
 }
 
 export function FeatureCard({
@@ -42,16 +42,16 @@ export function FeatureCard({
   children: ReactNode
 }) {
   return (
-    <div className="group relative rounded-2xl border border-border/70 bg-card/70 backdrop-blur-xs p-5 shadow-xs transition-all duration-300 hover:border-primary/40 hover:bg-card hover:shadow-md hover:-translate-y-0.5">
-      <div className="flex items-start gap-3.5">
-        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-          <Icon className="size-4.5" />
+    <div className="group relative rounded-2xl border border-border/70 bg-card/70 backdrop-blur-xs p-4 sm:p-5 shadow-xs transition-all duration-300 hover:border-primary/40 hover:bg-card hover:shadow-md hover:-translate-y-0.5 min-w-0 max-w-full overflow-hidden">
+      <div className="flex items-start gap-3 sm:gap-3.5">
+        <span className="mt-0.5 flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+          <Icon className="size-4 sm:size-4.5" />
         </span>
-        <div className="min-w-0">
-          <h3 className="text-sm font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-bold text-foreground tracking-tight group-hover:text-primary transition-colors break-words">
             {title}
           </h3>
-          <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-muted-foreground break-words">
             {children}
           </p>
         </div>
@@ -103,12 +103,12 @@ export function Callout({
   } as const
 
   return (
-    <div className={cn('rounded-2xl border p-4 sm:p-5 shadow-xs', toneClasses[tone])}>
+    <div className={cn('rounded-2xl border p-4 sm:p-5 shadow-xs min-w-0 max-w-full overflow-hidden', toneClasses[tone])}>
       <div className="flex items-start gap-3">
         <Icon className="mt-0.5 size-4.5 shrink-0" />
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">{title}</p>
-          <div className="mt-1 text-xs sm:text-sm leading-relaxed text-muted-foreground">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground break-words">{title}</p>
+          <div className="mt-1 text-xs sm:text-sm leading-relaxed text-muted-foreground break-words">
             {children}
           </div>
         </div>
@@ -127,12 +127,12 @@ export function RoadmapItem({
   status: 'next' | 'planned'
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card/60 p-5 shadow-xs transition-all hover:border-border">
+    <div className="rounded-2xl border border-border/70 bg-card/60 p-4 sm:p-5 shadow-xs transition-all hover:border-border min-w-0 max-w-full overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-foreground">{title}</h3>
+        <h3 className="text-sm font-bold text-foreground break-words">{title}</h3>
         <Availability status={status} />
       </div>
-      <p className="mt-2 text-xs sm:text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-2 text-xs sm:text-sm leading-relaxed text-muted-foreground break-words">
         {description}
       </p>
     </div>
@@ -145,17 +145,17 @@ export function Faq({
   items: Array<{ question: string; answer: ReactNode }>
 }) {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2.5 min-w-0 max-w-full">
       {items.map((item) => (
         <details
           key={item.question}
-          className="group rounded-2xl border border-border/70 bg-card/70 px-5 py-3.5 shadow-xs transition-all open:border-primary/40 open:bg-card open:shadow-sm"
+          className="group rounded-2xl border border-border/70 bg-card/70 px-4 sm:px-5 py-3 sm:py-3.5 shadow-xs transition-all open:border-primary/40 open:bg-card open:shadow-sm min-w-0 max-w-full overflow-hidden"
         >
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
-            <span>{item.question}</span>
+            <span className="break-words">{item.question}</span>
             <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
           </summary>
-          <div className="mt-2.5 text-xs sm:text-sm leading-relaxed text-muted-foreground border-t border-border/40 pt-2.5">
+          <div className="mt-2.5 text-xs sm:text-sm leading-relaxed text-muted-foreground border-t border-border/40 pt-2.5 break-words">
             {item.answer}
           </div>
         </details>
@@ -170,11 +170,11 @@ export function Glossary({
   items: Array<{ term: string; definition: ReactNode }>
 }) {
   return (
-    <dl className="grid gap-3.5 sm:grid-cols-2">
+    <dl className="grid gap-3.5 sm:grid-cols-2 min-w-0 max-w-full">
       {items.map((item) => (
-        <div key={item.term} className="rounded-2xl border border-border/70 bg-card/60 p-4 shadow-xs">
-          <dt className="text-sm font-bold text-foreground text-primary">{item.term}</dt>
-          <dd className="mt-1 text-xs sm:text-sm leading-relaxed text-muted-foreground">
+        <div key={item.term} className="rounded-2xl border border-border/70 bg-card/60 p-4 shadow-xs min-w-0 max-w-full overflow-hidden">
+          <dt className="text-sm font-bold text-foreground text-primary break-words">{item.term}</dt>
+          <dd className="mt-1 text-xs sm:text-sm leading-relaxed text-muted-foreground break-words">
             {item.definition}
           </dd>
         </div>
@@ -205,26 +205,26 @@ export function SectionHeading({
   }
 
   return (
-    <div className="mb-6 border-b border-border/70 pb-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 group">
-          <span className="font-mono text-xs font-bold tracking-widest text-primary">
+    <div className="mb-6 border-b border-border/70 pb-4 min-w-0 max-w-full">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 group min-w-0">
+          <span className="font-mono text-xs font-bold tracking-widest text-primary shrink-0">
             {String(index + 1).padStart(2, '0')}
           </span>
-          <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground sm:text-2xl break-words min-w-0">
             {title}
           </h2>
           <button
             type="button"
             onClick={copyAnchor}
             aria-label="Copy section anchor link"
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-foreground rounded"
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-foreground rounded shrink-0"
           >
             <Hash className={cn('size-4', copied && 'text-emerald-500')} />
           </button>
         </div>
       </div>
-      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-2 max-w-3xl text-xs sm:text-sm leading-relaxed text-muted-foreground break-words">
         {description}
       </p>
     </div>

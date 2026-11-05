@@ -54,7 +54,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
   "id": "opp_stripe_fullstack_2026",
   "company": "Stripe",
   "title": "Staff Platform Engineer",
-  "stack": ["React", "TypeScript", "Node.js", "Distributed Systems"],
+  "stack": ["React", "TypeScript", "Node.js"],
   "status": "DISCOVERED"
 }`,
     },
@@ -83,8 +83,8 @@ const PIPELINE_STAGES: PipelineStage[] = [
 {
   "overallScore": 94,
   "verdict": "STRONG_MATCH",
-  "flags": ["Leadership Experience Required", "High System Architecture Demand"],
-  "recommendedAction": "MOVE_TO_RESEARCH"
+  "flags": ["High Architecture Demand"],
+  "action": "MOVE_TO_RESEARCH"
 }`,
     },
   },
@@ -111,8 +111,8 @@ const PIPELINE_STAGES: PipelineStage[] = [
       codeSnippet: `// Research Dossier Summary
 {
   "company": "Vercel",
-  "initiatives": ["AI Gateway Expansion", "Workflow DX Improvements"],
-  "hook": "Observed your latest blog on distributed agents; relevant to my Job OS pipeline."
+  "initiatives": ["AI Gateway", "Workflow DX"],
+  "hook": "Observed your latest blog on distributed agents."
 }`,
     },
   },
@@ -139,10 +139,8 @@ const PIPELINE_STAGES: PipelineStage[] = [
       codeSnippet: `Subject: High-throughput platform architectures — Victor
 
 Hi Alex,
-
-Noticed your recent post regarding multi-agent reliability at scale. Over the past year, I built Victor Job OS—a distributed, reactive job automation pipeline with deterministic human approval gates.
-
-Would love to share a few architecture lessons that map directly to your roadmap.
+Noticed your post regarding multi-agent reliability at scale. Over the past year, I built Victor Job OS—a distributed job pipeline with human gates.
+Would love to share a few architecture lessons.
 
 Best,
 Victor`,
@@ -172,8 +170,8 @@ Victor`,
 {
   "stage": "OUTREACH_PENDING_APPROVAL",
   "approvedBy": null,
-  "canAutoSend": false, // System hard-blocks automated outbound writes
-  "actions": ["APPROVE_AND_SEND", "EDIT_DRAFT", "ARCHIVE"]
+  "canAutoSend": false,
+  "actions": ["APPROVE_AND_SEND", "EDIT_DRAFT"]
 }`,
     },
   },
@@ -184,32 +182,33 @@ export function InteractivePipelineStepper() {
   const currentStage = PIPELINE_STAGES.find((s) => s.id === activeStageId) ?? PIPELINE_STAGES[0]
 
   return (
-    <div className="rounded-2xl border bg-card/60 backdrop-blur-md p-5 sm:p-7 shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-5">
-        <div>
+    <div className="w-full max-w-full min-w-0 overflow-hidden rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md p-4 sm:p-6 lg:p-7 shadow-xs">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/60 pb-4 sm:pb-5">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Cpu className="size-3.5" />
             </span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-primary truncate">
               Interactive System Architecture
             </span>
           </div>
-          <h3 className="mt-1.5 text-lg font-bold text-foreground">
+          <h3 className="mt-1.5 text-base sm:text-lg font-bold text-foreground">
             The 5-Stage Job Search Operating Loop
           </h3>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Click through each stage to inspect how Victor Job OS transforms raw listings into approved actions.
           </p>
         </div>
-        <Badge variant="outline" className="self-start sm:self-auto gap-1.5 border-primary/20 bg-primary/5 text-primary">
+        <Badge variant="outline" className="self-start sm:self-auto shrink-0 gap-1.5 border-primary/20 bg-primary/5 text-primary text-xs">
           <Sparkles className="size-3" />
           Interactive Demo
         </Badge>
       </div>
 
-      {/* Stage Selector Pills */}
-      <div className="mt-6 flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+      {/* Stage Selector Pills (Touch-scrollable) */}
+      <div className="mt-5 flex gap-2 overflow-x-auto pb-2 scrollbar-none max-w-full">
         {PIPELINE_STAGES.map((stage) => {
           const isActive = stage.id === activeStageId
           const Icon = stage.icon
@@ -219,7 +218,7 @@ export function InteractivePipelineStepper() {
               key={stage.id}
               type="button"
               onClick={() => setActiveStageId(stage.id)}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-all border ${
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-all border ${
                 isActive
                   ? 'border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-[1.02]'
                   : 'border-border/70 bg-background/80 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
@@ -240,83 +239,94 @@ export function InteractivePipelineStepper() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
-          className="mt-6 grid gap-6 lg:grid-cols-12"
+          className="mt-5 sm:mt-6 grid gap-6 lg:grid-cols-12 min-w-0 max-w-full"
         >
           {/* Left Column: Stage Explanation */}
-          <div className="lg:col-span-5 flex flex-col justify-between">
+          <div className="lg:col-span-5 flex flex-col justify-between min-w-0 max-w-full">
             <div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="border-border/80 bg-muted/50 text-[11px]">
                   {currentStage.badge}
                 </Badge>
               </div>
-              <h4 className="mt-3 text-lg font-semibold text-foreground">
+              <h4 className="mt-2.5 text-base sm:text-lg font-bold text-foreground break-words">
                 {currentStage.title}
               </h4>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed break-words">
                 {currentStage.subtitle}
               </p>
 
               {/* Stats / Parameters Grid */}
-              <div className="mt-5 space-y-2.5 rounded-xl border border-border/60 bg-muted/20 p-3.5">
+              <div className="mt-4 sm:mt-5 space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-3.5 min-w-0">
                 {currentStage.stats.map((stat) => (
-                  <div key={stat.label} className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">{stat.label}</span>
-                    <span className="font-semibold text-foreground">{stat.value}</span>
+                  <div
+                    key={stat.label}
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2 text-xs"
+                  >
+                    <span className="text-muted-foreground shrink-0">{stat.label}</span>
+                    <span className="font-semibold text-foreground text-left sm:text-right break-words">
+                      {stat.value}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="mt-6 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
               <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-              <span>Automated pipeline state machine with local persistence</span>
+              <span className="break-words">Automated pipeline state machine with local persistence</span>
             </div>
           </div>
 
           {/* Right Column: Dynamic Live Inspector */}
-          <div className="lg:col-span-7 rounded-xl border border-border/70 bg-background/90 p-4 sm:p-5 shadow-xs">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <div>
-                <span className="text-xs font-semibold text-foreground">
+          <div className="lg:col-span-7 rounded-xl border border-border/70 bg-background/90 p-3.5 sm:p-5 shadow-xs min-w-0 max-w-full overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3 gap-2">
+              <div className="min-w-0">
+                <span className="text-xs sm:text-sm font-semibold text-foreground block truncate">
                   {currentStage.preview.heading}
                 </span>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground truncate">
                   {currentStage.preview.subheading}
                 </p>
               </div>
-              <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="flex size-2 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
             </div>
 
             {/* Key Data Points */}
-            <div className="mt-4 space-y-2">
+            <div className="mt-3.5 space-y-2 min-w-0">
               {currentStage.preview.details.map((detail) => (
                 <div
                   key={detail.label}
-                  className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2 rounded-lg bg-muted/30 px-3 py-2 text-xs"
+                  className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2 rounded-lg bg-muted/30 p-2.5 sm:px-3 sm:py-2 text-xs min-w-0"
                 >
-                  <span className="font-mono text-[10px] font-semibold text-primary uppercase">
-                    [{detail.tag}]
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="font-mono text-[10px] font-semibold text-primary uppercase">
+                      [{detail.tag}]
+                    </span>
+                    <span className="font-semibold text-foreground">{detail.label}:</span>
+                  </div>
+                  <span className="text-muted-foreground break-words min-w-0 flex-1">
+                    {detail.text}
                   </span>
-                  <span className="font-medium text-foreground">{detail.label}:</span>
-                  <span className="text-muted-foreground truncate">{detail.text}</span>
                 </div>
               ))}
             </div>
 
             {/* Live Code / JSON snippet */}
             {currentStage.preview.codeSnippet && (
-              <div className="mt-4 rounded-lg border border-border/70 bg-muted/40 p-3">
+              <div className="mt-3.5 rounded-lg border border-border/70 bg-muted/40 p-2.5 sm:p-3 min-w-0 max-w-full overflow-hidden">
                 <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <Code2 className="size-3 text-primary" />
-                    Runtime Inspection Payload
+                  <span className="flex items-center gap-1.5 shrink-0">
+                    <Code2 className="size-3 text-primary shrink-0" />
+                    <span>Inspection Payload</span>
                   </span>
-                  <span>JSON Schema</span>
+                  <span className="shrink-0 font-sans text-[10px] uppercase text-muted-foreground/80">JSON</span>
                 </div>
-                <pre className="font-mono text-[11px] leading-relaxed text-foreground overflow-x-auto p-1">
-                  <code>{currentStage.preview.codeSnippet}</code>
-                </pre>
+                <div className="max-w-full overflow-x-auto rounded bg-background/50 p-2">
+                  <pre className="font-mono text-[10px] sm:text-[11px] leading-relaxed text-foreground/90 whitespace-pre">
+                    <code>{currentStage.preview.codeSnippet}</code>
+                  </pre>
+                </div>
               </div>
             )}
           </div>
@@ -325,4 +335,3 @@ export function InteractivePipelineStepper() {
     </div>
   )
 }
-

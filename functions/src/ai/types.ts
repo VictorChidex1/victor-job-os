@@ -124,9 +124,83 @@ export interface PitchOutput {
   body: string
 }
 
+export interface ApplicationPreparationProject {
+  title: string
+  summary: string
+  technologies: string[]
+  outcomes?: string[]
+  verifiedMetrics?: string[]
+  url?: string
+}
+
+export interface ApplicationPreparationProfile {
+  fullName?: string
+  headline: string
+  summary: string
+  skills: string[]
+  technologies: string[]
+  preferredRoles: string[]
+  experienceLevel?: string
+}
+
+export interface ApplicationPreparationContext {
+  job: {
+    title: string
+    description: string
+    location?: string
+    remote: boolean
+    skills: string[]
+  }
+  analysis?: {
+    fitScore?: number
+    roleType?: string
+    matchedSkills: string[]
+    missingSkills: string[]
+    summary?: string
+  }
+  company?: {
+    name: string
+    industry?: string
+    description?: string
+    product?: string
+    roleContext?: string
+    hiringSignals: string[]
+    researchSummary?: string
+  }
+  profile: ApplicationPreparationProfile
+  projects: ApplicationPreparationProject[]
+}
+
+export type CoverLetterInput = ApplicationPreparationContext
+
+export interface CoverLetterOutput {
+  body: string
+}
+
+export interface ApplicationAnswerQuestion {
+  id: string
+  question: string
+}
+
+export interface ApplicationAnswersInput extends ApplicationPreparationContext {
+  questions: ApplicationAnswerQuestion[]
+}
+
+export interface ApplicationAnswersOutput {
+  answers: Array<{
+    id: string
+    question: string
+    answer: string
+  }>
+}
+
 export interface AIService {
   analyzeJob(input: JobAnalysisInput): Promise<JobAnalysisOutput>
   researchCompany(input: CompanyResearchInput): Promise<CompanyResearchOutput>
   matchPortfolio(input: PortfolioMatchInput): Promise<PortfolioMatchOutput>
   generatePitch(input: PitchInput): Promise<PitchOutput>
+  generateCoverLetter(input: CoverLetterInput): Promise<CoverLetterOutput>
+  generateApplicationAnswers(
+    input: ApplicationAnswersInput,
+  ): Promise<ApplicationAnswersOutput>
 }

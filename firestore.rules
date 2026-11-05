@@ -95,6 +95,16 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Preparation content is separate from the application record so the
+    // pipeline list stays lightweight. A deterministic uid-prefixed id keeps
+    // preparation documents isolated even if another user knows an app id.
+    match /applicationPreparations/{documentId} {
+      allow read: if signedIn() && (resource == null || ownsUserField(resource.data));
+      allow delete: if signedIn() && (resource == null || ownsUserField(resource.data));
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
+    }
+
     match /contacts/{documentId} {
       allow read, delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
