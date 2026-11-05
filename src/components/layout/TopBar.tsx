@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router'
-import { LogOut, Settings, User } from 'lucide-react'
+import { CircleHelp, LogOut, Settings, User } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -81,6 +81,17 @@ export function TopBar({ onMenuClick, onToggleSidebar }: TopBarProps) {
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-sm font-semibold text-foreground">{title}</h1>
       </div>
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => navigate('/app/docs')}
+        aria-label="Open documentation"
+        title="Documentation"
+        className="text-muted-foreground"
+      >
+        <CircleHelp />
+      </Button>
 
       <DropdownMenu>
         <DropdownMenuTrigger

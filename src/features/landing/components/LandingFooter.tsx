@@ -3,10 +3,37 @@ import { Link } from 'react-router'
 const currentYear = new Date().getFullYear()
 
 const productLinks = [
-  { label: 'How It Works', href: '#workflow' },
-  { label: 'Features', href: '#features' },
-  { label: 'Product', href: '#product' },
+  { label: 'How It Works', href: '/#workflow' },
+  { label: 'Features', href: '/#features' },
+  { label: 'Product', href: '/#product' },
+  { label: 'Documentation', href: '/docs' },
 ]
+
+const productLinkClassName =
+  'group relative flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors duration-300 py-1'
+
+function ProductLink({ href, label }: { href: string; label: string }) {
+  const content = (
+    <>
+      <span className="absolute -left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
+      <span>{label}</span>
+    </>
+  )
+
+  if (href === '/docs') {
+    return (
+      <Link to={href} className={productLinkClassName}>
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <a href={href} className={productLinkClassName}>
+      {content}
+    </a>
+  )
+}
 
 export function LandingFooter() {
   return (
@@ -36,10 +63,7 @@ export function LandingFooter() {
             <ul className="space-y-3">
               {productLinks.map((link) => (
                 <li key={link.href}>
-                  <a href={link.href} className="group relative flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors duration-300 py-1">
-                    <span className="absolute -left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
-                    <span>{link.label}</span>
-                  </a>
+                  <ProductLink href={link.href} label={link.label} />
                 </li>
               ))}
             </ul>

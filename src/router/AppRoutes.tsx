@@ -59,6 +59,12 @@ export const ApplicationViewPage = lazy(() =>
   })),
 )
 
+export const DocumentationPage = lazy(() =>
+  import('@/features/docs/DocsPage').then((module) => ({
+    default: module.DocsPage,
+  })),
+)
+
 export function AppShellLoader() {
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
@@ -171,6 +177,32 @@ export function ApplicationViewRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <ApplicationViewPage />
+    </Suspense>
+  )
+}
+
+export function DocsRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <DocumentationPage mode="app" />
+    </Suspense>
+  )
+}
+
+export function DocsPageLoader() {
+  return (
+    <main className="flex min-h-svh items-center justify-center p-6">
+      <div className="w-full max-w-md">
+        <LoadingState label="Loading documentation…" rows={3} />
+      </div>
+    </main>
+  )
+}
+
+export function PublicDocsRoute() {
+  return (
+    <Suspense fallback={<DocsPageLoader />}>
+      <DocumentationPage mode="public" />
     </Suspense>
   )
 }

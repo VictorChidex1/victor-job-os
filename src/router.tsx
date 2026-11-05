@@ -6,6 +6,7 @@ import {
   CompaniesRoute,
   CompanyViewRoute,
   DashboardRoute,
+  DocsRoute,
   OpportunitiesRoute,
   OpportunityViewRoute,
   OutreachEditorRoute,
@@ -13,6 +14,7 @@ import {
   ProfileRoute,
   ProjectsRoute,
   ProtectedApp,
+  PublicDocsRoute,
   SettingsRoute,
 } from '@/router/AppRoutes'
 import { LoginPage } from '@/pages/LoginPage'
@@ -35,6 +37,10 @@ export const router = createBrowserRouter([
     element: <ForgotPasswordPage />,
   },
   {
+    path: '/docs',
+    element: <PublicDocsRoute />,
+  },
+  {
     path: '/app',
     element: <ProtectedApp />,
     children: [
@@ -53,6 +59,7 @@ export const router = createBrowserRouter([
       { path: 'automation', element: <PlaceholderPage /> },
       { path: 'profile', element: <ProfileRoute /> },
       { path: 'settings', element: <SettingsRoute /> },
+      { path: 'docs', element: <DocsRoute /> },
     ],
   },
   {

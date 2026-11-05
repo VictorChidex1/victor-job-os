@@ -84,6 +84,12 @@ export function LandingHeader() {
 
           {/* Right: Actions */}
           <div className="flex flex-1 items-center justify-end gap-2">
+            <Link
+              to="/docs"
+              className="hidden items-center rounded-full px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground md:inline-flex"
+            >
+              Docs
+            </Link>
             <div className="hidden md:block relative z-10">
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button size="sm" className="rounded-full px-6 font-medium shadow-sm hover:shadow-md transition-shadow" render={<Link to="/login" />}>
@@ -125,6 +131,13 @@ export function LandingHeader() {
                   {link.label}
                 </a>
               ))}
+              <Link
+                to="/docs"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                Documentation
+              </Link>
               <div className="mt-4 pt-4 border-t border-border/50">
                 <Button size="sm" className="w-full rounded-full" render={<Link to="/login" />}>
                   Open Job OS

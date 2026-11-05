@@ -1,5 +1,6 @@
 import {
   Activity,
+  BookOpen,
   Bot,
   Briefcase,
   Building2,
@@ -51,6 +52,7 @@ export const navGroups: NavGroup[] = [
   {
     label: 'System',
     items: [
+      { label: 'Documentation', to: '/app/docs', icon: BookOpen },
       { label: 'Profile', to: '/app/profile', icon: User },
       { label: 'Settings', to: '/app/settings', icon: Settings },
     ],
@@ -68,4 +70,5 @@ export const topBarTitles: Record<string, string> = {
   '/app/automation': 'Automation',
   '/app/profile': 'Profile',
   '/app/settings': 'Settings',
+  '/app/docs': 'Documentation',
 }
