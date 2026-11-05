@@ -5,9 +5,11 @@ import { QualifyNewButton } from '@/components/dashboard/QualifyNewButton'
 import { RecentOpportunities } from '@/components/dashboard/RecentOpportunities'
 import { useJobsPage } from '@/hooks/useJobsPage'
 import { useJobCounts } from '@/hooks/useJobCounts'
+import { useApplications } from '@/hooks/useApplications'
 import { useOutreach } from '@/hooks/useOutreach'
 import { useFollowUps } from '@/hooks/useFollowUps'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import { applicationSummary } from '@/lib/applicationPipeline'
 import { motion } from 'framer-motion'
 
 // --- Animations ---
@@ -124,10 +126,12 @@ export function DashboardPage() {
     pageSize: 5,
     skipCount: true,
   })
+  const { items: applications, refresh: refreshApplications } = useApplications()
   const { items: outreach } = useOutreach()
   const { items: followUps } = useFollowUps()
 
-  const refresh = () => Promise.all([refreshCounts(), refreshRecent()])
+  const refresh = () =>
+    Promise.all([refreshCounts(), refreshRecent(), refreshApplications()])
 
   const newCount = counts.new
   const qualifiedCount = counts.qualified
@@ -150,6 +154,7 @@ export function DashboardPage() {
     const due = item.scheduledFor?.toDate?.() ?? now
     return due <= now
   }).length
+  const applicationCounts = applicationSummary(applications, now)
 
   const metrics: Metric[] = [
     { label: 'New opportunities', value: String(newCount), to: '/app/opportunities?status=new' },
@@ -163,6 +168,13 @@ export function DashboardPage() {
     { label: 'Approved', value: String(approvedCount), to: '/app/outreach' },
     { label: 'Sent today', value: String(sentToday), to: '/app/outreach' },
     { label: 'Replies', value: String(replies), to: '/app/outreach' },
+  ]
+
+  const applicationMetrics: Metric[] = [
+    { label: 'Active applications', value: String(applicationCounts.active), to: '/app/applications' },
+    { label: 'Submitted', value: String(applicationCounts.submitted), to: '/app/applications' },
+    { label: 'Interviewing', value: String(applicationCounts.interviewing), to: '/app/applications' },
+    { label: 'Offers', value: String(applicationCounts.offers), to: '/app/applications' },
   ]
 
   return (
@@ -193,6 +205,12 @@ export function DashboardPage() {
         <div className="flex flex-col gap-3">
           <h2 className="px-1 text-sm font-bold text-foreground">Outreach</h2>
           <MetricGrid metrics={outreachMetrics} />
+        </div>
+
+        {/* Application metrics */}
+        <div className="flex flex-col gap-3">
+          <h2 className="px-1 text-sm font-bold text-foreground">Applications</h2>
+          <MetricGrid metrics={applicationMetrics} />
         </div>
 
         {/* Priority & Queue Grid */}

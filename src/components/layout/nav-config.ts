@@ -3,6 +3,7 @@ import {
   Bot,
   Briefcase,
   Building2,
+  ClipboardList,
   FolderKanban,
   LayoutDashboard,
   Send,
@@ -29,6 +30,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: 'Overview', to: '/app/dashboard', icon: LayoutDashboard, end: true },
       { label: 'Opportunities', to: '/app/opportunities', icon: Briefcase },
+      { label: 'Applications', to: '/app/applications', icon: ClipboardList },
       { label: 'Outreach', to: '/app/outreach', icon: Send },
     ],
   },
@@ -58,6 +60,7 @@ export const navGroups: NavGroup[] = [
 export const topBarTitles: Record<string, string> = {
   '/app/dashboard': 'Overview',
   '/app/opportunities': 'Opportunities',
+  '/app/applications': 'Applications',
   '/app/outreach': 'Outreach',
   '/app/companies': 'Companies',
   '/app/projects': 'Projects',

@@ -47,6 +47,12 @@ export const CompanyViewPage = lazy(() =>
   import('@/pages/CompanyViewPage').then((module) => ({ default: module.CompanyViewPage })),
 )
 
+export const ApplicationsPage = lazy(() =>
+  import('@/pages/ApplicationsPage').then((module) => ({
+    default: module.ApplicationsPage,
+  })),
+)
+
 export const ApplicationViewPage = lazy(() =>
   import('@/pages/ApplicationViewPage').then((module) => ({
     default: module.ApplicationViewPage,
@@ -149,6 +155,14 @@ export function CompanyViewRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <CompanyViewPage />
+    </Suspense>
+  )
+}
+
+export function ApplicationsRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <ApplicationsPage />
     </Suspense>
   )
 }
