@@ -12,6 +12,7 @@ const navLinks = [
   { label: 'Built Around You', href: '#profile' },
   { label: 'Automation', href: '#automation' },
   { label: 'Technology', href: '#technology' },
+  { label: 'Docs', href: '/docs' },
 ]
 
 export function LandingHeader() {
@@ -62,34 +63,34 @@ export function LandingHeader() {
           {/* Center: Nav (Desktop) */}
           <div className="hidden md:flex flex-auto items-center justify-center">
             <nav className="flex items-center gap-0.5 lg:gap-1 relative z-10" aria-label="Landing navigation" onMouseLeave={() => setHoveredIndex(null)}>
-              {navLinks.map((link, index) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onMouseEnter={() => setHoveredIndex(index)}
-                  className="relative rounded-full px-3 lg:px-4 xl:px-5 py-2 text-[12px] lg:text-[13px] xl:text-sm font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap"
-                >
-                  {hoveredIndex === index && (
-                    <motion.div
-                      layoutId="nav-pill"
-                      className="absolute inset-0 -z-10 rounded-full bg-muted/80"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-10">{link.label}</span>
-                </a>
-              ))}
+              {navLinks.map((link, index) => {
+                const isInternal = link.href.startsWith('/')
+                const Component = isInternal ? Link : 'a'
+                const props = isInternal ? { to: link.href } : { href: link.href }
+
+                return (
+                  <Component
+                    key={link.href}
+                    {...(props as any)}
+                    onMouseEnter={() => setHoveredIndex(index)}
+                    className="relative rounded-full px-2.5 lg:px-3.5 xl:px-4 py-1.5 lg:py-2 text-[12px] lg:text-[13px] xl:text-sm font-medium text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap"
+                  >
+                    {hoveredIndex === index && (
+                      <motion.div
+                        layoutId="nav-pill"
+                        className="absolute inset-0 -z-10 rounded-full bg-muted/80"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10">{link.label}</span>
+                  </Component>
+                )
+              })}
             </nav>
           </div>
 
           {/* Right: Actions */}
           <div className="flex flex-1 items-center justify-end gap-2">
-            <Link
-              to="/docs"
-              className="hidden items-center rounded-full px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground md:inline-flex"
-            >
-              Docs
-            </Link>
             <div className="hidden md:block relative z-10">
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button size="sm" className="rounded-full px-6 font-medium shadow-sm hover:shadow-md transition-shadow" render={<Link to="/login" />}>
@@ -121,23 +122,22 @@ export function LandingHeader() {
             className="fixed inset-x-0 top-[4.5rem] z-40 mx-4 rounded-2xl border border-border/50 bg-background/95 p-4 shadow-2xl backdrop-blur-xl md:hidden"
           >
             <nav className="flex flex-col gap-2" aria-label="Mobile landing navigation">
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  {link.label}
-                </a>
-              ))}
-              <Link
-                to="/docs"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                Documentation
-              </Link>
+              {navLinks.map((link) => {
+                const isInternal = link.href.startsWith('/')
+                const Component = isInternal ? Link : 'a'
+                const props = isInternal ? { to: link.href } : { href: link.href }
+
+                return (
+                  <Component
+                    key={link.href}
+                    {...(props as any)}
+                    onClick={() => setOpen(false)}
+                    className="rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    {link.label}
+                  </Component>
+                )
+              })}
               <div className="mt-4 pt-4 border-t border-border/50">
                 <Button size="sm" className="w-full rounded-full" render={<Link to="/login" />}>
                   Open Job OS

@@ -41,6 +41,9 @@ import {
   RoadmapItem,
   Steps,
 } from '@/features/docs/docs-ui'
+import { InteractivePipelineStepper } from '@/features/docs/InteractivePipeline'
+import { QualificationDemo } from '@/features/docs/QualificationDemo'
+import { CodePromptTabs } from '@/features/docs/CodePromptTabs'
 
 export interface DocsSection {
   id: string
@@ -61,12 +64,14 @@ export const DOC_SECTIONS: DocsSection[] = [
       'Victor Job OS brings discovery, qualification, company research, outreach, and applications into one private operating loop.',
     content: (
       <>
-        <p className="text-base text-foreground">
+        <p className="text-base text-foreground leading-relaxed">
           The job search is rarely just about finding a role. It is the research, the tailored
           message, the follow-up, the application status, and the next action that make the
           difference. Victor Job OS keeps those pieces connected so you can spend less time
           reconstructing context and more time making decisions.
         </p>
+
+        <InteractivePipelineStepper />
 
         <FeatureGrid>
           <FeatureCard icon={Compass} title="Discover">
@@ -305,6 +310,8 @@ export const DOC_SECTIONS: DocsSection[] = [
             relevant experience, then review it before sending.
           </FeatureCard>
         </FeatureGrid>
+
+        <QualificationDemo />
 
         <Callout icon={Target} title="A good decision is the deliverable" tone="info">
           Qualification is not a promise to apply. It is a structured way to decide whether an
@@ -583,6 +590,54 @@ export const DOC_SECTIONS: DocsSection[] = [
             are not available yet. Do not treat generated content as verified fact.
           </FeatureCard>
         </FeatureGrid>
+
+        <CodePromptTabs
+          title="AI Guardrails & Human Gate Architecture"
+          tabs={[
+            {
+              id: 'prompt-guards',
+              label: 'System Prompt Guards',
+              description: 'Strict instructions passed to LLM to prevent hallucinating candidate credentials.',
+              code: `// System Prompt Guardrails (Zero-Hallucination Policy)
+const SYSTEM_PROMPT = \`
+You are an objective engineering qualification assistant for Victor.
+Rules:
+1. ONLY reference projects, skills, and metrics explicitly present in Victor's profile.
+2. If the job description requires a technology not present in the profile, flag it as MISSING.
+3. NEVER make up past employment dates or company names.
+4. Consequential actions (send message, submit application) MUST be marked "AWAITING_APPROVAL".
+\`;`,
+            },
+            {
+              id: 'gate-schema',
+              label: 'Human Review Gate Schema',
+              description: 'The application state machine strictly prevents autonomous external writes.',
+              code: `interface HumanReviewGate<T> {
+  status: 'DRAFT_GENERATED' | 'AWAITING_HUMAN_REVIEW' | 'APPROVED' | 'REJECTED';
+  payload: T;
+  generatedAt: number;
+  reviewedBy: string | null; // e.g. "victor"
+  reviewedAt: number | null;
+  allowAutoExecution: false; // Deterministic runtime invariant
+}`,
+            },
+            {
+              id: 'context-schema',
+              label: 'Context Injection',
+              description: 'Structured context assembled from validated company dossiers.',
+              code: `// Injected Research & Evidence Context
+{
+  "targetRole": "Staff Platform Engineer",
+  "company": "Stripe",
+  "verifiedEvidence": [
+    "Built reactive Job OS architecture with Firestore & TypeScript",
+    "Over 10 years experience leading full-stack distributed teams"
+  ],
+  "tonePreference": "Concise, technical, direct"
+}`,
+            },
+          ]}
+        />
 
         <Callout icon={ShieldCheck} title="Human-in-the-loop is the default" tone="success">
           The system is designed to prepare work, not to make consequential decisions for you.
