@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, FileText } from 'lucide-react'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
 import {
   formatApplicationDate,
@@ -54,6 +54,15 @@ function ApplicationCard({
         <span className="inline-flex items-center rounded-md border border-border/50 bg-secondary/40 px-1.5 py-0.5 text-[10px] text-muted-foreground">
           {application.remote ? 'Remote' : application.location || 'Location unknown'}
         </span>
+        {application.resumeUrl && (
+          <span
+            className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300"
+            title="Resume attached"
+          >
+            <FileText className="size-2.5" />
+            Resume
+          </span>
+        )}
       </div>
 
       {application.nextAction && (

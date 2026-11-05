@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { ExternalLink, FileText } from 'lucide-react'
+import { ExternalLink, FileText, Link2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,22 +16,29 @@ import { Textarea } from '@/components/ui/textarea'
 import type { ApplicationPreparation } from '@/types/applicationPreparation'
 
 export function ResumePreparation({
+  applicationId,
   preparation,
-  resumeUrl,
+  applicationResumeUrl,
+  profileResumeUrl,
   readOnly,
   onSave,
+  onAttachResume,
 }: {
+  applicationId: string
   preparation: ApplicationPreparation
-  resumeUrl?: string
+  applicationResumeUrl?: string
+  profileResumeUrl?: string
   readOnly: boolean
   onSave: (patch: {
     resumeNotes: string
     resumeReviewed: boolean
   }) => Promise<void>
+  onAttachResume: (resumeUrl: string) => Promise<void>
 }) {
   const [notes, setNotes] = useState(preparation.resumeNotes)
   const [reviewed, setReviewed] = useState(preparation.resumeReviewed)
   const [saving, setSaving] = useState(false)
+  const [attaching, setAttaching] = useState(false)
 
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- sync editor state after preparation refresh
@@ -39,6 +46,11 @@ export function ResumePreparation({
     // oxlint-disable-next-line react/set-state-in-effect -- sync editor state after preparation refresh
     setReviewed(preparation.resumeReviewed)
   }, [preparation.resumeNotes, preparation.resumeReviewed])
+
+  const attachedResumeUrl = preparation.resumeUrl || applicationResumeUrl || ''
+  const displayResumeUrl = attachedResumeUrl || profileResumeUrl || ''
+  const usingProfileFallback = !attachedResumeUrl && Boolean(profileResumeUrl)
+  const profileHref = `/app/profile?applicationId=${encodeURIComponent(applicationId)}`
 
   async function save() {
     setSaving(true)
@@ -52,44 +64,98 @@ export function ResumePreparation({
     }
   }
 
+  async function attachProfileResume() {
+    if (!profileResumeUrl) return
+    setAttaching(true)
+    try {
+      await onAttachResume(profileResumeUrl)
+      toast('Profile resume attached to this application')
+    } catch {
+      toast('Unable to attach the profile resume')
+    } finally {
+      setAttaching(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm">
             <FileText className="size-4 text-primary" />
-            Current resume
+            Resume for this application
           </CardTitle>
           <CardDescription>
-            Use your profile resume while preparing this application. Resume variants and
+            The resume attached here is a snapshot for this application. Resume variants and
             tailored versions arrive in item 59.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {resumeUrl ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-fit"
-              render={<a href={resumeUrl} target="_blank" rel="noreferrer" />}
-            >
-              <ExternalLink />
-              Open current resume
-            </Button>
+          {displayResumeUrl ? (
+            <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {usingProfileFallback ? 'Profile resume available' : 'Attached resume'}
+              </div>
+              <a
+                href={displayResumeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 block truncate text-sm text-primary underline underline-offset-4"
+              >
+                {displayResumeUrl}
+              </a>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={
+                    <a href={displayResumeUrl} target="_blank" rel="noreferrer" />
+                  }
+                >
+                  <ExternalLink />
+                  Open resume
+                </Button>
+                {usingProfileFallback && !readOnly && (
+                  <Button
+                    size="sm"
+                    onClick={() => void attachProfileResume()}
+                    disabled={attaching}
+                  >
+                    <Link2 />
+                    {attaching ? 'Attaching…' : 'Use this resume for this application'}
+                  </Button>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="rounded-lg border border-dashed bg-muted/20 p-4">
               <p className="text-sm text-muted-foreground">
-                No resume URL is saved on your profile yet.
+                No resume is attached to this application yet.
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                render={<Link to="/app/profile" />}
-              >
-                Add a resume in Profile
-              </Button>
+              {!readOnly && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  render={<Link to={profileHref} />}
+                >
+                  <Plus />
+                  Add a resume in Profile
+                </Button>
+              )}
             </div>
+          )}
+
+          {!readOnly && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-fit"
+              render={<Link to={profileHref} />}
+            >
+              <ExternalLink />
+              {displayResumeUrl ? 'Edit resume in Profile' : 'Open Profile'}
+            </Button>
           )}
 
           <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/20 p-4">

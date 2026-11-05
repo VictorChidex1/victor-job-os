@@ -59,6 +59,7 @@ export function createEmptyPreparation(
     applicationId,
     coverLetter: createEmptyCoverLetter(),
     answers: [],
+    resumeUrl: '',
     resumeNotes: '',
     resumeReviewed: false,
   }

@@ -26,6 +26,7 @@ describe('application preparation helpers', () => {
 
     expect(preparation.coverLetter).toEqual(createEmptyCoverLetter())
     expect(preparation.answers).toEqual([])
+    expect(preparation.resumeUrl).toBe('')
     expect(preparation.resumeNotes).toBe('')
     expect(preparation.resumeReviewed).toBe(false)
   })

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router'
+import { useMemo } from 'react'
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import {
   ArrowLeft,
   Briefcase,
@@ -32,6 +32,7 @@ import { useJobAnalysis } from '@/hooks/useJobAnalysis'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { useProfile } from '@/hooks/useProfile'
 import { useProjects } from '@/hooks/useProjects'
+import { attachResumeToApplication } from '@/services/applicationResume'
 import {
   createEmptyPreparation,
   isPreparationReadOnly,
@@ -104,7 +105,19 @@ export function ApplicationPreparationPage() {
   const { profile } = useProfile()
   const { projects } = useProjects()
 
-  const [activeSection, setActiveSection] = useState<PreparationSection>('context')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = searchParams.get('tab')
+  const activeSection: PreparationSection = SECTIONS.some(
+    (section) => section.id === tab,
+  )
+    ? (tab as PreparationSection)
+    : 'context'
+
+  function setActiveSection(section: PreparationSection) {
+    const next = new URLSearchParams(searchParams)
+    next.set('tab', section)
+    setSearchParams(next, { replace: true })
+  }
 
   usePageMeta({
     title: application
@@ -134,6 +147,14 @@ export function ApplicationPreparationPage() {
       return
     }
     navigate('/app/applications')
+  }
+
+  async function attachResume(resumeUrl: string) {
+    if (!user || !application) {
+      throw new Error('Sign in required to attach a resume.')
+    }
+    await attachResumeToApplication(user.uid, application.id, resumeUrl)
+    await Promise.all([refreshPreparation(), refreshApplication()])
   }
 
   if (!id) {
@@ -268,10 +289,13 @@ export function ApplicationPreparationPage() {
           )}
           {activeSection === 'resume' && (
             <ResumePreparation
+              applicationId={application.id}
               preparation={effectivePreparation}
-              resumeUrl={profile?.resumeUrl}
+              applicationResumeUrl={application.resumeUrl}
+              profileResumeUrl={profile?.resumeUrl}
               readOnly={readOnly}
               onSave={save}
+              onAttachResume={attachResume}
             />
           )}
           {activeSection === 'cover-letter' && (

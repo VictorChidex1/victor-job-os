@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Plus, X } from 'lucide-react'
+import { ArrowLeft, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,8 +15,10 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { LoadingState } from '@/components/states/LoadingState'
+import { useAuth } from '@/hooks/useAuth'
 import { useProfile } from '@/hooks/useProfile'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import { attachResumeToApplication } from '@/services/applicationResume'
 import type { VerificationEntry, VerificationStatus } from '@/types/profile'
 
 const verificationSchema = z.object({
@@ -33,6 +36,7 @@ const profileSchema = z.object({
   preferredLocations: z.array(z.string()),
   remotePreference: z.boolean(),
   experienceLevel: z.string(),
+  resumeUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
   portfolioUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
   email: z.string().email('Enter a valid email'),
 })
@@ -49,6 +53,7 @@ const defaultValues: ProfileFormValues = {
   preferredLocations: [],
   remotePreference: true,
   experienceLevel: '',
+  resumeUrl: '',
   portfolioUrl: '',
   email: '',
 }
@@ -237,6 +242,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function ProfilePage() {
+  const [searchParams] = useSearchParams()
+  const { user } = useAuth()
+  const linkedApplicationId = searchParams.get('applicationId')?.trim() || undefined
+
   usePageMeta({
     title: 'Profile — Victor Job OS',
     description: 'Manage your professional profile, skills, and preferences.',
@@ -261,6 +270,7 @@ export function ProfilePage() {
         preferredLocations: profile.preferredLocations,
         remotePreference: profile.remotePreference,
         experienceLevel: profile.experienceLevel,
+        resumeUrl: profile.resumeUrl ?? '',
         portfolioUrl: profile.portfolioUrl ?? '',
         email: profile.email,
       })
@@ -270,6 +280,21 @@ export function ProfilePage() {
   async function onSubmit(values: ProfileFormValues) {
     try {
       await save(values)
+      const resumeUrl = values.resumeUrl?.trim()
+      if (linkedApplicationId && resumeUrl && user) {
+        try {
+          await attachResumeToApplication(user.uid, linkedApplicationId, resumeUrl)
+          toast('Profile saved', {
+            description: 'Your resume was attached to this application.',
+          })
+        } catch {
+          toast('Profile saved', {
+            description:
+              'The profile was saved, but the resume could not be attached to this application.',
+          })
+        }
+        return
+      }
       toast('Profile saved', { description: 'Your professional profile was updated.' })
     } catch {
       toast('Unable to save', { description: 'Please try again.' })
@@ -288,6 +313,22 @@ export function ProfilePage() {
     <PageContainer
       title="Profile"
       description="This information is used to qualify opportunities and generate applications."
+      actions={
+        linkedApplicationId ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            render={
+              <Link
+                to={`/app/applications/${encodeURIComponent(linkedApplicationId)}/prepare?tab=resume`}
+              />
+            }
+          >
+            <ArrowLeft />
+            Back to resume preparation
+          </Button>
+        ) : undefined
+      }
     >
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <Section title="Identity">
@@ -345,6 +386,40 @@ export function ProfilePage() {
               )}
             />
           </div>
+        </Section>
+
+        <Section title="Resume">
+          <Controller
+            name="resumeUrl"
+            control={form.control}
+            render={({ field }) => (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="resumeUrl">Resume URL</Label>
+                <Input
+                  id="resumeUrl"
+                  type="url"
+                  placeholder="https://example.com/resume.pdf"
+                  {...field}
+                  aria-invalid={!!form.formState.errors.resumeUrl}
+                />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  This is the resume attached to applications you prepare. Keeping it current
+                  makes the application resume step faster.
+                </p>
+                {linkedApplicationId && (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Saving this profile will attach the resume URL to the application you opened
+                    from preparation.
+                  </p>
+                )}
+                {form.formState.errors.resumeUrl && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.resumeUrl.message}
+                  </p>
+                )}
+              </div>
+            )}
+          />
         </Section>
 
         <Section title="Professional summary">

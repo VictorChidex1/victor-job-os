@@ -77,10 +77,14 @@ export function createApplicationPreparationService(
         applicationId,
         coverLetter,
         answers,
+        resumeUrl:
+          patch.resumeUrl !== undefined
+            ? stripHtml(patch.resumeUrl).trim()
+            : (existing?.resumeUrl ?? ''),
         resumeNotes:
-          patch.resumeNotes !== undefined
-            ? stripHtml(patch.resumeNotes).trim()
-            : (existing?.resumeNotes ?? ''),
+           patch.resumeNotes !== undefined
+             ? stripHtml(patch.resumeNotes).trim()
+             : (existing?.resumeNotes ?? ''),
         resumeReviewed:
           patch.resumeReviewed !== undefined
             ? Boolean(patch.resumeReviewed)
@@ -157,6 +161,7 @@ function toPreparation(
     answers: Array.isArray(data.answers)
       ? data.answers.map((answer) => toAnswer(answer as DocumentData))
       : [],
+    resumeUrl: typeof data.resumeUrl === 'string' ? data.resumeUrl : '',
     resumeNotes: typeof data.resumeNotes === 'string' ? data.resumeNotes : '',
     resumeReviewed: data.resumeReviewed === true,
     createdAt: optionalTimestamp(data.createdAt),

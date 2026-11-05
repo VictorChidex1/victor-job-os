@@ -346,6 +346,20 @@ export function ApplicationDetail({
               {application.location && (
                 <DetailRow label="Location" value={application.location} />
               )}
+              {application.resumeUrl && (
+                <div className="flex items-start justify-between gap-4 py-1">
+                  <span className="text-sm text-muted-foreground">Resume</span>
+                  <a
+                    href={application.resumeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex max-w-[12rem] items-center gap-1 truncate text-sm text-primary underline underline-offset-4"
+                  >
+                    Attached resume
+                    <ExternalLink className="size-3 shrink-0" />
+                  </a>
+                </div>
+              )}
               <Separator className="my-2" />
               <DetailRow
                 label="Created"

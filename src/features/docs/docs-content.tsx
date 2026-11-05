@@ -377,8 +377,9 @@ export const DOC_SECTIONS: DocsSection[] = [
             an append-only timeline of status changes.
           </FeatureCard>
           <FeatureCard icon={ClipboardList} title="Preparation workspace">
-            Open a dedicated workspace for the application: review role context, record resume
-            notes, draft and approve a cover letter, and prepare answers to application questions.
+            Open a dedicated workspace for the application: review role context, attach the
+            profile resume, record resume notes, draft and approve a cover letter, and prepare
+            answers to application questions.
           </FeatureCard>
           <FeatureCard icon={ShieldCheck} title="Strict status flow">
             The app enforces legal status transitions. You cannot jump from Submitted straight to
@@ -394,8 +395,10 @@ export const DOC_SECTIONS: DocsSection[] = [
 
         <Callout icon={ShieldCheck} title="Preparation workspace is available now" tone="success">
           Open an application and choose Prepare application. Work through the application
-          context, resume notes, cover letter, and application answers. Each item can be drafted,
-          edited, approved, and tracked separately. Resume variants and ATS metadata are next.
+          context, resume, cover letter, and application answers. The resume URL is snapshotted
+          onto the application when attached. The Profile back arrow returns to the application
+          Resume tab, and changing the resume resets the review checkbox. Resume variants and ATS
+          metadata are next.
         </Callout>
 
         <Callout icon={Archive} title="Closed means closed" tone="muted">

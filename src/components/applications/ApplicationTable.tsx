@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FileText } from 'lucide-react'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
 import {
   Table,
@@ -50,8 +51,17 @@ export function ApplicationTable({
                   >
                     {application.jobTitle}
                   </Link>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     {application.companyName || 'Unknown company'}
+                    {application.resumeUrl && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300"
+                        title="Resume attached"
+                      >
+                        <FileText className="size-2.5" />
+                        Resume
+                      </span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>

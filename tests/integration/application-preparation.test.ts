@@ -7,6 +7,7 @@ import {
 import { deleteDoc, doc, getDoc, setDoc, Timestamp, type Firestore } from 'firebase/firestore'
 import { createApplicationService } from '@/services/applicationService'
 import { createApplicationPreparationService } from '@/services/applicationPreparationService'
+import { createApplicationResumeService } from '@/services/applicationResumeService'
 import { preparationDocId } from '@/lib/applicationPreparation'
 import type { Job } from '@/types/jobs'
 
@@ -94,6 +95,7 @@ describe('application preparation service', () => {
       ],
       resumeNotes: 'Highlight React work.',
       resumeReviewed: true,
+      resumeUrl: 'https://example.com/resume.pdf',
     })
 
     const preparation = await service.get(owner, applicationId)
@@ -103,6 +105,7 @@ describe('application preparation service', () => {
     expect(preparation?.answers[0].status).toBe('approved')
     expect(preparation?.resumeNotes).toBe('Highlight React work.')
     expect(preparation?.resumeReviewed).toBe(true)
+    expect(preparation?.resumeUrl).toBe('https://example.com/resume.pdf')
   })
 
   it('returns null when a preparation does not exist', async () => {
@@ -168,5 +171,55 @@ describe('application preparation service', () => {
     await deleteDoc(doc(db, 'applicationPreparations', preparationDocId(owner, applicationId)))
 
     await expect(service.get(owner, applicationId)).resolves.toBeNull()
+  })
+
+  it('attaches a resume snapshot to the application and creates preparation content', async () => {
+    const { applicationService, applicationId } = await createApplication()
+    const resumeService = createApplicationResumeService(firestoreFor(owner))
+    const preparationService = createApplicationPreparationService(firestoreFor(owner))
+
+    await resumeService.attach(owner, applicationId, 'https://example.com/resume-v1.pdf')
+
+    const application = await applicationService.get(applicationId)
+    const preparation = await preparationService.get(owner, applicationId)
+    expect(application?.resumeUrl).toBe('https://example.com/resume-v1.pdf')
+    expect(preparation?.resumeUrl).toBe('https://example.com/resume-v1.pdf')
+    expect(preparation?.resumeReviewed).toBe(false)
+  })
+
+  it('preserves resume review when the URL does not change and resets it when it does', async () => {
+    const { applicationId } = await createApplication()
+    const resumeService = createApplicationResumeService(firestoreFor(owner))
+    const preparationService = createApplicationPreparationService(firestoreFor(owner))
+
+    await resumeService.attach(owner, applicationId, 'https://example.com/resume-v1.pdf')
+    await preparationService.save(owner, applicationId, { resumeReviewed: true })
+
+    await resumeService.attach(owner, applicationId, 'https://example.com/resume-v1.pdf')
+    expect((await preparationService.get(owner, applicationId))?.resumeReviewed).toBe(true)
+
+    await resumeService.attach(owner, applicationId, 'https://example.com/resume-v2.pdf')
+    expect((await preparationService.get(owner, applicationId))?.resumeReviewed).toBe(false)
+  })
+
+  it('does not let another user attach a resume to someone else’s application', async () => {
+    const { applicationId } = await createApplication()
+    const otherResumeService = createApplicationResumeService(firestoreFor(other))
+
+    await expect(
+      otherResumeService.attach(other, applicationId, 'https://example.com/hacked.pdf'),
+    ).rejects.toThrow()
+  })
+
+  it('does not attach a resume after the application is approved', async () => {
+    const { applicationService, applicationId } = await createApplication()
+    for (const status of ['preparing', 'needs-review', 'approved'] as const) {
+      await applicationService.updateStatus(owner, applicationId, status)
+    }
+
+    const resumeService = createApplicationResumeService(firestoreFor(owner))
+    await expect(
+      resumeService.attach(owner, applicationId, 'https://example.com/resume.pdf'),
+    ).rejects.toThrow('locked')
   })
 })
