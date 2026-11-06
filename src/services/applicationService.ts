@@ -337,6 +337,9 @@ function toApplication(id: string, data: DocumentData): Application {
     nextAction: data.nextAction,
     nextActionAt: optionalTimestamp(data.nextActionAt),
     notes: data.notes,
+    searchTokens: Array.isArray(data.searchTokens)
+      ? data.searchTokens.filter((token: unknown): token is string => typeof token === 'string')
+      : undefined,
     approvedAt: optionalTimestamp(data.approvedAt),
     submittedAt: optionalTimestamp(data.submittedAt),
     submittedManually: data.submittedManually,

@@ -1,6 +1,8 @@
 import {
   Briefcase,
+  FileText,
   LayoutDashboard,
+  Mail,
   Users,
   type LucideIcon,
 } from 'lucide-react'
@@ -16,10 +18,14 @@ export const adminNavItems: AdminNavItem[] = [
   { label: 'Overview', to: '/admin', icon: LayoutDashboard, end: true },
   { label: 'Users', to: '/admin/users', icon: Users },
   { label: 'Opportunities', to: '/admin/opportunities', icon: Briefcase },
+  { label: 'Applications', to: '/admin/applications', icon: FileText },
+  { label: 'Outreach', to: '/admin/outreach', icon: Mail },
 ]
 
 export const adminTopBarTitles: Record<string, string> = {
   '/admin': 'Overview',
   '/admin/users': 'Users',
   '/admin/opportunities': 'Opportunities',
+  '/admin/applications': 'Applications',
+  '/admin/outreach': 'Outreach',
 }

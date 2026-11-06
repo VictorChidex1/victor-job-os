@@ -124,7 +124,6 @@ export function DashboardPage() {
   const { counts, refresh: refreshCounts } = useJobCounts()
   const { jobs: recentJobs, loading: recentLoading, refresh: refreshRecent } = useJobsPage({
     pageSize: 5,
-    skipCount: true,
   })
   const { items: applications, refresh: refreshApplications } = useApplications()
   const { items: outreach } = useOutreach()

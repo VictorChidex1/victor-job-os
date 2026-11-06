@@ -15,11 +15,32 @@ import {
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
 import { stripHtml } from '@/lib/html'
+import { buildSearchTokens } from '@/lib/searchTokens'
 import type { Outreach } from '@/types/outreach'
 
 const outreachCollection = collection(db, collections.outreach)
 
-export type OutreachWriteData = Omit<Outreach, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+export type OutreachWriteData = Omit<
+  Outreach,
+  'id' | 'userId' | 'createdAt' | 'updatedAt' | 'searchTokens'
+>
+
+function outreachSearchTokens(
+  data: Partial<
+    Pick<
+      Outreach,
+      'companyName' | 'jobTitle' | 'contactName' | 'contactEmail' | 'subject'
+    >
+  >,
+): string[] {
+  return buildSearchTokens(
+    data.companyName,
+    data.jobTitle,
+    data.contactName,
+    data.contactEmail,
+    data.subject,
+  )
+}
 
 export async function listOutreach(uid: string): Promise<Outreach[]> {
   const snapshot = await getDocs(
@@ -58,6 +79,7 @@ export async function listOutreachForCompany(
 export async function createOutreach(uid: string, data: OutreachWriteData): Promise<string> {
   const ref = await addDoc(outreachCollection, {
     ...data,
+    searchTokens: outreachSearchTokens(data),
     userId: uid,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -66,7 +88,17 @@ export async function createOutreach(uid: string, data: OutreachWriteData): Prom
 }
 
 export async function updateOutreach(id: string, data: Partial<OutreachWriteData>): Promise<void> {
-  await updateDoc(doc(outreachCollection, id), { ...data, updatedAt: new Date() })
+  const ref = doc(outreachCollection, id)
+  const snapshot = await getDoc(ref)
+  if (!snapshot.exists()) {
+    throw new Error('Outreach not found.')
+  }
+  const merged = { ...snapshot.data(), ...data } as Partial<Outreach>
+  await updateDoc(ref, {
+    ...data,
+    searchTokens: outreachSearchTokens(merged),
+    updatedAt: new Date(),
+  })
 }
 
 export async function deleteOutreach(id: string): Promise<void> {
@@ -101,6 +133,9 @@ function toOutreach(id: string, data: DocumentData): Outreach {
     closedReason: data.closedReason,
     followUpCount: data.followUpCount ?? 0,
     lastFollowUpAt: data.lastFollowUpAt as Timestamp | undefined,
+    searchTokens: Array.isArray(data.searchTokens)
+      ? data.searchTokens.filter((token: unknown): token is string => typeof token === 'string')
+      : undefined,
     createdAt: data.createdAt as Timestamp,
     updatedAt: data.updatedAt as Timestamp,
   }

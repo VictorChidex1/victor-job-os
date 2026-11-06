@@ -1,20 +1,25 @@
 import {
   collection,
   doc,
-  getCountFromServer,
+  documentId,
   getDoc,
   getDocs,
   limit,
   orderBy,
   query,
+  startAfter,
+  Timestamp,
   where,
   type DocumentData,
   type QueryConstraint,
-  type Timestamp,
+  type QueryDocumentSnapshot,
+  type Timestamp as FirestoreTimestamp,
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
 import { toAdminUser } from '@/services/admin'
+import { searchTokensForQuery } from '@/lib/searchTokens'
+import type { CursorValue } from '@/lib/cursorPagination'
 import type {
   AdminOpportunity,
   AdminOpportunityAnalysis,
@@ -27,70 +32,59 @@ export interface AdminOpportunityQuery {
   status?: string
   source?: string
   userId?: string
-  page?: number
+  cursor?: CursorValue | null
   pageSize?: number
 }
 
 export interface AdminOpportunityPage {
   items: AdminOpportunity[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
+  nextCursor: CursorValue | null
+  hasMore: boolean
 }
 
 const jobs = collection(db, collections.jobs)
-
-function searchTokens(search?: string): string[] {
-  return (search ?? '')
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((token) => token.length >= 2)
-    .slice(0, 10)
-}
 
 function buildConstraints(input: AdminOpportunityQuery): QueryConstraint[] {
   const constraints: QueryConstraint[] = []
   if (input.userId) constraints.push(where('userId', '==', input.userId))
   if (input.status) constraints.push(where('status', '==', input.status))
   if (input.source) constraints.push(where('source', '==', input.source))
-  const tokens = searchTokens(input.search)
+  const tokens = searchTokensForQuery(input.search)
   if (tokens.length > 0) {
     constraints.push(where('searchTokens', 'array-contains-any', tokens))
   }
   constraints.push(orderBy('discoveredAt', 'desc'))
+  constraints.push(orderBy(documentId(), 'asc'))
   return constraints
 }
 
 export async function loadAdminOpportunitiesPage(
   input: AdminOpportunityQuery = {},
 ): Promise<AdminOpportunityPage> {
-  const page = Math.max(1, input.page ?? 1)
   const pageSize = Math.max(1, input.pageSize ?? 25)
   const constraints = buildConstraints(input)
 
-  const [snapshot, countSnapshot] = await Promise.all([
-    getDocs(
-      query(
-        jobs,
-        ...constraints,
-        limit(page * pageSize),
+  if (input.cursor) {
+    constraints.push(
+      startAfter(
+        Timestamp.fromMillis(input.cursor.value),
+        input.cursor.id,
       ),
-    ),
-    getCountFromServer(query(jobs, ...constraints)),
-  ])
+    )
+  }
+  constraints.push(limit(pageSize + 1))
 
-  const total = countSnapshot.data().count
-  const pageDocs = snapshot.docs.slice((page - 1) * pageSize)
+  const snapshot = await getDocs(query(jobs, ...constraints))
+  const hasMore = snapshot.docs.length > pageSize
+  const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs
+  const lastDoc = pageDocs[pageDocs.length - 1]
+
   return {
     items: pageDocs.map((document) =>
       toAdminOpportunity(document.id, document.data()),
     ),
-    total,
-    page,
-    pageSize,
-    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    nextCursor: lastDoc ? cursorFromDocument(lastDoc) : null,
+    hasMore,
   }
 }
 
@@ -134,6 +128,17 @@ export async function loadAdminOpportunityDetail(
     analysis: analysisData ? toAdminAnalysis(analysisData) : null,
     company:
       companySnapshot?.exists() ? toAdminCompany(companySnapshot.data()) : null,
+  }
+}
+
+function cursorFromDocument(
+  document: QueryDocumentSnapshot<DocumentData>,
+): CursorValue {
+  const value = document.get('discoveredAt') as FirestoreTimestamp | undefined
+  return {
+    value:
+      value && typeof value.toMillis === 'function' ? value.toMillis() : 0,
+    id: document.id,
   }
 }
 

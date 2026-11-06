@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  documentId,
   getDoc,
   getDocs,
   getCountFromServer,
@@ -9,21 +10,24 @@ import {
   orderBy,
   limit,
   startAfter,
+  Timestamp,
   type DocumentData,
   type QueryConstraint,
   type QueryDocumentSnapshot,
-  type Timestamp,
+  type Timestamp as FirestoreTimestamp,
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
 import { stripHtml } from '@/lib/html'
+import { searchTokensForQuery } from '@/lib/searchTokens'
+import type { CursorValue } from '@/lib/cursorPagination'
 import type { Job, JobStatus } from '@/types/jobs'
 
 const jobsCollection = collection(db, collections.jobs)
 
 export interface JobPageOptions {
   pageSize?: number
-  cursor?: QueryDocumentSnapshot<DocumentData> | null
+  cursorValue?: CursorValue | null
   source?: string
   status?: string
   companyId?: string
@@ -31,7 +35,7 @@ export interface JobPageOptions {
 
 export interface JobPage {
   jobs: Job[]
-  cursor: QueryDocumentSnapshot<DocumentData> | null
+  nextCursor: CursorValue | null
   hasMore: boolean
 }
 
@@ -60,12 +64,7 @@ export async function countJobs(uid: string, options: JobCountOptions = {}): Pro
 
 /** Count jobs matching a token search (server-side). */
 export async function countSearchJobs(uid: string, term: string): Promise<number> {
-  const tokens = term
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((token) => token.length >= 2)
-    .slice(0, 10)
+  const tokens = searchTokensForQuery(term)
   if (tokens.length === 0) {
     return 0
   }
@@ -92,16 +91,25 @@ export async function listJobsPage(uid: string, options: JobPageOptions = {}): P
   if (options.companyId) constraints.push(where('companyId', '==', options.companyId))
 
   constraints.push(orderBy('discoveredAt', 'desc'))
-  if (options.cursor) constraints.push(startAfter(options.cursor))
+  constraints.push(orderBy(documentId(), 'asc'))
+  if (options.cursorValue) {
+    constraints.push(
+      startAfter(
+        Timestamp.fromMillis(options.cursorValue.value),
+        options.cursorValue.id,
+      ),
+    )
+  }
   constraints.push(limit(pageSize + 1))
 
   const snapshot = await getDocs(query(jobsCollection, ...constraints))
   const hasMore = snapshot.docs.length > pageSize
   const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs
+  const lastDoc = pageDocs[pageDocs.length - 1]
 
   return {
     jobs: pageDocs.map((document) => toJob(document.id, document.data())),
-    cursor: pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null,
+    nextCursor: lastDoc ? cursorFromDocument(lastDoc) : null,
     hasMore,
   }
 }
@@ -112,10 +120,9 @@ export async function searchJobsPage(
   term: string,
   options: JobPageOptions = {},
 ): Promise<JobPage> {
-  const normalized = term.trim().toLowerCase()
-  const tokens = normalized.split(/\s+/).filter((token) => token.length >= 2).slice(0, 10)
+  const tokens = searchTokensForQuery(term)
   if (tokens.length === 0) {
-    return { jobs: [], cursor: null, hasMore: false }
+    return { jobs: [], nextCursor: null, hasMore: false }
   }
 
   const pageSize = options.pageSize ?? 50
@@ -123,17 +130,26 @@ export async function searchJobsPage(
     where('userId', '==', uid),
     where('searchTokens', 'array-contains-any', tokens),
     orderBy('discoveredAt', 'desc'),
+    orderBy(documentId(), 'asc'),
   ]
-  if (options.cursor) constraints.push(startAfter(options.cursor))
+  if (options.cursorValue) {
+    constraints.push(
+      startAfter(
+        Timestamp.fromMillis(options.cursorValue.value),
+        options.cursorValue.id,
+      ),
+    )
+  }
   constraints.push(limit(pageSize + 1))
 
   const snapshot = await getDocs(query(jobsCollection, ...constraints))
   const hasMore = snapshot.docs.length > pageSize
   const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs
+  const lastDoc = pageDocs[pageDocs.length - 1]
 
   return {
     jobs: pageDocs.map((document) => toJob(document.id, document.data())),
-    cursor: pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null,
+    nextCursor: lastDoc ? cursorFromDocument(lastDoc) : null,
     hasMore,
   }
 }
@@ -184,6 +200,17 @@ export async function getJob(id: string): Promise<Job | null> {
     return null
   }
   return toJob(snapshot.id, snapshot.data())
+}
+
+function cursorFromDocument(
+  document: QueryDocumentSnapshot<DocumentData>,
+): CursorValue {
+  const value = document.get('discoveredAt') as FirestoreTimestamp | undefined
+  return {
+    value:
+      value && typeof value.toMillis === 'function' ? value.toMillis() : 0,
+    id: document.id,
+  }
 }
 
 function toJob(id: string, data: DocumentData): Job {

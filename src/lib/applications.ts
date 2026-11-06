@@ -1,4 +1,5 @@
 import type { Job } from '@/types/jobs'
+import { buildSearchTokens } from '@/lib/searchTokens'
 import type {
   Application,
   ApplicationOrigin,
@@ -109,6 +110,7 @@ export type ApplicationSeed = Pick<
   | 'remote'
   | 'status'
   | 'origin'
+  | 'searchTokens'
 >
 
 /** Snapshot the fields we need at creation time. */
@@ -117,19 +119,24 @@ export function buildApplicationSeed(
   job: ApplicationJobSource,
   origin: ApplicationOrigin = 'opportunity',
 ): ApplicationSeed {
+  const companyName = job.companyName ?? ''
+  const jobTitle = job.title
+  const location = job.location
+
   return {
     id: applicationDocId(uid, job.id),
     userId: uid,
     jobId: job.id,
     companyId: job.companyId ?? '',
-    companyName: job.companyName ?? '',
-    jobTitle: job.title,
+    companyName,
+    jobTitle,
     jobSource: job.source,
     applicationUrl: job.applicationUrl,
-    location: job.location,
+    location,
     remote: job.remote,
     status: 'not-started',
     origin,
+    searchTokens: buildSearchTokens(companyName, jobTitle, location, job.source),
   }
 }
 

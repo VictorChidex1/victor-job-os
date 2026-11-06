@@ -46,6 +46,30 @@ export const AdminOpportunityDetailPage = lazy(() =>
   })),
 )
 
+export const AdminApplicationsPage = lazy(() =>
+  import('@/pages/AdminApplicationsPage').then((module) => ({
+    default: module.AdminApplicationsPage,
+  })),
+)
+
+export const AdminApplicationDetailPage = lazy(() =>
+  import('@/pages/AdminApplicationDetailPage').then((module) => ({
+    default: module.AdminApplicationDetailPage,
+  })),
+)
+
+export const AdminOutreachPage = lazy(() =>
+  import('@/pages/AdminOutreachPage').then((module) => ({
+    default: module.AdminOutreachPage,
+  })),
+)
+
+export const AdminOutreachDetailPage = lazy(() =>
+  import('@/pages/AdminOutreachDetailPage').then((module) => ({
+    default: module.AdminOutreachDetailPage,
+  })),
+)
+
 export const ProfilePage = lazy(() =>
   import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })),
 )
@@ -198,6 +222,38 @@ export function AdminOpportunityDetailRoute() {
   return (
     <Suspense fallback={<LoadingState rows={5} />}>
       <AdminOpportunityDetailPage />
+    </Suspense>
+  )
+}
+
+export function AdminApplicationsRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminApplicationsPage />
+    </Suspense>
+  )
+}
+
+export function AdminApplicationDetailRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminApplicationDetailPage />
+    </Suspense>
+  )
+}
+
+export function AdminOutreachRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminOutreachPage />
+    </Suspense>
+  )
+}
+
+export function AdminOutreachDetailRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminOutreachDetailPage />
     </Suspense>
   )
 }

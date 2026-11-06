@@ -26,12 +26,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { PaginationBar } from '@/components/PaginationBar'
+import { CursorPaginationBar } from '@/components/CursorPaginationBar'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { useAdminOpportunitiesPage } from '@/hooks/useAdminOpportunitiesPage'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import {
+  appendCursor,
+  currentPage,
+  decodeCursorStack,
+  encodeCursorStack,
+  popCursor,
+} from '@/lib/cursorPagination'
 import { SELECTABLE_SOURCE_IDS, SOURCE_LABELS } from '@/lib/job-sources'
 
 const PAGE_SIZE = 25
@@ -63,7 +70,13 @@ export function AdminOpportunitiesPage() {
   const status = searchParams.get('status') ?? ''
   const source = searchParams.get('source') ?? ''
   const userId = searchParams.get('user') ?? ''
-  const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1)
+  const cursorParam = searchParams.get('cursors') ?? ''
+  const cursorStack = useMemo(
+    () => decodeCursorStack(cursorParam),
+    [cursorParam],
+  )
+  const page = currentPage(cursorStack)
+  const activeCursor = cursorStack[cursorStack.length - 1] ?? null
   const [searchInput, setSearchInput] = useState(query)
 
   const { users } = useAdminUsers()
@@ -72,13 +85,13 @@ export function AdminOpportunitiesPage() {
     [users],
   )
 
-  const { items, total, totalPages, loading, error, refresh } =
+  const { items, hasNext, nextCursor, loading, error, refresh } =
     useAdminOpportunitiesPage({
       search: query,
       status,
       source,
       userId,
-      page,
+      cursor: activeCursor,
       pageSize: PAGE_SIZE,
     })
 
@@ -88,7 +101,7 @@ export function AdminOpportunitiesPage() {
       const next = new URLSearchParams(searchParams)
       if (searchInput.trim()) next.set('q', searchInput)
       else next.delete('q')
-      next.delete('page')
+      next.delete('cursors')
       setSearchParams(next, { replace: true })
     }, 350)
     return () => clearTimeout(timer)
@@ -98,15 +111,26 @@ export function AdminOpportunitiesPage() {
     const next = new URLSearchParams(searchParams)
     if (value) next.set(key, value)
     else next.delete(key)
-    next.delete('page')
+    next.delete('cursors')
     setSearchParams(next, { replace: true })
   }
 
-  function setPage(nextPage: number) {
+  function setCursorStack(nextStack: typeof cursorStack) {
     const next = new URLSearchParams(searchParams)
-    if (nextPage <= 1) next.delete('page')
-    else next.set('page', String(nextPage))
+    const encoded = encodeCursorStack(nextStack)
+    if (encoded) next.set('cursors', encoded)
+    else next.delete('cursors')
     setSearchParams(next, { replace: true })
+  }
+
+  function goNextPage() {
+    if (!nextCursor) return
+    setCursorStack(appendCursor(cursorStack, nextCursor))
+  }
+
+  function goPrevPage() {
+    if (cursorStack.length === 0) return
+    setCursorStack(popCursor(cursorStack))
   }
 
   function clearFilters() {
@@ -147,7 +171,7 @@ export function AdminOpportunitiesPage() {
         <CardHeader>
           <CardTitle className="text-sm text-slate-950">Filters</CardTitle>
           <CardDescription>
-            {total} matching opportunit{total === 1 ? 'y' : 'ies'}
+            Page {page} · {hasNext ? 'More available' : 'End of results'}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -241,7 +265,7 @@ export function AdminOpportunitiesPage() {
         <CardHeader>
           <CardTitle className="text-sm text-slate-950">All opportunities</CardTitle>
           <CardDescription>
-            Page {page} of {totalPages}
+            Page {page} · {hasNext ? 'More available' : 'End of results'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -328,16 +352,13 @@ export function AdminOpportunitiesPage() {
                 </Table>
               </div>
 
-              <PaginationBar
+              <CursorPaginationBar
                 page={page}
-                totalPages={totalPages}
-                total={total}
-                itemLabel="opportunities"
                 loading={loading}
-                hasPrev={page > 1}
-                hasNext={page < totalPages}
-                onPrev={() => setPage(page - 1)}
-                onNext={() => setPage(page + 1)}
+                hasPrev={cursorStack.length > 0}
+                hasNext={hasNext}
+                onPrev={goPrevPage}
+                onNext={goNextPage}
               />
             </div>
           )}

@@ -4,6 +4,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { getAIService } from '../ai/index.js'
 import { getJob, getProfile } from '../jobs/qualification.js'
+import { buildSearchTokens } from '../utils/normalizeJob.js'
 import { toHttpsError } from '../utils/errors.js'
 import { recordActivity } from '../utils/activity.js'
 import { recordAiRun, currentProvider } from '../utils/aiUsage.js'
@@ -239,6 +240,13 @@ export const generatePitch = onCall(
       body: pitch.body,
       draftSubject: pitch.subject,
       draftBody: pitch.body,
+      searchTokens: buildSearchTokens(
+        job.companyName,
+        job.title,
+        contact?.name as string | undefined,
+        contact?.email as string | undefined,
+        pitch.subject,
+      ),
       status: 'needs-review',
       aiProvider: provider.provider,
       model: provider.model,

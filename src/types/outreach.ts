@@ -39,6 +39,9 @@ export interface Outreach {
   closedReason?: 'rejected' | 'archived' | 'completed'
   followUpCount?: number
   lastFollowUpAt?: Timestamp
+
+  /** Bounded tokens for admin keyword search. Never contains the message body. */
+  searchTokens?: string[]
   createdAt: Timestamp
   updatedAt: Timestamp
 }

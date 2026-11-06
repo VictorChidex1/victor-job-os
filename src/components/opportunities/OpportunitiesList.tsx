@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { motion, useReducedMotion } from 'motion/react'
 import {
@@ -22,6 +22,13 @@ import { EmptyState } from '@/components/states/EmptyState'
 import { QualifyNewButton } from '@/components/dashboard/QualifyNewButton'
 import { useJobCounts } from '@/hooks/useJobCounts'
 import { useJobsPage } from '@/hooks/useJobsPage'
+import {
+  appendCursor,
+  currentPage,
+  decodeCursorStack,
+  encodeCursorStack,
+  popCursor,
+} from '@/lib/cursorPagination'
 import { SELECTABLE_SOURCE_IDS, SOURCE_LABELS } from '@/lib/job-sources'
 import { cn } from '@/lib/utils'
 import type { Job, JobStatus } from '@/types/jobs'
@@ -425,9 +432,6 @@ function IntelligenceHUD({
 
 function PaginationBar({
   page,
-  totalPages,
-  total,
-  isSearch,
   hasPrev,
   hasNext,
   loading,
@@ -436,9 +440,6 @@ function PaginationBar({
   onNext,
 }: {
   page: number
-  totalPages: number
-  total: number
-  isSearch: boolean
   hasPrev: boolean
   hasNext: boolean
   loading: boolean
@@ -459,14 +460,9 @@ function PaginationBar({
           !compact && 'sm:w-auto sm:justify-start',
         )}
       >
-        <div className="flex items-center gap-1.5">
-          <span className="font-semibold text-foreground">{total.toLocaleString()}</span>
-          <span>{isSearch ? 'matching roles' : 'roles'}</span>
-        </div>
+        <span className="font-semibold text-foreground">Page {page}</span>
         <span className="text-muted-foreground/40 sm:inline">·</span>
-        <span>
-          Page {page} of {Math.max(1, totalPages)}
-        </span>
+        <span>{hasNext ? 'More available' : 'End of results'}</span>
       </div>
       <div
         className={cn(
@@ -485,7 +481,7 @@ function PaginationBar({
           <span>Previous</span>
         </Button>
         <span className="inline-flex min-w-[60px] items-center justify-center gap-1.5 text-center font-mono text-xs font-semibold text-foreground">
-          {page} / {Math.max(1, totalPages)}
+          {page}
           <span className="inline-flex size-3.5 items-center justify-center">
             {loading && (
               <Loader2
@@ -524,34 +520,48 @@ export function OpportunitiesList({
   const statusFilter = searchParams.get('status') ?? ''
   const activeStatus = statusFilter && statusLabels[statusFilter] ? statusFilter : ''
   const companyFilter = searchParams.get('companyId') ?? ''
+  const sourceFilter = searchParams.get('source') ?? 'all'
+  const query = searchParams.get('q') ?? ''
+  const cursorParam = searchParams.get('cursors') ?? ''
+  const cursorStack = useMemo(
+    () => decodeCursorStack(cursorParam),
+    [cursorParam],
+  )
+  const page = currentPage(cursorStack)
+  const activeCursor = cursorStack[cursorStack.length - 1] ?? null
 
-  const [searchInput, setSearchInput] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [sourceFilter, setSourceFilter] = useState<string>('all')
+  const [searchInput, setSearchInput] = useState(query)
+  const [debouncedSearch, setDebouncedSearch] = useState(query)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 350)
     return () => clearTimeout(timer)
   }, [searchInput])
 
+  useEffect(() => {
+    if (debouncedSearch === query) return
+    const next = new URLSearchParams(searchParams)
+    if (debouncedSearch) next.set('q', debouncedSearch)
+    else next.delete('q')
+    next.delete('cursors')
+    setSearchParams(next, { replace: true })
+  }, [debouncedSearch, query, searchParams, setSearchParams])
+
   const {
     jobs,
     loading,
     error,
     isSearch,
-    page,
-    totalPages,
-    total,
     hasNext,
-    hasPrev,
-    nextPage,
-    prevPage,
+    nextCursor,
     refresh,
   } = useJobsPage({
     source: sourceFilter !== 'all' ? sourceFilter : undefined,
     status: activeStatus || undefined,
     companyId: companyFilter || undefined,
     search: debouncedSearch,
+    cursor: activeCursor,
+    pageSize: 30,
   })
   const { counts, refresh: refreshCounts } = useJobCounts()
   const countsTokenRef = useRef(countsRefreshToken)
@@ -614,16 +624,23 @@ export function OpportunitiesList({
     return () => cancelAnimationFrame(frame)
   }, [selectedJobId, compact, jobs])
 
-  async function changePage(action: () => Promise<void>): Promise<void> {
-    suppressSelectedScrollRef.current = true
-    try {
-      await action()
-    } finally {
-      requestAnimationFrame(() => {
-        onListTop?.()
-        suppressSelectedScrollRef.current = false
-      })
-    }
+  function setCursorStack(nextStack: typeof cursorStack) {
+    const next = new URLSearchParams(searchParams)
+    const encoded = encodeCursorStack(nextStack)
+    if (encoded) next.set('cursors', encoded)
+    else next.delete('cursors')
+    setSearchParams(next)
+    requestAnimationFrame(() => onListTop?.())
+  }
+
+  function goNextPage() {
+    if (!nextCursor) return
+    setCursorStack(appendCursor(cursorStack, nextCursor))
+  }
+
+  function goPrevPage() {
+    if (cursorStack.length === 0) return
+    setCursorStack(popCursor(cursorStack))
   }
 
   const title = isSearch
@@ -641,6 +658,15 @@ export function OpportunitiesList({
     } else {
       next.delete('status')
     }
+    next.delete('cursors')
+    setSearchParams(next)
+  }
+
+  function handleSelectSource(source: string) {
+    const next = new URLSearchParams(searchParams)
+    if (source !== 'all') next.set('source', source)
+    else next.delete('source')
+    next.delete('cursors')
     setSearchParams(next)
   }
 
@@ -657,7 +683,7 @@ export function OpportunitiesList({
       stackHeader={compact}
       description={
         compact
-          ? `${total.toLocaleString()} roles`
+          ? `Page ${page}`
           : isSearch
             ? 'Searching across all ATS discovery feeds. Clear the search to view source filters.'
             : activeStatus
@@ -777,6 +803,7 @@ export function OpportunitiesList({
                   onClick={() => {
                     const next = new URLSearchParams(searchParams)
                     next.delete('companyId')
+                    next.delete('cursors')
                     setSearchParams(next)
                   }}
                 >
@@ -786,7 +813,7 @@ export function OpportunitiesList({
               )}
               <button
                 type="button"
-                onClick={() => setSourceFilter('all')}
+                onClick={() => handleSelectSource('all')}
                 className={cn(
                   'shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 border cursor-pointer',
                   sourceFilter === 'all'
@@ -802,7 +829,7 @@ export function OpportunitiesList({
                   <button
                     type="button"
                     key={source}
-                    onClick={() => setSourceFilter(source)}
+                    onClick={() => handleSelectSource(source)}
                     className={cn(
                       'shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 border cursor-pointer',
                       isActive
@@ -840,15 +867,12 @@ export function OpportunitiesList({
           <div className="flex flex-col gap-4" aria-busy={loading}>
             <PaginationBar
               page={page}
-              totalPages={totalPages}
-              total={total}
-              isSearch={isSearch}
-              hasPrev={hasPrev}
+              hasPrev={cursorStack.length > 0}
               hasNext={hasNext}
               loading={loading}
               compact={compact}
-              onPrev={() => void changePage(prevPage)}
-              onNext={() => void changePage(nextPage)}
+              onPrev={goPrevPage}
+              onNext={goNextPage}
             />
 
             {/* Keep the grid mounted across pages so pagination doesn't fade. */}
@@ -881,15 +905,12 @@ export function OpportunitiesList({
 
             <PaginationBar
               page={page}
-              totalPages={totalPages}
-              total={total}
-              isSearch={isSearch}
-              hasPrev={hasPrev}
+              hasPrev={cursorStack.length > 0}
               hasNext={hasNext}
               loading={loading}
               compact={compact}
-              onPrev={() => void changePage(prevPage)}
-              onNext={() => void changePage(nextPage)}
+              onPrev={goPrevPage}
+              onNext={goNextPage}
             />
           </div>
         )}

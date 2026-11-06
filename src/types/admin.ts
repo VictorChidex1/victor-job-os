@@ -129,3 +129,92 @@ export interface AdminOpportunityDetail extends AdminOpportunity {
   analysis: AdminOpportunityAnalysis | null
   company: AdminOpportunityCompany | null
 }
+
+export interface AdminApplication {
+  id: string
+  userId: string
+  jobId: string
+  companyId: string
+  companyName: string
+  jobTitle: string
+  jobSource: string
+  status: string
+  outcome?: string
+  origin: string
+  location?: string
+  remote: boolean
+  nextAction?: string
+  nextActionAt?: Timestamp
+  notes?: string
+  resumeVariantName?: string
+  resumeUrl?: string
+  contactId?: string
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
+}
+
+export interface AdminApplicationEvent {
+  id: string
+  type: string
+  fromStatus?: string
+  toStatus?: string
+  note?: string
+  createdAt?: Timestamp
+}
+
+export interface AdminApplicationDetail extends AdminApplication {
+  applicationUrl: string
+  approvedAt?: Timestamp
+  submittedAt?: Timestamp
+  submittedManually?: boolean
+  closedAt?: Timestamp
+  user: AdminUserSummary | null
+  events: AdminApplicationEvent[]
+}
+
+export interface AdminOutreach {
+  id: string
+  userId: string
+  jobId: string
+  companyId: string
+  companyName?: string
+  jobTitle?: string
+  contactName?: string
+  contactEmail?: string
+  subject: string
+  status: string
+  followUpCount: number
+  sentAt?: Timestamp
+  updatedAt?: Timestamp
+  createdAt?: Timestamp
+}
+
+export interface AdminFollowUp {
+  id: string
+  sequence: number
+  status: string
+  scheduledFor?: Timestamp
+  draftSubject?: string
+  draftBody?: string
+  approvedAt?: Timestamp
+  sentAt?: Timestamp
+  createdAt?: Timestamp
+}
+
+export interface AdminOutreachDetail extends AdminOutreach {
+  body: string
+  draftSubject: string
+  draftBody: string
+  aiProvider?: string
+  model?: string
+  promptVersion?: string
+  approvedAt?: Timestamp
+  scheduledAt?: Timestamp
+  replyAt?: Timestamp
+  closedAt?: Timestamp
+  closedReason?: string
+  sentManually?: boolean
+  lastFollowUpAt?: Timestamp
+  user: AdminUserSummary | null
+  followUps: AdminFollowUp[]
+}

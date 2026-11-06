@@ -60,6 +60,9 @@ export interface Application {
   nextActionAt?: Timestamp
   notes?: string
 
+  /** Bounded tokens for admin keyword search. Never contains freeform notes. */
+  searchTokens?: string[]
+
   approvedAt?: Timestamp
   submittedAt?: Timestamp
   submittedManually?: boolean

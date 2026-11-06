@@ -4,12 +4,13 @@ import {
   loadAdminOpportunitiesPage,
   type AdminOpportunityQuery,
 } from '@/services/adminOpportunities'
+import type { CursorValue } from '@/lib/cursorPagination'
 import type { AdminOpportunity } from '@/types/admin'
 
 export interface UseAdminOpportunitiesPageResult {
   items: AdminOpportunity[]
-  total: number
-  totalPages: number
+  hasNext: boolean
+  nextCursor: CursorValue | null
   loading: boolean
   error: string | null
   refresh: () => Promise<void>
@@ -19,35 +20,36 @@ export function useAdminOpportunitiesPage(
   input: AdminOpportunityQuery,
 ): UseAdminOpportunitiesPageResult {
   const { isAdmin, isAdminLoading } = useAuth()
-  const { search, status, source, userId, page, pageSize } = input
+  const { search, status, source, userId, cursor, pageSize } = input
   const [items, setItems] = useState<AdminOpportunity[]>([])
-  const [total, setTotal] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
+  const [hasNext, setHasNext] = useState(false)
+  const [nextCursor, setNextCursor] = useState<CursorValue | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     if (isAdminLoading || !isAdmin) {
       setItems([])
-      setTotal(0)
-      setTotalPages(1)
+      setHasNext(false)
+      setNextCursor(null)
       setLoading(isAdminLoading)
       if (!isAdminLoading) setError(null)
       return
     }
 
+    setLoading(true)
     try {
       const data = await loadAdminOpportunitiesPage({
         search,
         status,
         source,
         userId,
-        page,
+        cursor,
         pageSize,
       })
       setItems(data.items)
-      setTotal(data.total)
-      setTotalPages(data.totalPages)
+      setHasNext(data.hasMore)
+      setNextCursor(data.nextCursor)
       setError(null)
     } catch {
       setError('Unable to load opportunities. Please try again.')
@@ -61,7 +63,7 @@ export function useAdminOpportunitiesPage(
     status,
     source,
     userId,
-    page,
+    cursor,
     pageSize,
   ])
 
@@ -70,5 +72,5 @@ export function useAdminOpportunitiesPage(
     void refresh()
   }, [refresh])
 
-  return { items, total, totalPages, loading, error, refresh }
+  return { items, hasNext, nextCursor, loading, error, refresh }
 }

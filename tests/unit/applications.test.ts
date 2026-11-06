@@ -150,6 +150,16 @@ describe('application identity and snapshots', () => {
       remote: true,
       status: 'not-started',
       origin: 'opportunity',
+      searchTokens: expect.arrayContaining([
+        'acme',
+        'corp',
+        'senior',
+        'react',
+        'engineer',
+        'remote',
+        'eu',
+        'greenhouse',
+      ]),
     })
   })
 })
