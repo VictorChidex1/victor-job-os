@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Send,
   Settings,
+  ShieldCheck,
   User,
   type LucideIcon,
 } from 'lucide-react'
@@ -61,6 +62,15 @@ export const navGroups: NavGroup[] = [
   },
 ]
 
+export const adminNavGroups: NavGroup[] = [
+  {
+    label: 'Admin',
+    items: [
+      { label: 'Admin overview', to: '/admin', icon: ShieldCheck, end: true },
+    ],
+  },
+]
+
 export const topBarTitles: Record<string, string> = {
   '/app/dashboard': 'Overview',
   '/app/opportunities': 'Opportunities',
@@ -74,4 +84,5 @@ export const topBarTitles: Record<string, string> = {
   '/app/profile': 'Profile',
   '/app/settings': 'Settings',
   '/app/docs': 'Documentation',
+  '/admin': 'Admin',
 }

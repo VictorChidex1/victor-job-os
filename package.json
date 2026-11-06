@@ -13,6 +13,8 @@
     "test:all": "npm run test && npm run test:integration",
     "clean-job-text": "npm --prefix functions run build && node scripts/clean-job-text.mjs",
     "clean-job-text:apply": "npm --prefix functions run build && node scripts/clean-job-text.mjs --apply --confirm",
+    "admin:grant": "node functions/scripts/grant-admin.mjs",
+    "admin:grant:emulator": "node functions/scripts/grant-admin.mjs --emulator",
     "preview": "vite preview",
     "emulators": "npm --prefix functions run build && firebase emulators:start --import=.firebase/emulator-export --export-on-exit=.firebase/emulator-export",
     "emulators:exec": "npm --prefix functions run build && firebase emulators:exec --import=.firebase/emulator-export --export-on-exit=.firebase/emulator-export",

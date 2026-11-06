@@ -27,59 +27,77 @@ service cloud.firestore {
       return signedIn() && data.userId == request.auth.uid;
     }
 
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
     // Owned documents keyed by the authenticated user's UID.
     match /users/{uid} {
-      allow read, write: if isOwnerId(uid);
+      allow read: if isOwnerId(uid) || isAdmin();
+      allow create: if isOwnerId(uid) && request.resource.data.role == 'user';
+      allow update: if isAdmin() || (
+        isOwnerId(uid) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'uid'])
+      );
+      allow delete: if isAdmin();
     }
 
     match /profiles/{uid} {
-      allow read, write: if isOwnerId(uid);
+      allow read: if isOwnerId(uid) || isAdmin();
+      allow write: if isOwnerId(uid);
     }
 
     match /settings/{uid} {
-      allow read, write: if isOwnerId(uid);
+      allow read: if isOwnerId(uid) || isAdmin();
+      allow write: if isOwnerId(uid);
     }
 
     // User-owned collections scoped by a `userId` field.
     match /projects/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /resumeVariants/{documentId} {
-      allow read: if signedIn() && (resource == null || ownsUserField(resource.data));
+      allow read: if isAdmin() || (signedIn() && (resource == null || ownsUserField(resource.data)));
       allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /jobSources/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /jobs/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /companies/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /jobAnalyses/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /outreach/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
@@ -88,7 +106,7 @@ service cloud.firestore {
     // means clients may probe for an existing application before creating it,
     // so reads of a missing document are allowed for signed-in users.
     match /applications/{documentId} {
-      allow read: if signedIn() && (resource == null || ownsUserField(resource.data));
+      allow read: if isAdmin() || (signedIn() && (resource == null || ownsUserField(resource.data)));
       allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
@@ -97,7 +115,8 @@ service cloud.firestore {
     // Application timeline entries are immutable: no edits. Owners may delete
     // them only as part of deleting the parent application.
     match /applicationEvents/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if false;
     }
@@ -106,32 +125,35 @@ service cloud.firestore {
     // pipeline list stays lightweight. A deterministic uid-prefixed id keeps
     // preparation documents isolated even if another user knows an app id.
     match /applicationPreparations/{documentId} {
-      allow read: if signedIn() && (resource == null || ownsUserField(resource.data));
+      allow read: if isAdmin() || (signedIn() && (resource == null || ownsUserField(resource.data)));
       allow delete: if signedIn() && (resource == null || ownsUserField(resource.data));
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /contacts/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /followUps/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /activityLogs/{documentId} {
-      allow read, delete: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
     match /aiRuns/{documentId} {
-      allow read: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
       allow write: if false;
     }
 

@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Navigate } from 'react-router'
+import { AdminGuard } from '@/components/auth/AdminGuard'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { LoadingState } from '@/components/states/LoadingState'
 
@@ -9,6 +10,10 @@ export const AppShell = lazy(() =>
 
 export const DashboardPage = lazy(() =>
   import('@/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })),
+)
+
+export const AdminPage = lazy(() =>
+  import('@/pages/AdminPage').then((module) => ({ default: module.AdminPage })),
 )
 
 export const ProfilePage = lazy(() =>
@@ -101,6 +106,16 @@ export function DashboardRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <DashboardPage />
+    </Suspense>
+  )
+}
+
+export function AdminRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <AdminGuard>
+        <AdminPage />
+      </AdminGuard>
     </Suspense>
   )
 }

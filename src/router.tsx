@@ -1,6 +1,7 @@
-import { createBrowserRouter } from 'react-router'
+import { createBrowserRouter, Navigate } from 'react-router'
 import {
   AppIndexRedirect,
+  AdminRoute,
   ApplicationsRoute,
   ApplicationPreparationRoute,
   ApplicationViewRoute,
@@ -43,11 +44,17 @@ export const router = createBrowserRouter([
     element: <PublicDocsRoute />,
   },
   {
+    path: '/admin',
+    element: <ProtectedApp />,
+    children: [{ index: true, element: <AdminRoute /> }],
+  },
+  {
     path: '/app',
     element: <ProtectedApp />,
     children: [
       { index: true, element: <AppIndexRedirect /> },
       { path: 'dashboard', element: <DashboardRoute /> },
+      { path: 'admin', element: <Navigate to="/admin" replace /> },
       { path: 'opportunities', element: <OpportunitiesRoute /> },
       { path: 'opportunities/:id', element: <OpportunityViewRoute /> },
       { path: 'outreach', element: <OutreachRoute /> },

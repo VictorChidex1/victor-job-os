@@ -184,4 +184,48 @@ describe('Firestore security rules', () => {
     const dbOwner = testEnv.authenticatedContext(owner).firestore()
     await assertFails(setDoc(doc(dbOwner, 'discoveryLocks', owner), { userId: owner }))
   })
+
+  it('allows admins to read cross-user records but not write them', async () => {
+    const dbOwner = testEnv.authenticatedContext(owner).firestore()
+    await assertSucceeds(
+      setDoc(doc(dbOwner, 'jobs', 'job-owner'), {
+        userId: owner,
+        title: 'Owner job',
+      }),
+    )
+
+    const admin = 'user-admin'
+    const dbAdmin = testEnv
+      .authenticatedContext(admin, { admin: true })
+      .firestore()
+    await assertSucceeds(getDoc(doc(dbAdmin, 'jobs', 'job-owner')))
+    await assertFails(
+      updateDoc(doc(dbAdmin, 'jobs', 'job-owner'), { title: 'Admin changed' }),
+    )
+  })
+
+  it('prevents users from promoting themselves or changing their uid', async () => {
+    const dbOwner = testEnv.authenticatedContext(owner).firestore()
+    await assertSucceeds(
+      setDoc(doc(dbOwner, 'users', owner), {
+        uid: owner,
+        email: 'owner@example.com',
+        role: 'user',
+      }),
+    )
+    await assertFails(
+      updateDoc(doc(dbOwner, 'users', owner), { role: 'admin' }),
+    )
+    await assertFails(
+      updateDoc(doc(dbOwner, 'users', owner), { uid: 'someone-else' }),
+    )
+
+    const dbAdmin = testEnv
+      .authenticatedContext('user-admin', { admin: true })
+      .firestore()
+    await assertSucceeds(
+      updateDoc(doc(dbAdmin, 'users', owner), { role: 'admin' }),
+    )
+    await assertSucceeds(getDoc(doc(dbAdmin, 'users', owner)))
+  })
 })

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router'
-import { CircleHelp, LogOut, Settings, User } from 'lucide-react'
+import { CircleHelp, LogOut, Settings, ShieldCheck, User } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -41,7 +41,7 @@ function MenuIcon() {
 
 export function TopBar({ onMenuClick, onToggleSidebar }: TopBarProps) {
   const { pathname } = useLocation()
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const navigate = useNavigate()
 
   const title =
@@ -121,6 +121,12 @@ export function TopBar({ onMenuClick, onToggleSidebar }: TopBarProps) {
             <User />
             Profile
           </DropdownMenuItem>
+          {isAdmin && (
+            <DropdownMenuItem variant="default" onSelect={() => navigate('/admin')}>
+              <ShieldCheck />
+              Admin
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem variant="default" onSelect={() => navigate('/app/settings')}>
             <Settings />
             Settings
