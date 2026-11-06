@@ -73,6 +73,13 @@ export function ApplicationsPage() {
   const summary = useMemo(() => applicationSummary(items), [items])
   const columns = useMemo(() => groupApplications(items), [items])
   const filtered = useMemo(() => filterApplications(items, query), [items, query])
+  const stageFiltered = useMemo(() => {
+    if (!targetStageId) return filtered
+    if (targetStageId === 'closed') {
+      return filtered.filter((a) => ['rejected', 'withdrawn', 'closed'].includes(a.status))
+    }
+    return filtered.filter((a) => a.status === targetStageId)
+  }, [filtered, targetStageId])
   const needsReviewCount = useMemo(
     () => items.filter((a) => a.status === 'needs-review').length,
     [items],
@@ -224,10 +231,11 @@ export function ApplicationsPage() {
               applications={filtered}
               applicationHref={applicationHref}
               targetStageId={targetStageId}
+              onSelectStage={setTargetStageId}
             />
           ) : (
             <ApplicationTable
-              applications={filtered}
+              applications={stageFiltered}
               applicationHref={applicationHref}
             />
           )}

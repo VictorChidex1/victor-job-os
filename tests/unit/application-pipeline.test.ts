@@ -7,6 +7,7 @@ import {
   filterApplications,
   formatApplicationDate,
   groupApplications,
+  groupApplicationsByPhase,
   isApplicationOverdue,
 } from '@/lib/applicationPipeline'
 import type { Application, ApplicationStatus } from '@/types/applications'
@@ -160,5 +161,42 @@ describe('application pipeline helpers', () => {
     expect(isApplicationOverdue(ts('2026-11-04T12:00:00Z'), now)).toBe(true)
     expect(isApplicationOverdue(ts('2026-11-06T12:00:00Z'), now)).toBe(false)
     expect(isApplicationOverdue(undefined, now)).toBe(false)
+  })
+
+  it('groups applications into 4 balanced macro phases with sub-stage counts', () => {
+    const applications = [
+      makeApplication({ id: '1', status: 'not-started' }),
+      makeApplication({ id: '2', status: 'preparing' }),
+      makeApplication({ id: '3', status: 'needs-review' }),
+      makeApplication({ id: '4', status: 'submitted' }),
+      makeApplication({ id: '5', status: 'interview' }),
+      makeApplication({ id: '6', status: 'offer' }),
+      makeApplication({ id: '7', status: 'rejected', outcome: 'rejected' }),
+    ]
+
+    const phases = groupApplicationsByPhase(applications)
+
+    expect(phases.map((p) => p.id)).toEqual(['prep', 'applied', 'interviewing', 'concluded'])
+
+    const prep = phases.find((p) => p.id === 'prep')
+    expect(prep?.count).toBe(3)
+    expect(prep?.subStageCounts['not-started']).toBe(1)
+    expect(prep?.subStageCounts['preparing']).toBe(1)
+    expect(prep?.subStageCounts['needs-review']).toBe(1)
+    expect(prep?.subStageCounts['approved']).toBe(0)
+
+    const applied = phases.find((p) => p.id === 'applied')
+    expect(applied?.count).toBe(1)
+    expect(applied?.subStageCounts['submitted']).toBe(1)
+    expect(applied?.subStageCounts['assessment']).toBe(0)
+
+    const interviewing = phases.find((p) => p.id === 'interviewing')
+    expect(interviewing?.count).toBe(2)
+    expect(interviewing?.subStageCounts['interview']).toBe(1)
+    expect(interviewing?.subStageCounts['offer']).toBe(1)
+
+    const concluded = phases.find((p) => p.id === 'concluded')
+    expect(concluded?.count).toBe(1)
+    expect(concluded?.subStageCounts['rejected']).toBe(1)
   })
 })

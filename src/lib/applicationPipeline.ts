@@ -218,3 +218,84 @@ export function applicationSummary(
     ).length,
   }
 }
+
+export type PhaseId = 'prep' | 'applied' | 'interviewing' | 'concluded'
+
+export interface ApplicationPhaseDefinition {
+  id: PhaseId
+  label: string
+  shortLabel: string
+  description: string
+  statuses: ApplicationStatus[]
+  accentColor: string
+}
+
+export const APPLICATION_PHASES: ApplicationPhaseDefinition[] = [
+  {
+    id: 'prep',
+    label: 'Preparation & Drafting',
+    shortLabel: 'Prep & Draft',
+    description: 'Sourcing, tailoring & AI draft reviews',
+    statuses: ['not-started', 'preparing', 'needs-review', 'approved'],
+    accentColor: 'indigo',
+  },
+  {
+    id: 'applied',
+    label: 'In-Flight / Applied',
+    shortLabel: 'Applied',
+    description: 'Submitted applications & assessments',
+    statuses: ['submitted', 'assessment'],
+    accentColor: 'blue',
+  },
+  {
+    id: 'interviewing',
+    label: 'Interviews & Offers',
+    shortLabel: 'Interviews & Offers',
+    description: 'Conversational rounds & job offers',
+    statuses: ['interview', 'offer'],
+    accentColor: 'purple',
+  },
+  {
+    id: 'concluded',
+    label: 'Concluded',
+    shortLabel: 'Concluded',
+    description: 'Closed, rejected, or withdrawn',
+    statuses: CLOSED_APPLICATION_STAGES,
+    accentColor: 'zinc',
+  },
+]
+
+export interface ApplicationPhaseGroup {
+  id: PhaseId
+  label: string
+  shortLabel: string
+  description: string
+  statuses: ApplicationStatus[]
+  accentColor: string
+  applications: Application[]
+  count: number
+  subStageCounts: Record<ApplicationStatus, number>
+}
+
+export function groupApplicationsByPhase(
+  applications: Application[],
+): ApplicationPhaseGroup[] {
+  return APPLICATION_PHASES.map((phase) => {
+    const phaseApps = applications
+      .filter((app) => phase.statuses.includes(app.status))
+      .sort((a, b) => updatedMillis(b) - updatedMillis(a))
+
+    const subStageCounts = {} as Record<ApplicationStatus, number>
+    for (const status of phase.statuses) {
+      subStageCounts[status] = phaseApps.filter((app) => app.status === status).length
+    }
+
+    return {
+      ...phase,
+      applications: phaseApps,
+      count: phaseApps.length,
+      subStageCounts,
+    }
+  })
+}
+
