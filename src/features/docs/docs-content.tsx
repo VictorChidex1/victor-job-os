@@ -396,9 +396,10 @@ export const DOC_SECTIONS: DocsSection[] = [
         <Callout icon={ShieldCheck} title="Preparation workspace is available now" tone="success">
           Open an application and choose Prepare application. Work through the application
           context, resume, cover letter, and application answers. The resume URL is snapshotted
-          onto the application when attached. The Profile back arrow returns to the application
-          Resume tab, and changing the resume resets the review checkbox. Resume variants and ATS
-          metadata are next.
+          onto the application when attached. Use Save resume &amp; return in Profile to attach it
+          and come back to the application Resume tab; the back arrow also saves unsaved resume
+          changes. Changing the resume resets the review checkbox. Resume variants and ATS metadata
+          are next.
         </Callout>
 
         <Callout icon={Archive} title="Closed means closed" tone="muted">

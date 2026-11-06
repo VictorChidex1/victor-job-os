@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ArrowLeft, Plus, X } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Plus, Save, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +18,7 @@ import { LoadingState } from '@/components/states/LoadingState'
 import { useAuth } from '@/hooks/useAuth'
 import { useProfile } from '@/hooks/useProfile'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import { normalizeResumeUrl } from '@/lib/resume'
 import { attachResumeToApplication } from '@/services/applicationResume'
 import type { VerificationEntry, VerificationStatus } from '@/types/profile'
 
@@ -36,7 +37,14 @@ const profileSchema = z.object({
   preferredLocations: z.array(z.string()),
   remotePreference: z.boolean(),
   experienceLevel: z.string(),
-  resumeUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
+  resumeUrl: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (value) => !value?.trim() || normalizeResumeUrl(value) !== null,
+      'Enter a valid resume URL',
+    ),
   portfolioUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
   email: z.string().email('Enter a valid email'),
 })
@@ -243,8 +251,19 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 export function ProfilePage() {
   const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const linkedApplicationId = searchParams.get('applicationId')?.trim() || undefined
+  const [resumeSaving, setResumeSaving] = useState(false)
+
+  const stateFrom = (location.state as { from?: unknown } | null)?.from
+  const returnTo =
+    typeof stateFrom === 'string'
+      ? stateFrom
+      : linkedApplicationId
+        ? `/app/applications/${encodeURIComponent(linkedApplicationId)}/prepare?tab=resume`
+        : undefined
 
   usePageMeta({
     title: 'Profile — Victor Job OS',
@@ -277,25 +296,134 @@ export function ProfilePage() {
     }
   }, [profile, form])
 
-  async function onSubmit(values: ProfileFormValues) {
+  function onInvalid() {
+    toast('Please fix the highlighted profile fields before saving.')
+  }
+
+  async function attachSavedResume(resumeUrl: string): Promise<boolean> {
+    if (!linkedApplicationId || !user || !resumeUrl) {
+      return false
+    }
     try {
-      await save(values)
-      const resumeUrl = values.resumeUrl?.trim()
-      if (linkedApplicationId && resumeUrl && user) {
-        try {
-          await attachResumeToApplication(user.uid, linkedApplicationId, resumeUrl)
-          toast('Profile saved', {
-            description: 'Your resume was attached to this application.',
-          })
-        } catch {
-          toast('Profile saved', {
-            description:
-              'The profile was saved, but the resume could not be attached to this application.',
-          })
-        }
-        return
+      await attachResumeToApplication(user.uid, linkedApplicationId, resumeUrl)
+      return true
+    } catch (error) {
+      toast('Resume saved to Profile', {
+        description:
+          error instanceof Error
+            ? `It could not be attached to this application: ${error.message}`
+            : 'It could not be attached to this application.',
+      })
+      return false
+    }
+  }
+
+  async function saveResume(returnToApplication: boolean): Promise<boolean> {
+    const normalized = normalizeResumeUrl(form.getValues('resumeUrl'))
+    if (normalized === null) {
+      form.setError('resumeUrl', {
+        type: 'manual',
+        message: 'Enter a valid resume URL',
+      })
+      toast('Invalid resume URL', {
+        description:
+          'Use an http(s) link, or enter a domain such as example.com/resume.pdf.',
+      })
+      return false
+    }
+    if (!normalized) {
+      form.setError('resumeUrl', {
+        type: 'manual',
+        message: 'Enter a resume URL first',
+      })
+      toast('Add a resume URL first')
+      return false
+    }
+
+    setResumeSaving(true)
+    try {
+      await save({ resumeUrl: normalized })
+      form.setValue('resumeUrl', normalized, {
+        shouldDirty: false,
+        shouldValidate: true,
+      })
+      const attached = await attachSavedResume(normalized)
+      if (attached) {
+        toast('Resume saved and attached to this application')
+      } else if (!linkedApplicationId) {
+        toast('Resume saved to Profile')
       }
-      toast('Profile saved', { description: 'Your professional profile was updated.' })
+
+      if (returnToApplication) {
+        if (typeof stateFrom === 'string') {
+          navigate(-1)
+        } else if (linkedApplicationId) {
+          navigate(
+            `/app/applications/${encodeURIComponent(linkedApplicationId)}/prepare?tab=resume`,
+          )
+        }
+      }
+      return true
+    } catch {
+      toast('Unable to save the resume', { description: 'Please try again.' })
+      return false
+    } finally {
+      setResumeSaving(false)
+    }
+  }
+
+  function handleBack() {
+    const currentResume = form.getValues('resumeUrl')?.trim() ?? ''
+    const hasUnsavedResume =
+      Boolean(linkedApplicationId) &&
+      Boolean(currentResume) &&
+      currentResume !== (profile?.resumeUrl ?? '')
+
+    if (hasUnsavedResume) {
+      void saveResume(true)
+      return
+    }
+
+    if (typeof stateFrom === 'string') {
+      navigate(-1)
+    } else if (returnTo) {
+      navigate(returnTo)
+    }
+  }
+
+  async function onSubmit(values: ProfileFormValues) {
+    const normalizedResumeUrl = normalizeResumeUrl(values.resumeUrl)
+    if (normalizedResumeUrl === null) {
+      form.setError('resumeUrl', {
+        type: 'manual',
+        message: 'Enter a valid resume URL',
+      })
+      toast('Invalid resume URL', {
+        description:
+          'Use an http(s) link, or enter a domain such as example.com/resume.pdf.',
+      })
+      return
+    }
+
+    const nextValues = {
+      ...values,
+      resumeUrl: normalizedResumeUrl,
+    }
+
+    try {
+      await save(nextValues)
+      const attached = await attachSavedResume(normalizedResumeUrl)
+      if (attached) {
+        toast('Profile saved', {
+          description: 'Your resume was attached to this application.',
+        })
+      } else {
+        toast('Profile saved', { description: 'Your professional profile was updated.' })
+      }
+      form.setValue('resumeUrl', normalizedResumeUrl, {
+        shouldDirty: false,
+        shouldValidate: true,
+      })
     } catch {
       toast('Unable to save', { description: 'Please try again.' })
     }
@@ -314,23 +442,23 @@ export function ProfilePage() {
       title="Profile"
       description="This information is used to qualify opportunities and generate applications."
       actions={
-        linkedApplicationId ? (
+        returnTo ? (
           <Button
             variant="ghost"
             size="sm"
-            render={
-              <Link
-                to={`/app/applications/${encodeURIComponent(linkedApplicationId)}/prepare?tab=resume`}
-              />
-            }
+            onClick={handleBack}
+            disabled={resumeSaving}
           >
             <ArrowLeft />
-            Back to resume preparation
+            {resumeSaving ? 'Saving resume…' : 'Back to resume preparation'}
           </Button>
         ) : undefined
       }
     >
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <form
+        onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+        className="flex flex-col gap-4"
+      >
         <Section title="Identity">
           <div className="grid gap-4 sm:grid-cols-2">
             <Controller
@@ -392,33 +520,75 @@ export function ProfilePage() {
           <Controller
             name="resumeUrl"
             control={form.control}
-            render={({ field }) => (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="resumeUrl">Resume URL</Label>
-                <Input
-                  id="resumeUrl"
-                  type="url"
-                  placeholder="https://example.com/resume.pdf"
-                  {...field}
-                  aria-invalid={!!form.formState.errors.resumeUrl}
-                />
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  This is the resume attached to applications you prepare. Keeping it current
-                  makes the application resume step faster.
-                </p>
-                {linkedApplicationId && (
+            render={({ field }) => {
+              const savedResumeUrl = profile?.resumeUrl ?? ''
+              const hasUnsavedResume =
+                Boolean(field.value?.trim()) &&
+                field.value?.trim() !== savedResumeUrl.trim()
+
+              return (
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="resumeUrl">Resume URL</Label>
+                    <Input
+                      id="resumeUrl"
+                      type="text"
+                      inputMode="url"
+                      placeholder="https://example.com/resume.pdf"
+                      {...field}
+                      aria-invalid={!!form.formState.errors.resumeUrl}
+                    />
+                  </div>
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    Saving this profile will attach the resume URL to the application you opened
-                    from preparation.
+                    This is the resume attached to applications you prepare. Keeping it current
+                    makes the application resume step faster.
                   </p>
-                )}
-                {form.formState.errors.resumeUrl && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.resumeUrl.message}
-                  </p>
-                )}
-              </div>
-            )}
+                  {linkedApplicationId && (
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Saving this profile will attach the resume URL to the application you opened
+                      from preparation. Use the save button below to attach it and return.
+                    </p>
+                  )}
+                  {savedResumeUrl && (
+                    <a
+                      href={savedResumeUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex w-fit items-center gap-1 text-xs text-primary underline underline-offset-4"
+                    >
+                      Open current resume
+                      <ExternalLink className="size-3" />
+                    </a>
+                  )}
+                  {hasUnsavedResume && (
+                    <p className="text-xs font-medium text-amber-600 dark:text-amber-300">
+                      Unsaved resume changes
+                    </p>
+                  )}
+                  {form.formState.errors.resumeUrl && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.resumeUrl.message}
+                    </p>
+                  )}
+                  {linkedApplicationId && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => void saveResume(true)}
+                        disabled={resumeSaving || saving}
+                      >
+                        <Save />
+                        {resumeSaving ? 'Saving resume…' : 'Save resume & return'}
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        Saves the resume without changing your other profile fields.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )
+            }}
           />
         </Section>
 

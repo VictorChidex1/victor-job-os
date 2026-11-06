@@ -51,6 +51,9 @@ export function ResumePreparation({
   const displayResumeUrl = attachedResumeUrl || profileResumeUrl || ''
   const usingProfileFallback = !attachedResumeUrl && Boolean(profileResumeUrl)
   const profileHref = `/app/profile?applicationId=${encodeURIComponent(applicationId)}`
+  const profileState = {
+    from: `/app/applications/${encodeURIComponent(applicationId)}/prepare?tab=resume`,
+  }
 
   async function save() {
     setSaving(true)
@@ -137,7 +140,7 @@ export function ResumePreparation({
                   variant="outline"
                   size="sm"
                   className="mt-3"
-                  render={<Link to={profileHref} />}
+                  render={<Link to={profileHref} state={profileState} />}
                 >
                   <Plus />
                   Add a resume in Profile
@@ -151,7 +154,7 @@ export function ResumePreparation({
               variant="ghost"
               size="sm"
               className="w-fit"
-              render={<Link to={profileHref} />}
+              render={<Link to={profileHref} state={profileState} />}
             >
               <ExternalLink />
               {displayResumeUrl ? 'Edit resume in Profile' : 'Open Profile'}
@@ -199,12 +202,6 @@ export function ResumePreparation({
           </div>
         </CardContent>
       </Card>
-
-      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">Resume variants are next.</span>{' '}
-        Item 58 keeps the resume step honest: link the current resume, record tailoring notes,
-        and mark it reviewed. The variant system will build on this step.
-      </div>
     </div>
   )
 }
