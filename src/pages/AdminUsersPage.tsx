@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Search, X } from 'lucide-react'
+import { ChevronRight, Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -130,12 +130,27 @@ export function AdminUsersPage() {
                   <TableHead>Role</TableHead>
                   <TableHead className="hidden md:table-cell">UID</TableHead>
                   <TableHead className="hidden sm:table-cell">Joined</TableHead>
-                  <TableHead className="text-right">Details</TableHead>
+                  <TableHead className="w-10">
+                    <span className="sr-only">Open user</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow
+                    key={user.id}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Open ${user.displayName || user.email || 'user'} details`}
+                    className="cursor-pointer transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
+                    onClick={() => navigate(`/admin/users/${user.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        navigate(`/admin/users/${user.id}`)
+                      }
+                    }}
+                  >
                     <TableCell className="whitespace-normal py-3">
                       <div className="font-medium text-slate-950">
                         {user.displayName || 'Unnamed user'}
@@ -152,13 +167,7 @@ export function AdminUsersPage() {
                       {formatDate(user.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/admin/users/${user.id}`)}
-                      >
-                        View
-                      </Button>
+                      <ChevronRight className="ml-auto size-4 text-slate-400" />
                     </TableCell>
                   </TableRow>
                 ))}
