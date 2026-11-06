@@ -92,3 +92,40 @@ export interface AdminUserDetail {
   companies: AdminUserCompany[]
   resumes: AdminUserResume[]
 }
+
+export interface AdminOpportunity {
+  id: string
+  userId: string
+  title: string
+  companyName: string
+  source: string
+  status: string
+  location?: string
+  remote: boolean
+  discoveredAt?: Timestamp
+  skills: string[]
+  applicationUrl: string
+}
+
+export interface AdminOpportunityAnalysis {
+  fitScore?: number
+  summary: string
+  matchedSkills: string[]
+  missingSkills: string[]
+  concerns: string[]
+}
+
+export interface AdminOpportunityCompany {
+  name: string
+  industry?: string
+  description?: string
+  researchSummary?: string
+  website?: string
+}
+
+export interface AdminOpportunityDetail extends AdminOpportunity {
+  description: string
+  user: AdminUserSummary | null
+  analysis: AdminOpportunityAnalysis | null
+  company: AdminOpportunityCompany | null
+}

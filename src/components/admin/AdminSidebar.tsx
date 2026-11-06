@@ -54,7 +54,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
         <div className="px-3 pb-1 pt-6 text-[0.65rem] font-bold uppercase tracking-widest text-slate-400">
           Coming next
         </div>
-        {['Opportunities', 'Applications', 'Outreach', 'System health', 'Audit log'].map(
+        {['Applications', 'Outreach', 'System health', 'Audit log'].map(
           (label) => (
             <div
               key={label}

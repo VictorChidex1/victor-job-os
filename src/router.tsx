@@ -4,6 +4,8 @@ import {
   AdminRoute,
   AdminUsersRoute,
   AdminUserDetailRoute,
+  AdminOpportunitiesRoute,
+  AdminOpportunityDetailRoute,
   ApplicationsRoute,
   ApplicationPreparationRoute,
   ApplicationViewRoute,
@@ -53,6 +55,8 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminRoute /> },
       { path: 'users', element: <AdminUsersRoute /> },
       { path: 'users/:uid', element: <AdminUserDetailRoute /> },
+      { path: 'opportunities', element: <AdminOpportunitiesRoute /> },
+      { path: 'opportunities/:id', element: <AdminOpportunityDetailRoute /> },
     ],
   },
   {

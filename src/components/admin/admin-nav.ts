@@ -1,4 +1,9 @@
-import { LayoutDashboard, Users, type LucideIcon } from 'lucide-react'
+import {
+  Briefcase,
+  LayoutDashboard,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 
 export interface AdminNavItem {
   label: string
@@ -10,9 +15,11 @@ export interface AdminNavItem {
 export const adminNavItems: AdminNavItem[] = [
   { label: 'Overview', to: '/admin', icon: LayoutDashboard, end: true },
   { label: 'Users', to: '/admin/users', icon: Users },
+  { label: 'Opportunities', to: '/admin/opportunities', icon: Briefcase },
 ]
 
 export const adminTopBarTitles: Record<string, string> = {
   '/admin': 'Overview',
   '/admin/users': 'Users',
+  '/admin/opportunities': 'Opportunities',
 }

@@ -10,7 +10,9 @@ export function AdminTopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth()
   const title = pathname.startsWith('/admin/users/')
     ? 'User detail'
-    : (adminTopBarTitles[pathname] ?? 'Admin')
+    : pathname.startsWith('/admin/opportunities/')
+      ? 'Opportunity detail'
+      : (adminTopBarTitles[pathname] ?? 'Admin')
   const environment =
     import.meta.env.VITE_FIREBASE_EMULATOR === 'true' ? 'Emulator' : 'Production'
 

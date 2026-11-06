@@ -296,7 +296,7 @@ function verifiedValues(value: unknown): string[] {
   })
 }
 
-function toAdminUser(id: string, data: DocumentData): AdminUserSummary {
+export function toAdminUser(id: string, data: DocumentData): AdminUserSummary {
   return {
     id,
     email: typeof data.email === 'string' ? data.email : null,

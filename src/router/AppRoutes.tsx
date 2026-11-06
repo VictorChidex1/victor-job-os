@@ -34,6 +34,18 @@ export const AdminUserDetailPage = lazy(() =>
   })),
 )
 
+export const AdminOpportunitiesPage = lazy(() =>
+  import('@/pages/AdminOpportunitiesPage').then((module) => ({
+    default: module.AdminOpportunitiesPage,
+  })),
+)
+
+export const AdminOpportunityDetailPage = lazy(() =>
+  import('@/pages/AdminOpportunityDetailPage').then((module) => ({
+    default: module.AdminOpportunityDetailPage,
+  })),
+)
+
 export const ProfilePage = lazy(() =>
   import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })),
 )
@@ -170,6 +182,22 @@ export function AdminUserDetailRoute() {
   return (
     <Suspense fallback={<LoadingState rows={5} />}>
       <AdminUserDetailPage />
+    </Suspense>
+  )
+}
+
+export function AdminOpportunitiesRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminOpportunitiesPage />
+    </Suspense>
+  )
+}
+
+export function AdminOpportunityDetailRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminOpportunityDetailPage />
     </Suspense>
   )
 }
