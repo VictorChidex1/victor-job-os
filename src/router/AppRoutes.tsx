@@ -8,12 +8,24 @@ export const AppShell = lazy(() =>
   import('@/components/layout/AppShell').then((module) => ({ default: module.AppShell })),
 )
 
+export const AdminShell = lazy(() =>
+  import('@/components/admin/AdminShell').then((module) => ({
+    default: module.AdminShell,
+  })),
+)
+
 export const DashboardPage = lazy(() =>
   import('@/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })),
 )
 
 export const AdminPage = lazy(() =>
   import('@/pages/AdminPage').then((module) => ({ default: module.AdminPage })),
+)
+
+export const AdminUsersPage = lazy(() =>
+  import('@/pages/AdminUsersPage').then((module) => ({
+    default: module.AdminUsersPage,
+  })),
 )
 
 export const ProfilePage = lazy(() =>
@@ -102,6 +114,28 @@ export function ProtectedApp() {
   )
 }
 
+export function AdminShellLoader() {
+  return (
+    <main className="flex min-h-svh items-center justify-center bg-slate-50 p-6">
+      <div className="w-full max-w-md">
+        <LoadingState label="Loading admin console…" rows={3} />
+      </div>
+    </main>
+  )
+}
+
+export function ProtectedAdminApp() {
+  return (
+    <ProtectedRoute>
+      <AdminGuard>
+        <Suspense fallback={<AdminShellLoader />}>
+          <AdminShell />
+        </Suspense>
+      </AdminGuard>
+    </ProtectedRoute>
+  )
+}
+
 export function DashboardRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
@@ -113,9 +147,15 @@ export function DashboardRoute() {
 export function AdminRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
-      <AdminGuard>
-        <AdminPage />
-      </AdminGuard>
+      <AdminPage />
+    </Suspense>
+  )
+}
+
+export function AdminUsersRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <AdminUsersPage />
     </Suspense>
   )
 }

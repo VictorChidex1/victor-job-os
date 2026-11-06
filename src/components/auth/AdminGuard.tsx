@@ -1,8 +1,14 @@
 import type { ReactNode } from 'react'
 import { Link, Navigate, useLocation } from 'react-router'
-import { PageContainer } from '@/components/layout/PageContainer'
+import { ShieldX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/states/EmptyState'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { LoadingState } from '@/components/states/LoadingState'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -12,9 +18,11 @@ export function AdminGuard({ children }: { children: ReactNode }) {
 
   if (status === 'loading' || isAdminLoading) {
     return (
-      <PageContainer title="Admin">
-        <LoadingState label="Checking admin access…" rows={3} />
-      </PageContainer>
+      <main className="flex min-h-svh items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-md">
+          <LoadingState label="Checking admin access…" rows={3} />
+        </div>
+      </main>
     )
   }
 
@@ -24,17 +32,24 @@ export function AdminGuard({ children }: { children: ReactNode }) {
 
   if (!isAdmin) {
     return (
-      <PageContainer title="Admin access required">
-        <EmptyState
-          title="You do not have admin access"
-          description="This area is limited to system administrators."
-          action={
+      <main className="flex min-h-svh items-center justify-center bg-slate-50 p-6">
+        <Card className="w-full max-w-md border-slate-200 shadow-sm">
+          <CardHeader className="items-center text-center">
+            <div className="mb-2 flex size-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <ShieldX className="size-5" />
+            </div>
+            <CardTitle>Admin access required</CardTitle>
+            <CardDescription>
+              This area is limited to system administrators.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
             <Button size="sm" render={<Link to="/app/dashboard" />}>
-              Back to dashboard
+              Back to Job OS
             </Button>
-          }
-        />
-      </PageContainer>
+          </CardContent>
+        </Card>
+      </main>
     )
   }
 

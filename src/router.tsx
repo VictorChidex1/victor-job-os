@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import {
   AppIndexRedirect,
   AdminRoute,
+  AdminUsersRoute,
   ApplicationsRoute,
   ApplicationPreparationRoute,
   ApplicationViewRoute,
@@ -17,6 +18,7 @@ import {
   ProjectsRoute,
   ResumeVariantsRoute,
   ProtectedApp,
+  ProtectedAdminApp,
   PublicDocsRoute,
   SettingsRoute,
 } from '@/router/AppRoutes'
@@ -45,8 +47,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/admin',
-    element: <ProtectedApp />,
-    children: [{ index: true, element: <AdminRoute /> }],
+    element: <ProtectedAdminApp />,
+    children: [
+      { index: true, element: <AdminRoute /> },
+      { path: 'users', element: <AdminUsersRoute /> },
+    ],
   },
   {
     path: '/app',

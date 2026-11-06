@@ -5,17 +5,24 @@ import {
   limit,
   orderBy,
   query,
+  Timestamp,
+  where,
   type DocumentData,
-  type Timestamp,
+  type Timestamp as FirestoreTimestamp,
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
 import type { AdminOverview, AdminUserSummary } from '@/types/admin'
 import type { UserRole } from '@/types/users'
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+
 export async function loadAdminOverview(): Promise<AdminOverview> {
+  const weekAgo = Timestamp.fromDate(new Date(Date.now() - WEEK_MS))
+
   const [
     userCount,
+    newUsersThisWeek,
     jobCount,
     applicationCount,
     outreachCount,
@@ -23,6 +30,12 @@ export async function loadAdminOverview(): Promise<AdminOverview> {
     recentUsers,
   ] = await Promise.all([
     getCountFromServer(collection(db, collections.users)),
+    getCountFromServer(
+      query(
+        collection(db, collections.users),
+        where('createdAt', '>=', weekAgo),
+      ),
+    ),
     getCountFromServer(collection(db, collections.jobs)),
     getCountFromServer(collection(db, collections.applications)),
     getCountFromServer(collection(db, collections.outreach)),
@@ -38,6 +51,7 @@ export async function loadAdminOverview(): Promise<AdminOverview> {
 
   return {
     userCount: userCount.data().count,
+    newUsersThisWeek: newUsersThisWeek.data().count,
     jobCount: jobCount.data().count,
     applicationCount: applicationCount.data().count,
     outreachCount: outreachCount.data().count,
@@ -48,6 +62,19 @@ export async function loadAdminOverview(): Promise<AdminOverview> {
   }
 }
 
+export async function loadAdminUsers(): Promise<AdminUserSummary[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db, collections.users),
+      orderBy('createdAt', 'desc'),
+      limit(200),
+    ),
+  )
+  return snapshot.docs.map((document) =>
+    toAdminUser(document.id, document.data()),
+  )
+}
+
 function toAdminUser(id: string, data: DocumentData): AdminUserSummary {
   return {
     id,
@@ -55,7 +82,7 @@ function toAdminUser(id: string, data: DocumentData): AdminUserSummary {
     displayName:
       typeof data.displayName === 'string' ? data.displayName : null,
     role: isUserRole(data.role) ? data.role : 'user',
-    createdAt: data.createdAt as Timestamp | undefined,
+    createdAt: data.createdAt as FirestoreTimestamp | undefined,
   }
 }
 

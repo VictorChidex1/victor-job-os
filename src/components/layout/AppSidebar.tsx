@@ -3,8 +3,7 @@ import { Home, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { adminNavGroups, navGroups } from '@/components/layout/nav-config'
-import { useAuth } from '@/hooks/useAuth'
+import { navGroups } from '@/components/layout/nav-config'
 import { signOutUser } from '@/services/auth'
 
 interface AppSidebarProps {
@@ -14,8 +13,6 @@ interface AppSidebarProps {
 
 export function AppSidebar({ collapsed = false, onToggle }: AppSidebarProps) {
   const { pathname } = useLocation()
-  const { isAdmin } = useAuth()
-  const groups = isAdmin ? [...navGroups, ...adminNavGroups] : navGroups
 
   return (
     <aside
@@ -44,7 +41,7 @@ export function AppSidebar({ collapsed = false, onToggle }: AppSidebarProps) {
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto p-3" aria-label="Primary navigation">
-        {groups.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
               <div className="px-2 pb-1.5 text-[0.68rem] font-medium tracking-wide text-muted-foreground uppercase">

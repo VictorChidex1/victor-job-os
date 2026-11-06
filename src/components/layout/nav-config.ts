@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Send,
   Settings,
-  ShieldCheck,
   User,
   type LucideIcon,
 } from 'lucide-react'
@@ -58,15 +57,6 @@ export const navGroups: NavGroup[] = [
       { label: 'Documentation', to: '/app/docs', icon: BookOpen },
       { label: 'Profile', to: '/app/profile', icon: User },
       { label: 'Settings', to: '/app/settings', icon: Settings },
-    ],
-  },
-]
-
-export const adminNavGroups: NavGroup[] = [
-  {
-    label: 'Admin',
-    items: [
-      { label: 'Admin overview', to: '/admin', icon: ShieldCheck, end: true },
     ],
   },
 ]

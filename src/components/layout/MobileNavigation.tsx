@@ -3,8 +3,7 @@ import { Home, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { adminNavGroups, navGroups } from '@/components/layout/nav-config'
-import { useAuth } from '@/hooks/useAuth'
+import { navGroups } from '@/components/layout/nav-config'
 import { signOutUser } from '@/services/auth'
 
 interface MobileNavigationProps {
@@ -13,9 +12,6 @@ interface MobileNavigationProps {
 }
 
 export function MobileNavigation({ open, onOpenChange }: MobileNavigationProps) {
-  const { isAdmin } = useAuth()
-  const groups = isAdmin ? [...navGroups, ...adminNavGroups] : navGroups
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-72 gap-0 p-0">
@@ -23,7 +19,7 @@ export function MobileNavigation({ open, onOpenChange }: MobileNavigationProps) 
           <SheetTitle>Victor&apos;s Job OS</SheetTitle>
         </SheetHeader>
         <nav className="flex-1 space-y-4 overflow-y-auto p-3" aria-label="Mobile navigation">
-          {groups.map((group) => (
+          {navGroups.map((group) => (
             <div key={group.label}>
               <div className="px-2 pb-1.5 text-[0.68rem] font-medium tracking-wide text-muted-foreground uppercase">
                 {group.label}

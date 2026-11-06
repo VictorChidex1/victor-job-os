@@ -11,6 +11,7 @@ export interface AdminUserSummary {
 
 export interface AdminOverview {
   userCount: number
+  newUsersThisWeek: number
   jobCount: number
   applicationCount: number
   outreachCount: number
