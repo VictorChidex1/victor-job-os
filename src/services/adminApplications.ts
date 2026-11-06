@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   documentId,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -38,6 +39,76 @@ export interface AdminApplicationPage {
   items: AdminApplication[]
   nextCursor: CursorValue | null
   hasMore: boolean
+}
+
+export interface AdminApplicationMetrics {
+  total: number
+  needsReview: number
+  preparing: number
+  submitted: number
+  interviewing: number
+  offers: number
+  closed: number
+}
+
+export async function loadAdminApplicationMetrics(): Promise<AdminApplicationMetrics> {
+  const appsCol = collection(db, collections.applications)
+  try {
+    const [
+      totalSnap,
+      needsReviewSnap,
+      preparingSnap,
+      notStartedSnap,
+      approvedSnap,
+      submittedSnap,
+      assessmentSnap,
+      interviewSnap,
+      offerSnap,
+      closedSnap,
+      rejectedSnap,
+      withdrawnSnap,
+    ] = await Promise.all([
+      getCountFromServer(appsCol),
+      getCountFromServer(query(appsCol, where('status', '==', 'needs-review'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'preparing'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'not-started'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'approved'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'submitted'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'assessment'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'interview'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'offer'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'closed'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'rejected'))),
+      getCountFromServer(query(appsCol, where('status', '==', 'withdrawn'))),
+    ])
+
+    return {
+      total: totalSnap.data().count,
+      needsReview: needsReviewSnap.data().count,
+      preparing:
+        preparingSnap.data().count +
+        notStartedSnap.data().count +
+        approvedSnap.data().count,
+      submitted: submittedSnap.data().count + assessmentSnap.data().count,
+      interviewing: interviewSnap.data().count,
+      offers: offerSnap.data().count,
+      closed:
+        closedSnap.data().count +
+        rejectedSnap.data().count +
+        withdrawnSnap.data().count,
+    }
+  } catch (error) {
+    console.error('Failed to load application metrics', error)
+    return {
+      total: 0,
+      needsReview: 0,
+      preparing: 0,
+      submitted: 0,
+      interviewing: 0,
+      offers: 0,
+      closed: 0,
+    }
+  }
 }
 
 const applications = collection(db, collections.applications)

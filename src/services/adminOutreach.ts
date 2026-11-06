@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   documentId,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -34,6 +35,57 @@ export interface AdminOutreachPage {
   items: AdminOutreach[]
   nextCursor: CursorValue | null
   hasMore: boolean
+}
+
+export interface AdminOutreachMetrics {
+  total: number
+  sent: number
+  needsReview: number
+  replied: number
+  followUpDue: number
+  draft: number
+}
+
+export async function loadAdminOutreachMetrics(): Promise<AdminOutreachMetrics> {
+  const outreachCol = collection(db, collections.outreach)
+  try {
+    const [
+      totalSnap,
+      sentSnap,
+      needsReviewSnap,
+      repliedSnap,
+      followUpDueSnap,
+      draftSnap,
+      scheduledSnap,
+    ] = await Promise.all([
+      getCountFromServer(outreachCol),
+      getCountFromServer(query(outreachCol, where('status', '==', 'sent'))),
+      getCountFromServer(query(outreachCol, where('status', '==', 'needs-review'))),
+      getCountFromServer(query(outreachCol, where('status', '==', 'replied'))),
+      getCountFromServer(query(outreachCol, where('status', '==', 'follow-up-due'))),
+      getCountFromServer(query(outreachCol, where('status', '==', 'draft'))),
+      getCountFromServer(query(outreachCol, where('status', '==', 'scheduled'))),
+    ])
+
+    return {
+      total: totalSnap.data().count,
+      sent: sentSnap.data().count + scheduledSnap.data().count,
+      needsReview: needsReviewSnap.data().count,
+      replied: repliedSnap.data().count,
+      followUpDue: followUpDueSnap.data().count,
+      draft: draftSnap.data().count,
+    }
+  } catch (error) {
+    console.error('Failed to load outreach metrics', error)
+    return {
+      total: 0,
+      sent: 0,
+      needsReview: 0,
+      replied: 0,
+      followUpDue: 0,
+      draft: 0,
+    }
+  }
 }
 
 const outreach = collection(db, collections.outreach)
@@ -169,8 +221,12 @@ function toAdminFollowUp(id: string, data: DocumentData): AdminFollowUp {
     sequence: typeof data.sequence === 'number' ? data.sequence : 0,
     status: text(data.status) || 'pending',
     scheduledFor: optionalTimestamp(data.scheduledFor),
+    scheduledAt:
+      optionalTimestamp(data.scheduledAt) ?? optionalTimestamp(data.scheduledFor),
     draftSubject: text(data.draftSubject) || undefined,
     draftBody: text(data.draftBody) || undefined,
+    notes: text(data.notes) || undefined,
+    body: text(data.body) || text(data.draftBody) || undefined,
     approvedAt: optionalTimestamp(data.approvedAt),
     sentAt: optionalTimestamp(data.sentAt),
     createdAt: optionalTimestamp(data.createdAt),

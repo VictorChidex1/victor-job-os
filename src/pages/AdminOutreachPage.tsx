@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router'
-import { ChevronRight, Search, X } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { useSearchParams } from 'react-router'
+import {
+  Building2,
+  CalendarClock,
+  ChevronRight,
+  Filter,
+  Mail,
+  RefreshCw,
+  Search,
+  User,
+  X,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -29,7 +38,11 @@ import {
 import { CursorPaginationBar } from '@/components/CursorPaginationBar'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
+import { AdminOutreachDrawer } from '@/components/admin/AdminOutreachDrawer'
+import { AdminOutreachFlowBar } from '@/components/admin/AdminOutreachFlowBar'
+import { AdminOutreachMetricsStrip } from '@/components/admin/AdminOutreachMetricsStrip'
 import { useAdminOutreachPage } from '@/hooks/useAdminOutreachPage'
+import { useAdminOutreachMetrics } from '@/hooks/useAdminOutreachMetrics'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import {
@@ -63,6 +76,14 @@ function formatDate(value?: { toDate?: () => Date }): string {
     : '—'
 }
 
+function getMonogram(name?: string): string {
+  return (name || 'JB')
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase())
+    .join('')
+}
+
 export function AdminOutreachPage() {
   usePageMeta({
     title: 'Outreach — Admin — Victor Job OS',
@@ -71,8 +92,6 @@ export function AdminOutreachPage() {
     path: '/admin/outreach',
   })
 
-  const navigate = useNavigate()
-  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
   const status = searchParams.get('status') ?? ''
@@ -85,6 +104,7 @@ export function AdminOutreachPage() {
   const page = currentPage(cursorStack)
   const activeCursor = cursorStack[cursorStack.length - 1] ?? null
   const [searchInput, setSearchInput] = useState(query)
+  const [inspectOutreachId, setInspectOutreachId] = useState<string | null>(null)
 
   const { users } = useAdminUsers()
   const userMap = useMemo(
@@ -92,7 +112,10 @@ export function AdminOutreachPage() {
     [users],
   )
 
-  const { items, hasNext, nextCursor, loading, error, refresh } =
+  const { metrics, loading: metricsLoading, refresh: refreshMetrics } =
+    useAdminOutreachMetrics()
+
+  const { items, hasNext, nextCursor, loading, error, refresh: refreshPage } =
     useAdminOutreachPage({
       search: query,
       status,
@@ -100,6 +123,10 @@ export function AdminOutreachPage() {
       cursor: activeCursor,
       pageSize: PAGE_SIZE,
     })
+
+  const handleRefreshAll = () => {
+    void Promise.all([refreshMetrics(), refreshPage()])
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -144,12 +171,6 @@ export function AdminOutreachPage() {
     setSearchParams(new URLSearchParams(), { replace: true })
   }
 
-  function openOutreach(id: string) {
-    navigate(`/admin/outreach/${id}`, {
-      state: { from: `${location.pathname}${location.search}` },
-    })
-  }
-
   const hasFilters = Boolean(query || status || userId)
   const userLabel = (id: string) => {
     const user = userMap.get(id)
@@ -157,38 +178,70 @@ export function AdminOutreachPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 sm:p-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 sm:p-6">
+      {/* Header Banner */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-            Outreach
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-500">
-            Read-only cross-user outreach browser. Open a row to inspect the message,
-            original draft, status, and follow-ups.
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+              Outreach Command Center
+            </h1>
+            <span className="rounded-full border border-indigo-500/25 bg-indigo-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+              Cross-User Pitches
+            </span>
+          </div>
+          <p className="mt-1 max-w-2xl text-xs sm:text-sm text-slate-500">
+            Read-only cross-user outreach browser. Inspect recruiter messaging, email pitches,
+            and scheduled touchpoint cadences.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => void refresh()}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefreshAll}
+          className="gap-1.5"
+        >
+          <RefreshCw className="size-3.5" />
           Refresh
         </Button>
       </div>
 
+      {/* Top 4-KPI Telemetry Strip */}
+      <AdminOutreachMetricsStrip
+        metrics={metrics}
+        loading={metricsLoading}
+        selectedStatus={status}
+        onSelectStatus={(nextStatus) => updateFilter('status', nextStatus)}
+      />
+
+      {/* Quick Status Flow Bar */}
+      <AdminOutreachFlowBar
+        activeStatus={status}
+        onSelectStatus={(nextStatus) => updateFilter('status', nextStatus)}
+      />
+
+      {/* Filter & Search Card */}
       <Card className="border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-sm text-slate-950">Filters</CardTitle>
-          <CardDescription>
-            Page {page} · {hasNext ? 'More available' : 'End of results'}
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-bold text-slate-950">
+              Filter Communications
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Page {page} · {hasNext ? 'More available' : 'End of results'}
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_12rem_13rem]">
+          <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_13rem_14rem]">
+            {/* Search Input */}
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <Input
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder="Search company, role, contact, or subject…"
-                className="h-9 bg-white pl-9 pr-8"
+                className="h-9 bg-white pl-9 pr-8 text-xs"
               />
               {searchInput && (
                 <button
@@ -202,32 +255,36 @@ export function AdminOutreachPage() {
               )}
             </div>
 
+            {/* Status Select */}
             <Select
               value={status || 'all'}
               onValueChange={(value) =>
                 updateFilter('status', value === 'all' ? '' : (value ?? ''))
               }
             >
-              <SelectTrigger className="h-9 bg-white">
+              <SelectTrigger className="h-9 bg-white text-xs gap-1.5">
+                <Filter className="size-3 text-slate-400 shrink-0" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
                 {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
+                  <SelectItem key={option} value={option} className="capitalize">
                     {option}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
+            {/* User Select */}
             <Select
               value={userId || 'all'}
               onValueChange={(value) =>
                 updateFilter('user', value === 'all' ? '' : (value ?? ''))
               }
             >
-              <SelectTrigger className="h-9 bg-white">
+              <SelectTrigger className="h-9 bg-white text-xs gap-1.5">
+                <User className="size-3 text-slate-400 shrink-0" />
                 <SelectValue placeholder="User" />
               </SelectTrigger>
               <SelectContent>
@@ -241,25 +298,73 @@ export function AdminOutreachPage() {
             </Select>
           </div>
 
+          {/* Active Filter Indicators */}
           {hasFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-fit text-slate-500"
-              onClick={clearFilters}
-            >
-              Clear filters
-            </Button>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-slate-400 text-[11px]">Active filters:</span>
+                {status && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                    Status: <b className="capitalize">{status}</b>
+                    <button
+                      type="button"
+                      onClick={() => updateFilter('status', '')}
+                      className="text-slate-400 hover:text-slate-700"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {userId && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                    User: <b>{userLabel(userId)}</b>
+                    <button
+                      type="button"
+                      onClick={() => updateFilter('user', '')}
+                      className="text-slate-400 hover:text-slate-700"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {query && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                    Query: "{query}"
+                    <button
+                      type="button"
+                      onClick={() => setSearchInput('')}
+                      className="text-slate-400 hover:text-slate-700"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-slate-500 hover:text-slate-900"
+                onClick={clearFilters}
+              >
+                Clear all filters
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
 
+      {/* Outreach Data Grid */}
       <Card className="border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-sm text-slate-950">All outreach</CardTitle>
-          <CardDescription>
-            Page {page} · {hasNext ? 'More available' : 'End of results'}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-sm font-bold text-slate-950">
+              Outreach Communications Stream
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Click any outreach row to inspect the full pitch message, recipient contact, and follow-up history.
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -269,7 +374,7 @@ export function AdminOutreachPage() {
               title="Unable to load outreach"
               description={error}
               action={
-                <Button size="sm" onClick={() => void refresh()}>
+                <Button size="sm" onClick={() => void refreshPage()}>
                   Try again
                 </Button>
               }
@@ -279,23 +384,30 @@ export function AdminOutreachPage() {
               title="No outreach found"
               description={
                 hasFilters
-                  ? 'Try clearing or changing the filters.'
-                  : 'Outreach from all users will appear here.'
+                  ? 'Try clearing or changing the active filters.'
+                  : 'Outreach communications from all workspace users will appear here.'
+              }
+              action={
+                hasFilters ? (
+                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                ) : undefined
               }
             />
           ) : (
             <div className="flex flex-col gap-4">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-slate-50/80">
                     <TableRow>
-                      <TableHead>Role / company</TableHead>
+                      <TableHead className="w-[38%]">Role & Company</TableHead>
                       <TableHead>User</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="hidden lg:table-cell">Contact</TableHead>
+                      <TableHead className="hidden lg:table-cell">Contact Recipient</TableHead>
                       <TableHead className="hidden sm:table-cell">Updated</TableHead>
-                      <TableHead className="w-10">
-                        <span className="sr-only">Open</span>
+                      <TableHead className="w-16 text-right">
+                        <span className="sr-only">Inspect</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -303,40 +415,104 @@ export function AdminOutreachPage() {
                     {items.map((item) => (
                       <TableRow
                         key={item.id}
-                        role="link"
+                        role="button"
                         tabIndex={0}
-                        aria-label={`Open outreach for ${item.jobTitle ?? 'role'}`}
-                        className="cursor-pointer transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
-                        onClick={() => openOutreach(item.id)}
+                        aria-label={`Inspect outreach for ${item.jobTitle ?? item.subject ?? 'outreach'}`}
+                        className="group cursor-pointer transition-colors hover:bg-slate-50/90 focus-visible:bg-slate-50 focus-visible:outline-none"
+                        onClick={() => setInspectOutreachId(item.id)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            openOutreach(item.id)
+                            setInspectOutreachId(item.id)
                           }
                         }}
                       >
+                        {/* Role & Company with Monogram Avatar */}
                         <TableCell className="whitespace-normal py-3">
-                          <div className="font-medium text-slate-950">
-                            {item.jobTitle || item.subject || 'Untitled outreach'}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {item.companyName || '—'}
+                          <div className="flex items-center gap-3">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-indigo-500/25 bg-indigo-500/10 font-mono text-xs font-bold text-indigo-700 dark:text-indigo-300 shadow-2xs group-hover:scale-105 transition-transform">
+                              {getMonogram(item.companyName)}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-slate-950 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                                {item.jobTitle || item.subject || 'Outreach Pitch'}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                                <Building2 className="size-3 text-slate-400 shrink-0" />
+                                <span className="truncate">{item.companyName || 'Target Company'}</span>
+                              </div>
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell className="max-w-40 truncate text-xs text-slate-600">
-                          {userLabel(item.userId)}
+
+                        {/* User Cell */}
+                        <TableCell className="max-w-40 truncate">
+                          <div className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50/80 px-2 py-0.5 text-xs text-slate-700">
+                            <span className="flex size-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">
+                              {(userLabel(item.userId) || 'U')[0]?.toUpperCase()}
+                            </span>
+                            <span className="truncate">{userLabel(item.userId)}</span>
+                          </div>
                         </TableCell>
+
+                        {/* Status Badge */}
                         <TableCell>
-                          <Badge variant="outline">{item.status}</Badge>
+                          {item.status === 'sent' ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-blue-700 dark:text-blue-300 shadow-2xs">
+                              <span className="size-1.5 rounded-full bg-blue-500" />
+                              Sent
+                            </span>
+                          ) : item.status === 'replied' ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 shadow-2xs">
+                              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Replied
+                            </span>
+                          ) : item.status === 'needs-review' ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-300 shadow-2xs">
+                              <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              Needs Review
+                            </span>
+                          ) : item.status === 'follow-up-due' ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                              <span className="size-1.5 rounded-full bg-rose-500" />
+                              Follow-up Due
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 font-mono text-[11px] font-medium text-slate-600">
+                              <span className="size-1.5 rounded-full bg-slate-400" />
+                              {item.status}
+                            </span>
+                          )}
                         </TableCell>
-                        <TableCell className="hidden max-w-44 truncate text-xs text-slate-500 lg:table-cell">
-                          {item.contactName || item.contactEmail || '—'}
+
+                        {/* Contact Recipient Cell */}
+                        <TableCell className="hidden max-w-44 truncate text-xs text-slate-600 lg:table-cell">
+                          {item.contactName || item.contactEmail ? (
+                            <div className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-0.5 shadow-2xs">
+                              <Mail className="size-3 text-indigo-500 shrink-0" />
+                              <span className="truncate font-medium">{item.contactName || item.contactEmail}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-[11px]">Direct company</span>
+                          )}
                         </TableCell>
+
+                        {/* Updated Date */}
                         <TableCell className="hidden text-xs text-slate-500 sm:table-cell">
-                          {formatDate(item.updatedAt)}
+                          <div className="flex items-center gap-1">
+                            <CalendarClock className="size-3 text-slate-400" />
+                            <span>{formatDate(item.updatedAt)}</span>
+                          </div>
                         </TableCell>
+
+                        {/* Inspect Action */}
                         <TableCell className="text-right">
-                          <ChevronRight className="ml-auto size-4 text-slate-400" />
+                          <div className="flex items-center justify-end gap-1">
+                            <span className="hidden group-hover:inline-flex text-[11px] font-medium text-indigo-600 items-center gap-0.5 transition-all">
+                              Inspect <ChevronRight className="size-3" />
+                            </span>
+                            <ChevronRight className="size-4 text-slate-400 group-hover:hidden" />
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -344,6 +520,7 @@ export function AdminOutreachPage() {
                 </Table>
               </div>
 
+              {/* Cursor Pagination */}
               <CursorPaginationBar
                 page={page}
                 loading={loading}
@@ -356,6 +533,13 @@ export function AdminOutreachPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Slide-Over Inspection Drawer */}
+      <AdminOutreachDrawer
+        outreachId={inspectOutreachId}
+        open={Boolean(inspectOutreachId)}
+        onClose={() => setInspectOutreachId(null)}
+      />
     </div>
   )
 }
