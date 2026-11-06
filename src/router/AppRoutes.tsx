@@ -70,6 +70,30 @@ export const AdminOutreachDetailPage = lazy(() =>
   })),
 )
 
+export const AdminCompaniesPage = lazy(() =>
+  import('@/pages/AdminCompaniesPage').then((module) => ({
+    default: module.AdminCompaniesPage,
+  })),
+)
+
+export const AdminCompanyDetailPage = lazy(() =>
+  import('@/pages/AdminCompanyDetailPage').then((module) => ({
+    default: module.AdminCompanyDetailPage,
+  })),
+)
+
+export const AdminResumesPage = lazy(() =>
+  import('@/pages/AdminResumesPage').then((module) => ({
+    default: module.AdminResumesPage,
+  })),
+)
+
+export const AdminResumeDetailPage = lazy(() =>
+  import('@/pages/AdminResumeDetailPage').then((module) => ({
+    default: module.AdminResumeDetailPage,
+  })),
+)
+
 export const ProfilePage = lazy(() =>
   import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })),
 )
@@ -254,6 +278,38 @@ export function AdminOutreachDetailRoute() {
   return (
     <Suspense fallback={<LoadingState rows={5} />}>
       <AdminOutreachDetailPage />
+    </Suspense>
+  )
+}
+
+export function AdminCompaniesRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminCompaniesPage />
+    </Suspense>
+  )
+}
+
+export function AdminCompanyDetailRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminCompanyDetailPage />
+    </Suspense>
+  )
+}
+
+export function AdminResumesRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminResumesPage />
+    </Suspense>
+  )
+}
+
+export function AdminResumeDetailRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminResumeDetailPage />
     </Suspense>
   )
 }

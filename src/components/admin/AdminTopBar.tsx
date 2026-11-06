@@ -16,7 +16,11 @@ export function AdminTopBar({ onMenuClick }: { onMenuClick: () => void }) {
         ? 'Application detail'
         : pathname.startsWith('/admin/outreach/')
           ? 'Outreach detail'
-          : (adminTopBarTitles[pathname] ?? 'Admin')
+          : pathname.startsWith('/admin/companies/')
+            ? 'Company detail'
+            : pathname.startsWith('/admin/resumes/')
+              ? 'Resume variant detail'
+              : (adminTopBarTitles[pathname] ?? 'Admin')
   const environment =
     import.meta.env.VITE_FIREBASE_EMULATOR === 'true' ? 'Emulator' : 'Production'
 

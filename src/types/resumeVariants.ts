@@ -9,6 +9,9 @@ export interface ResumeVariant {
   technologies: string[]
   notes: string
   isDefault: boolean
+
+  /** Bounded tokens for admin keyword search. Notes are intentionally excluded. */
+  searchTokens?: string[]
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }

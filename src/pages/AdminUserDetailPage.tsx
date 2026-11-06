@@ -488,7 +488,13 @@ function UserDetailContent({ detail }: { detail: AdminUserDetail }) {
                     {detail.companies.map((company) => (
                       <TableRow key={company.id}>
                         <TableCell className="whitespace-normal py-3">
-                          <div className="font-medium text-slate-900">{company.name}</div>
+                          <Link
+                            to={`/admin/companies/${company.id}`}
+                            state={{ from: `/admin/users/${user.id}` }}
+                            className="font-medium text-slate-900 hover:text-indigo-700"
+                          >
+                            {company.name}
+                          </Link>
                           <div className="text-xs text-slate-500">
                             {company.industry || 'Industry unknown'}
                           </div>
@@ -532,7 +538,13 @@ function UserDetailContent({ detail }: { detail: AdminUserDetail }) {
                     {detail.resumes.map((resume) => (
                       <TableRow key={resume.id}>
                         <TableCell className="font-medium text-slate-900">
-                          {resume.name}
+                          <Link
+                            to={`/admin/resumes/${resume.id}`}
+                            state={{ from: `/admin/users/${user.id}` }}
+                            className="hover:text-indigo-700"
+                          >
+                            {resume.name}
+                          </Link>
                         </TableCell>
                         <TableCell>
                           <a

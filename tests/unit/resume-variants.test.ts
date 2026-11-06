@@ -3,6 +3,7 @@ import {
   cleanResumeVariantInput,
   formatCommaList,
   parseCommaList,
+  resumeVariantSearchTokens,
 } from '@/lib/resumeVariants'
 
 const base = {
@@ -23,6 +24,22 @@ describe('resume variant helpers', () => {
     expect(cleaned.targetRoles).toEqual(['Software Engineer'])
     expect(cleaned.technologies).toEqual(['React', 'TypeScript'])
     expect(cleaned.notes).toBe('Tailored for product teams.')
+  })
+
+  it('builds search tokens from searchable fields only', () => {
+    const cleaned = cleanResumeVariantInput(base)
+
+    expect(resumeVariantSearchTokens(cleaned)).toEqual(
+      expect.arrayContaining([
+        'full',
+        'stack',
+        'software',
+        'engineer',
+        'react',
+        'typescript',
+      ]),
+    )
+    expect(resumeVariantSearchTokens(cleaned)).not.toContain('tailored')
   })
 
   it('parses comma-separated lists', () => {

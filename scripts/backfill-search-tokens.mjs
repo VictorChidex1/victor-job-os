@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Backfill bounded `searchTokens` arrays on applications and outreach.
+ * Backfill bounded `searchTokens` arrays on companies, applications, outreach,
+ * and resume variants.
  *
  * Dry run first (default):
  *   node scripts/backfill-search-tokens.mjs --emulator
@@ -11,9 +12,9 @@
  *   node scripts/backfill-search-tokens.mjs --production --apply --confirm
  *
  * The script only writes `searchTokens`. It never changes message bodies,
- * statuses, ownership, or any other field. A JSON backup of every previous
- * token value is written to .firebase/backups before any write is attempted.
- * Re-running is safe: documents whose tokens already match are skipped.
+ * notes, statuses, ownership, or any other field. A JSON backup of every
+ * previous token value is written to .firebase/backups before any write is
+ * attempted. Re-running is safe: documents whose tokens already match are skipped.
  */
 import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -64,6 +65,7 @@ if (emulator) {
 const { buildSearchTokens } = await import('../functions/lib/utils/normalizeJob.js')
 
 const COLLECTIONS = {
+  companies: (data) => [data.name, data.industry, data.location],
   applications: (data) => [
     data.companyName,
     data.jobTitle,
@@ -76,6 +78,11 @@ const COLLECTIONS = {
     data.contactName,
     data.contactEmail,
     data.subject,
+  ],
+  resumeVariants: (data) => [
+    data.name,
+    data.targetRoles,
+    data.technologies,
   ],
 }
 
@@ -95,7 +102,7 @@ async function confirm() {
   const rl = createInterface({ input, output })
   const target = emulator ? 'the local emulator' : `production (${projectId})`
   const answer = await rl.question(
-    `Write searchTokens to applications and outreach in ${target}? Type "yes" to continue: `,
+    `Write searchTokens to companies, applications, outreach, and resume variants in ${target}? Type "yes" to continue: `,
   )
   rl.close()
   if (answer.trim().toLowerCase() !== 'yes') {

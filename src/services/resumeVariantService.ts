@@ -14,7 +14,10 @@ import {
   type WriteBatch,
 } from 'firebase/firestore'
 import { collections } from '@/services/collections'
-import { cleanResumeVariantInput } from '@/lib/resumeVariants'
+import {
+  cleanResumeVariantInput,
+  resumeVariantSearchTokens,
+} from '@/lib/resumeVariants'
 import type { ResumeVariant, ResumeVariantInput } from '@/types/resumeVariants'
 
 export interface ResumeVariantService {
@@ -73,6 +76,7 @@ export function createResumeVariantService(
     batch.set(ref, {
       userId: uid,
       ...cleaned,
+      searchTokens: resumeVariantSearchTokens(cleaned),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -103,6 +107,7 @@ export function createResumeVariantService(
     }
     batch.update(ref, {
       ...cleaned,
+      searchTokens: resumeVariantSearchTokens(cleaned),
       updatedAt: serverTimestamp(),
     })
     await batch.commit()
@@ -160,6 +165,11 @@ function toVariant(id: string, data: DocumentData): ResumeVariant {
       : [],
     notes: typeof data.notes === 'string' ? data.notes : '',
     isDefault: data.isDefault === true,
+    searchTokens: Array.isArray(data.searchTokens)
+      ? data.searchTokens.filter(
+          (item: unknown): item is string => typeof item === 'string',
+        )
+      : undefined,
     createdAt: optionalTimestamp(data.createdAt),
     updatedAt: optionalTimestamp(data.updatedAt),
   }

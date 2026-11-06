@@ -218,3 +218,81 @@ export interface AdminOutreachDetail extends AdminOutreach {
   user: AdminUserSummary | null
   followUps: AdminFollowUp[]
 }
+
+export interface AdminCompany {
+  id: string
+  userId: string
+  name: string
+  industry?: string
+  location?: string
+  researched: boolean
+  jobCount: number
+  updatedAt?: Timestamp
+}
+
+export interface AdminCompanyOpportunity {
+  id: string
+  title: string
+  status: string
+  source: string
+  discoveredAt?: Timestamp
+}
+
+export interface AdminCompanyApplication {
+  id: string
+  jobTitle: string
+  status: string
+  updatedAt?: Timestamp
+}
+
+export interface AdminCompanyOutreach {
+  id: string
+  jobTitle?: string
+  subject: string
+  status: string
+  updatedAt?: Timestamp
+}
+
+export interface AdminCompanyContact {
+  id: string
+  name?: string
+  email?: string
+  role?: string
+  verified: boolean
+  confidence?: string
+}
+
+export interface AdminCompanyDetail extends AdminCompany {
+  website?: string
+  description?: string
+  product?: string
+  roleContext?: string
+  hiringSignals: string[]
+  researchSummary?: string
+  sourceUrls: string[]
+  lastSeenAt?: Timestamp
+  lastResearchedAt?: Timestamp
+  createdAt?: Timestamp
+  user: AdminUserSummary | null
+  opportunities: AdminCompanyOpportunity[]
+  applications: AdminCompanyApplication[]
+  outreach: AdminCompanyOutreach[]
+  contacts: AdminCompanyContact[]
+}
+
+export interface AdminResume {
+  id: string
+  userId: string
+  name: string
+  targetRoles: string[]
+  technologies: string[]
+  isDefault: boolean
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
+}
+
+export interface AdminResumeDetail extends AdminResume {
+  resumeUrl: string
+  notes: string
+  user: AdminUserSummary | null
+}

@@ -1,4 +1,5 @@
 import { normalizeResumeUrl } from '@/lib/resume'
+import { buildSearchTokens } from '@/lib/searchTokens'
 import type { ResumeVariantInput } from '@/types/resumeVariants'
 
 export function parseCommaList(value: string): string[] {
@@ -7,6 +8,13 @@ export function parseCommaList(value: string): string[] {
 
 export function formatCommaList(values: string[]): string {
   return values.join(', ')
+}
+
+/** Searchable fields only; notes stay unindexed. */
+export function resumeVariantSearchTokens(
+  input: Pick<ResumeVariantInput, 'name' | 'targetRoles' | 'technologies'>,
+): string[] {
+  return buildSearchTokens(input.name, input.targetRoles, input.technologies)
 }
 
 function uniqueList(values: string[]): string[] {

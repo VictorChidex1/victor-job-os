@@ -58,6 +58,9 @@ describe('resume variant service', () => {
     expect(created?.name).toBe('Full Stack')
     expect(created?.resumeUrl).toBe('https://example.com/full-stack.pdf')
     expect(created?.userId).toBe(owner)
+    expect(created?.searchTokens).toEqual(
+      expect.arrayContaining(['full', 'stack', 'software', 'engineer', 'react']),
+    )
 
     await service.update(owner, id, { ...input('Full Stack Updated'), notes: 'Updated' })
     const updated = await service.get(id)
