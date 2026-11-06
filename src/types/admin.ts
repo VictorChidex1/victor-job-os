@@ -194,8 +194,11 @@ export interface AdminFollowUp {
   sequence: number
   status: string
   scheduledFor?: Timestamp
+  scheduledAt?: Timestamp
   draftSubject?: string
   draftBody?: string
+  notes?: string
+  body?: string
   approvedAt?: Timestamp
   sentAt?: Timestamp
   createdAt?: Timestamp
@@ -295,4 +298,98 @@ export interface AdminResumeDetail extends AdminResume {
   resumeUrl: string
   notes: string
   user: AdminUserSummary | null
+}
+
+export interface AdminAiRun {
+  id: string
+  userId: string
+  provider: string
+  model: string
+  operation: string
+  status: string
+  durationMs: number
+  jobId?: string
+  error?: string
+  estimatedCostUsd: number
+  createdAt?: Timestamp
+}
+
+export interface AdminAiRunJob {
+  id: string
+  title: string
+  companyName: string
+  source: string
+  status: string
+}
+
+export interface AdminAiRunDetail extends AdminAiRun {
+  user: AdminUserSummary | null
+  job: AdminAiRunJob | null
+}
+
+export interface AdminAiSummary {
+  totalRuns: number
+  successRuns: number
+  errorRuns: number
+  runs7d: number
+  estimatedCost7d: number
+  averageDurationMs7d: number
+  lastRunAt?: Timestamp
+}
+
+export interface AdminErrorLog {
+  id: string
+  userId?: string
+  fn: string
+  message: string
+  createdAt?: Timestamp
+}
+
+export interface AdminErrorLogDetail extends AdminErrorLog {
+  stack?: string
+  context?: Record<string, unknown>
+  user: AdminUserSummary | null
+}
+
+export interface AdminErrorSummary {
+  total: number
+  last24h: number
+  last7d: number
+  lastErrorAt?: Timestamp
+}
+
+export interface AdminActivitySummary {
+  last24h: number
+  lastActivityAt?: Timestamp
+}
+
+export interface AdminActivityEntry {
+  id: string
+  userId: string
+  type: string
+  status: string
+  message: string
+  metadata?: Record<string, unknown>
+  createdAt?: Timestamp
+}
+
+export interface AdminSystemHealth {
+  environment: string
+  projectId: string
+  generatedAt: Timestamp
+  counts: {
+    users: number
+    jobs: number
+    applications: number
+    outreach: number
+    companies: number
+    resumeVariants: number
+  }
+  ai: AdminAiSummary
+  errors: AdminErrorSummary
+  activity: AdminActivitySummary
+  activeDiscoveryLocks: number
+  recentErrors: AdminErrorLog[]
+  recentAiRuns: AdminAiRun[]
+  recentActivity: AdminActivityEntry[]
 }

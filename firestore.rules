@@ -160,9 +160,16 @@ service cloud.firestore {
     // Client-reported errors: a user may create and read their own records.
     // Only the Cloud Functions (admin SDK, bypasses rules) may modify them.
     match /errorLogs/{documentId} {
-      allow read: if ownsUserField(resource.data);
+      allow read: if ownsUserField(resource.data) || isAdmin();
       allow create: if ownsUserField(request.resource.data);
       allow update, delete: if false;
+    }
+
+    // Discovery locks are written only by trusted Cloud Functions. Admins may
+    // inspect them for operational health.
+    match /discoveryLocks/{documentId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
   }
 }

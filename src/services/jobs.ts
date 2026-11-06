@@ -91,7 +91,7 @@ export async function listJobsPage(uid: string, options: JobPageOptions = {}): P
   if (options.companyId) constraints.push(where('companyId', '==', options.companyId))
 
   constraints.push(orderBy('discoveredAt', 'desc'))
-  constraints.push(orderBy(documentId(), 'asc'))
+  constraints.push(orderBy(documentId(), 'desc'))
   if (options.cursorValue) {
     constraints.push(
       startAfter(
@@ -130,7 +130,7 @@ export async function searchJobsPage(
     where('userId', '==', uid),
     where('searchTokens', 'array-contains-any', tokens),
     orderBy('discoveredAt', 'desc'),
-    orderBy(documentId(), 'asc'),
+    orderBy(documentId(), 'desc'),
   ]
   if (options.cursorValue) {
     constraints.push(

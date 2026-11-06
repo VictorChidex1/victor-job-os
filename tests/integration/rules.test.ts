@@ -185,6 +185,30 @@ describe('Firestore security rules', () => {
     await assertFails(setDoc(doc(dbOwner, 'discoveryLocks', owner), { userId: owner }))
   })
 
+  it('allows admins to read cross-user error logs and discovery locks', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore()
+      await setDoc(doc(firestore, 'errorLogs', 'error-admin'), {
+        userId: owner,
+        fn: 'client',
+        message: 'boom',
+      })
+      await setDoc(doc(firestore, 'discoveryLocks', owner), {
+        userId: owner,
+        token: 'lock-token',
+      })
+    })
+
+    const dbAdmin = testEnv
+      .authenticatedContext('user-admin', { admin: true })
+      .firestore()
+    await assertSucceeds(getDoc(doc(dbAdmin, 'errorLogs', 'error-admin')))
+    await assertSucceeds(getDoc(doc(dbAdmin, 'discoveryLocks', owner)))
+    await assertFails(
+      setDoc(doc(dbAdmin, 'discoveryLocks', owner), { userId: owner }),
+    )
+  })
+
   it('allows admins to read cross-user records but not write them', async () => {
     const dbOwner = testEnv.authenticatedContext(owner).firestore()
     await assertSucceeds(

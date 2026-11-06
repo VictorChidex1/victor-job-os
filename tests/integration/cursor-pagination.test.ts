@@ -48,12 +48,12 @@ describe('keyset cursor pagination', () => {
 
       const base = [
         orderBy('discoveredAt', 'desc'),
-        orderBy(documentId(), 'asc'),
+        orderBy(documentId(), 'desc'),
       ]
       const first = await getDocs(
         query(collection(firestore, 'jobs'), ...base, limit(2)),
       )
-      expect(first.docs.map((item) => item.id)).toEqual(['job-a', 'job-b'])
+      expect(first.docs.map((item) => item.id)).toEqual(['job-d', 'job-c'])
 
       const last = first.docs[first.docs.length - 1]
       const second = await getDocs(
@@ -64,7 +64,7 @@ describe('keyset cursor pagination', () => {
           limit(2),
         ),
       )
-      expect(second.docs.map((item) => item.id)).toEqual(['job-c', 'job-d'])
+      expect(second.docs.map((item) => item.id)).toEqual(['job-b', 'job-a'])
     })
   })
 })

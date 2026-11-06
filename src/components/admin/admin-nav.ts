@@ -1,4 +1,5 @@
 import {
+  Activity,
   Briefcase,
   Building2,
   FileText,
@@ -24,6 +25,7 @@ export const adminNavItems: AdminNavItem[] = [
   { label: 'Outreach', to: '/admin/outreach', icon: Mail },
   { label: 'Companies', to: '/admin/companies', icon: Building2 },
   { label: 'Resumes', to: '/admin/resumes', icon: Files },
+  { label: 'System', to: '/admin/system', icon: Activity },
 ]
 
 export const adminTopBarTitles: Record<string, string> = {
@@ -34,4 +36,7 @@ export const adminTopBarTitles: Record<string, string> = {
   '/admin/outreach': 'Outreach',
   '/admin/companies': 'Companies',
   '/admin/resumes': 'Resumes',
+  '/admin/system': 'System health',
+  '/admin/system/ai-usage': 'AI usage',
+  '/admin/system/errors': 'Errors',
 }

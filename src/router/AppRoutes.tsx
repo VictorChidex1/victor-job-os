@@ -94,6 +94,36 @@ export const AdminResumeDetailPage = lazy(() =>
   })),
 )
 
+export const AdminSystemHealthPage = lazy(() =>
+  import('@/pages/AdminSystemHealthPage').then((module) => ({
+    default: module.AdminSystemHealthPage,
+  })),
+)
+
+export const AdminAiUsagePage = lazy(() =>
+  import('@/pages/AdminAiUsagePage').then((module) => ({
+    default: module.AdminAiUsagePage,
+  })),
+)
+
+export const AdminAiRunDetailPage = lazy(() =>
+  import('@/pages/AdminAiRunDetailPage').then((module) => ({
+    default: module.AdminAiRunDetailPage,
+  })),
+)
+
+export const AdminErrorsPage = lazy(() =>
+  import('@/pages/AdminErrorsPage').then((module) => ({
+    default: module.AdminErrorsPage,
+  })),
+)
+
+export const AdminErrorDetailPage = lazy(() =>
+  import('@/pages/AdminErrorDetailPage').then((module) => ({
+    default: module.AdminErrorDetailPage,
+  })),
+)
+
 export const ProfilePage = lazy(() =>
   import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })),
 )
@@ -310,6 +340,46 @@ export function AdminResumeDetailRoute() {
   return (
     <Suspense fallback={<LoadingState rows={5} />}>
       <AdminResumeDetailPage />
+    </Suspense>
+  )
+}
+
+export function AdminSystemHealthRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={6} />}>
+      <AdminSystemHealthPage />
+    </Suspense>
+  )
+}
+
+export function AdminAiUsageRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminAiUsagePage />
+    </Suspense>
+  )
+}
+
+export function AdminAiRunDetailRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminAiRunDetailPage />
+    </Suspense>
+  )
+}
+
+export function AdminErrorsRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminErrorsPage />
+    </Suspense>
+  )
+}
+
+export function AdminErrorDetailRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminErrorDetailPage />
     </Suspense>
   )
 }

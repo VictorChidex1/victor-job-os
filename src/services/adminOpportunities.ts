@@ -93,7 +93,7 @@ function buildConstraints(input: AdminOpportunityQuery): QueryConstraint[] {
     constraints.push(where('searchTokens', 'array-contains-any', tokens))
   }
   constraints.push(orderBy('discoveredAt', 'desc'))
-  constraints.push(orderBy(documentId(), 'asc'))
+  constraints.push(orderBy(documentId(), 'desc'))
   return constraints
 }
 

@@ -123,7 +123,7 @@ function buildConstraints(input: AdminApplicationQuery): QueryConstraint[] {
     constraints.push(where('searchTokens', 'array-contains-any', tokens))
   }
   constraints.push(orderBy('updatedAt', 'desc'))
-  constraints.push(orderBy(documentId(), 'asc'))
+  constraints.push(orderBy(documentId(), 'desc'))
   return constraints
 }
 
