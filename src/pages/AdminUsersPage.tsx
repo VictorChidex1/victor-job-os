@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Search, UserRound, X } from 'lucide-react'
+import { useNavigate } from 'react-router'
+import { Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,13 +11,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import {
   Table,
   TableBody,
@@ -55,8 +49,8 @@ export function AdminUsersPage() {
   })
 
   const { users, loading, error, refresh } = useAdminUsers()
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState<AdminUserSummary | null>(null)
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase()
@@ -161,7 +155,7 @@ export function AdminUsersPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setSelected(user)}
+                        onClick={() => navigate(`/admin/users/${user.id}`)}
                       >
                         View
                       </Button>
@@ -173,60 +167,6 @@ export function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
-
-      <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent side="right" className="w-full data-[side=right]:sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>User account</SheetTitle>
-            <SheetDescription>Read-only identity information.</SheetDescription>
-          </SheetHeader>
-          {selected && (
-            <div className="flex flex-col gap-4 px-4 pb-6">
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-white text-indigo-600 ring-1 ring-slate-200">
-                  <UserRound className="size-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate font-semibold text-slate-950">
-                    {selected.displayName || 'Unnamed user'}
-                  </div>
-                  <div className="truncate text-sm text-slate-500">
-                    {selected.email || 'No email'}
-                  </div>
-                </div>
-              </div>
-              <dl className="grid gap-3 text-sm">
-                <div>
-                  <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                    Role
-                  </dt>
-                  <dd className="mt-1">
-                    <Badge variant={roleVariant(selected.role)}>{selected.role}</Badge>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                    UID
-                  </dt>
-                  <dd className="mt-1 break-all font-mono text-xs text-slate-700">
-                    {selected.id}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                    Joined
-                  </dt>
-                  <dd className="mt-1 text-slate-700">{formatDate(selected.createdAt)}</dd>
-                </div>
-              </dl>
-              <p className="rounded-lg border border-dashed border-slate-200 p-3 text-xs text-slate-500">
-                Account role changes, disabling, and deletion will be added in the next admin
-                management phase.
-              </p>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }

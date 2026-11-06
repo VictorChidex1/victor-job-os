@@ -18,3 +18,77 @@ export interface AdminOverview {
   companyCount: number
   recentUsers: AdminUserSummary[]
 }
+
+export interface AdminUserProfile {
+  headline: string
+  summary: string
+  experienceLevel: string
+  skills: string[]
+  technologies: string[]
+  preferredRoles: string[]
+  preferredLocations: string[]
+  portfolioUrl?: string
+  resumeUrl?: string
+  updatedAt?: Timestamp
+}
+
+export interface AdminUserJob {
+  id: string
+  title: string
+  companyName: string
+  source: string
+  status: string
+  discoveredAt?: Timestamp
+}
+
+export interface AdminUserApplication {
+  id: string
+  jobTitle: string
+  companyName: string
+  status: string
+  nextAction?: string
+  updatedAt?: Timestamp
+}
+
+export interface AdminUserOutreach {
+  id: string
+  jobTitle?: string
+  companyName: string
+  status: string
+  sentAt?: Timestamp
+  updatedAt?: Timestamp
+}
+
+export interface AdminUserCompany {
+  id: string
+  name: string
+  industry?: string
+  researched: boolean
+  jobCount: number
+}
+
+export interface AdminUserResume {
+  id: string
+  name: string
+  resumeUrl: string
+  isDefault: boolean
+}
+
+export interface AdminUserDetailCounts {
+  opportunities: number
+  applications: number
+  outreach: number
+  companies: number
+  resumes: number
+}
+
+export interface AdminUserDetail {
+  user: AdminUserSummary
+  profile: AdminUserProfile | null
+  counts: AdminUserDetailCounts
+  opportunities: AdminUserJob[]
+  applications: AdminUserApplication[]
+  outreach: AdminUserOutreach[]
+  companies: AdminUserCompany[]
+  resumes: AdminUserResume[]
+}

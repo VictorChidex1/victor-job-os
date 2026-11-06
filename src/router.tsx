@@ -3,6 +3,7 @@ import {
   AppIndexRedirect,
   AdminRoute,
   AdminUsersRoute,
+  AdminUserDetailRoute,
   ApplicationsRoute,
   ApplicationPreparationRoute,
   ApplicationViewRoute,
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminRoute /> },
       { path: 'users', element: <AdminUsersRoute /> },
+      { path: 'users/:uid', element: <AdminUserDetailRoute /> },
     ],
   },
   {

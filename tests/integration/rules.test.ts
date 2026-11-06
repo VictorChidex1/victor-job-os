@@ -193,12 +193,18 @@ describe('Firestore security rules', () => {
         title: 'Owner job',
       }),
     )
+    await assertSucceeds(
+      setDoc(doc(dbOwner, 'profiles', owner), {
+        headline: 'Owner profile',
+      }),
+    )
 
     const admin = 'user-admin'
     const dbAdmin = testEnv
       .authenticatedContext(admin, { admin: true })
       .firestore()
     await assertSucceeds(getDoc(doc(dbAdmin, 'jobs', 'job-owner')))
+    await assertSucceeds(getDoc(doc(dbAdmin, 'profiles', owner)))
     await assertFails(
       updateDoc(doc(dbAdmin, 'jobs', 'job-owner'), { title: 'Admin changed' }),
     )

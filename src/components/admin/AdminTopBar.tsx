@@ -8,7 +8,9 @@ import { useAuth } from '@/hooks/useAuth'
 export function AdminTopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { pathname } = useLocation()
   const { user } = useAuth()
-  const title = adminTopBarTitles[pathname] ?? 'Admin'
+  const title = pathname.startsWith('/admin/users/')
+    ? 'User detail'
+    : (adminTopBarTitles[pathname] ?? 'Admin')
   const environment =
     import.meta.env.VITE_FIREBASE_EMULATOR === 'true' ? 'Emulator' : 'Production'
 

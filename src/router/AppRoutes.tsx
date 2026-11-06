@@ -28,6 +28,12 @@ export const AdminUsersPage = lazy(() =>
   })),
 )
 
+export const AdminUserDetailPage = lazy(() =>
+  import('@/pages/AdminUserDetailPage').then((module) => ({
+    default: module.AdminUserDetailPage,
+  })),
+)
+
 export const ProfilePage = lazy(() =>
   import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })),
 )
@@ -156,6 +162,14 @@ export function AdminUsersRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <AdminUsersPage />
+    </Suspense>
+  )
+}
+
+export function AdminUserDetailRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminUserDetailPage />
     </Suspense>
   )
 }
