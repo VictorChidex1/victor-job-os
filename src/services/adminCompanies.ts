@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   documentId,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -30,6 +31,42 @@ import type {
 } from '@/types/admin'
 
 export type AdminCompanyResearchFilter = 'all' | 'researched' | 'unresearched'
+
+export interface AdminCompanyMetrics {
+  total: number
+  researched: number
+  unresearched: number
+  withJobs: number
+}
+
+export async function loadAdminCompanyMetrics(): Promise<AdminCompanyMetrics> {
+  const companiesCol = collection(db, collections.companies)
+
+  try {
+    const [totalSnap, researchedSnap, unresearchedSnap, withJobsSnap] =
+      await Promise.all([
+        getCountFromServer(companiesCol),
+        getCountFromServer(query(companiesCol, where('researched', '==', true))),
+        getCountFromServer(query(companiesCol, where('researched', '==', false))),
+        getCountFromServer(query(companiesCol, where('jobCount', '>', 0))),
+      ])
+
+    return {
+      total: totalSnap.data().count,
+      researched: researchedSnap.data().count,
+      unresearched: unresearchedSnap.data().count,
+      withJobs: withJobsSnap.data().count,
+    }
+  } catch (error) {
+    console.error('Failed to load company metrics', error)
+    return {
+      total: 0,
+      researched: 0,
+      unresearched: 0,
+      withJobs: 0,
+    }
+  }
+}
 
 export interface AdminCompanyQuery {
   search?: string
@@ -60,7 +97,7 @@ function buildConstraints(input: AdminCompanyQuery): QueryConstraint[] {
     constraints.push(where('searchTokens', 'array-contains-any', tokens))
   }
   constraints.push(orderBy('updatedAt', 'desc'))
-  constraints.push(orderBy(documentId(), 'asc'))
+  constraints.push(orderBy(documentId(), 'desc'))
   return constraints
 }
 

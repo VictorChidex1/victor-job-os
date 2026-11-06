@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
-import { ChevronRight, Search, X } from 'lucide-react'
+import {
+  Briefcase,
+  Building2,
+  ChevronRight,
+  ExternalLink,
+  MapPin,
+  RotateCw,
+  Search,
+  Sparkles,
+  X,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,7 +39,11 @@ import {
 import { CursorPaginationBar } from '@/components/CursorPaginationBar'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
+import { AdminCompanyMetricsStrip } from '@/components/admin/AdminCompanyMetricsStrip'
+import { AdminCompanyFlowBar } from '@/components/admin/AdminCompanyFlowBar'
+import { AdminCompanyDrawer } from '@/components/admin/AdminCompanyDrawer'
 import { useAdminCompaniesPage } from '@/hooks/useAdminCompaniesPage'
+import { useAdminCompanyMetrics } from '@/hooks/useAdminCompanyMetrics'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import {
@@ -62,6 +76,14 @@ function formatDate(value?: { toDate?: () => Date }): string {
     : '—'
 }
 
+function getMonogram(name?: string): string {
+  return (name || 'CO')
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase())
+    .join('')
+}
+
 function researchFilter(value: string): AdminCompanyResearchFilter {
   return value === 'researched' || value === 'unresearched' ? value : 'all'
 }
@@ -69,7 +91,7 @@ function researchFilter(value: string): AdminCompanyResearchFilter {
 export function AdminCompaniesPage() {
   usePageMeta({
     title: 'Companies — Admin — Victor Job OS',
-    description: 'Cross-user company browser for the Job OS administrator.',
+    description: 'Cross-user enterprise directory and intelligence command center.',
     noindex: true,
     path: '/admin/companies',
   })
@@ -89,11 +111,19 @@ export function AdminCompaniesPage() {
   const activeCursor = cursorStack[cursorStack.length - 1] ?? null
   const [searchInput, setSearchInput] = useState(query)
 
+  // Slide-over drawer state
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
   const { users } = useAdminUsers()
   const userMap = useMemo(
     () => new Map(users.map((user) => [user.id, user])),
     [users],
   )
+
+  const { metrics, loading: metricsLoading, refresh: refreshMetrics } =
+    useAdminCompanyMetrics()
 
   const { items, hasNext, nextCursor, loading, error, refresh } =
     useAdminCompaniesPage({
@@ -103,6 +133,15 @@ export function AdminCompaniesPage() {
       cursor: activeCursor,
       pageSize: PAGE_SIZE,
     })
+
+  const handleRefreshAll = async () => {
+    setIsRefreshing(true)
+    try {
+      await Promise.all([refresh(), refreshMetrics()])
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -147,7 +186,13 @@ export function AdminCompaniesPage() {
     setSearchParams(new URLSearchParams(), { replace: true })
   }
 
-  function openCompany(id: string) {
+  function openCompanyDrawer(id: string) {
+    setSelectedCompanyId(id)
+    setDrawerOpen(true)
+  }
+
+  function navigateToCompanyFull(id: string, e?: React.MouseEvent) {
+    if (e) e.stopPropagation()
     navigate(`/admin/companies/${id}`, {
       state: { from: `${location.pathname}${location.search}` },
     })
@@ -161,43 +206,68 @@ export function AdminCompaniesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 sm:p-6">
+      {/* Top Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+          <h1 className="text-2xl font-black tracking-tight text-foreground">
             Companies
           </h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-500">
-            Read-only cross-user company browser. Open a row to inspect research,
-            linked opportunities, applications, outreach, and contacts.
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Cross-user enterprise directory, AI research dossier, and opportunity pipeline hub.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => void refresh()}>
-          Refresh
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void handleRefreshAll()}
+          disabled={isRefreshing}
+          className="rounded-xl gap-2 font-medium shadow-2xs hover:bg-muted"
+        >
+          <RotateCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
         </Button>
       </div>
 
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-sm text-slate-950">Filters</CardTitle>
-          <CardDescription>
+      {/* Real-time Telemetry Cards */}
+      <AdminCompanyMetricsStrip
+        metrics={metrics}
+        loading={metricsLoading}
+        selectedResearch={research}
+        onSelectResearch={(val) => updateFilter('research', val)}
+      />
+
+      {/* Directory Segment Flow Bar */}
+      <AdminCompanyFlowBar
+        metrics={metrics}
+        selectedResearch={research}
+        onSelectResearch={(val) => updateFilter('research', val)}
+      />
+
+      {/* Search & Filter Card */}
+      <Card className="border-border/80 bg-card/60 shadow-xs backdrop-blur-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Search & Filter Enterprise Profiles
+          </CardTitle>
+          <CardDescription className="text-xs">
             Page {page} · {hasNext ? 'More available' : 'End of results'}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_13rem_13rem]">
+          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_14rem_14rem]">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder="Search company, industry, or location…"
-                className="h-9 bg-white pl-9 pr-8"
+                className="h-10 bg-background/80 pl-9 pr-8 rounded-xl border-border/80 text-xs"
               />
               {searchInput && (
                 <button
                   type="button"
                   onClick={() => setSearchInput('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
                   aria-label="Clear search"
                 >
                   <X className="size-3.5" />
@@ -211,12 +281,12 @@ export function AdminCompaniesPage() {
                 updateFilter('research', value ?? 'all')
               }
             >
-              <SelectTrigger className="h-9 bg-white">
-                <SelectValue placeholder="Research" />
+              <SelectTrigger className="h-10 bg-background/80 rounded-xl border-border/80 text-xs">
+                <SelectValue placeholder="Research Status" />
               </SelectTrigger>
               <SelectContent>
                 {RESEARCH_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="text-xs">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -229,13 +299,13 @@ export function AdminCompaniesPage() {
                 updateFilter('user', value === 'all' ? '' : (value ?? ''))
               }
             >
-              <SelectTrigger className="h-9 bg-white">
-                <SelectValue placeholder="User" />
+              <SelectTrigger className="h-10 bg-background/80 rounded-xl border-border/80 text-xs">
+                <SelectValue placeholder="Target User" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All users</SelectItem>
+                <SelectItem value="all" className="text-xs">All users</SelectItem>
                 {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
+                  <SelectItem key={user.id} value={user.id} className="text-xs">
                     {user.displayName || user.email || user.id}
                   </SelectItem>
                 ))}
@@ -244,124 +314,251 @@ export function AdminCompaniesPage() {
           </div>
 
           {hasFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-fit text-slate-500"
-              onClick={clearFilters}
-            >
-              Clear filters
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-sm text-slate-950">All companies</CardTitle>
-          <CardDescription>
-            Page {page} · {hasNext ? 'More available' : 'End of results'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <LoadingState label="Loading companies…" rows={5} />
-          ) : error ? (
-            <EmptyState
-              title="Unable to load companies"
-              description={error}
-              action={
-                <Button size="sm" onClick={() => void refresh()}>
-                  Try again
-                </Button>
-              }
-            />
-          ) : items.length === 0 ? (
-            <EmptyState
-              title="No companies found"
-              description={
-                hasFilters
-                  ? 'Try clearing or changing the filters.'
-                  : 'Companies from all users will appear here.'
-              }
-            />
-          ) : (
-            <div className="flex flex-col gap-4">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Company</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Research</TableHead>
-                      <TableHead className="hidden lg:table-cell">Location</TableHead>
-                      <TableHead className="hidden sm:table-cell">Opportunities</TableHead>
-                      <TableHead className="hidden sm:table-cell">Updated</TableHead>
-                      <TableHead className="w-10">
-                        <span className="sr-only">Open</span>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((company) => (
-                      <TableRow
-                        key={company.id}
-                        role="link"
-                        tabIndex={0}
-                        aria-label={`Open ${company.name}`}
-                        className="cursor-pointer transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
-                        onClick={() => openCompany(company.id)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault()
-                            openCompany(company.id)
-                          }
-                        }}
-                      >
-                        <TableCell className="whitespace-normal py-3">
-                          <div className="font-medium text-slate-950">{company.name}</div>
-                          <div className="text-xs text-slate-500">
-                            {company.industry || 'Industry unknown'}
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-40 truncate text-xs text-slate-600">
-                          {userLabel(company.userId)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={company.researched ? 'secondary' : 'outline'}>
-                            {company.researched ? 'Researched' : 'Not researched'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden max-w-40 truncate text-xs text-slate-500 lg:table-cell">
-                          {company.location || '—'}
-                        </TableCell>
-                        <TableCell className="hidden font-mono text-xs text-slate-500 sm:table-cell">
-                          {company.jobCount}
-                        </TableCell>
-                        <TableCell className="hidden text-xs text-slate-500 sm:table-cell">
-                          {formatDate(company.updatedAt)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <ChevronRight className="ml-auto size-4 text-slate-400" />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <span>Active filters:</span>
+                {query && (
+                  <Badge variant="secondary" className="rounded-lg text-[11px] gap-1">
+                    Query: {query}
+                    <X className="size-2.5 cursor-pointer" onClick={() => updateFilter('q', '')} />
+                  </Badge>
+                )}
+                {research !== 'all' && (
+                  <Badge variant="secondary" className="rounded-lg text-[11px] gap-1">
+                    Research: {research}
+                    <X className="size-2.5 cursor-pointer" onClick={() => updateFilter('research', 'all')} />
+                  </Badge>
+                )}
+                {userId && (
+                  <Badge variant="secondary" className="rounded-lg text-[11px] gap-1">
+                    User: {userLabel(userId)}
+                    <X className="size-2.5 cursor-pointer" onClick={() => updateFilter('user', 'all')} />
+                  </Badge>
+                )}
               </div>
-
-              <CursorPaginationBar
-                page={page}
-                loading={loading}
-                hasPrev={cursorStack.length > 0}
-                hasNext={hasNext}
-                onPrev={goPrevPage}
-                onNext={goNextPage}
-              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                onClick={clearFilters}
+              >
+                Clear all
+              </Button>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Directory Table Card */}
+      <Card className="border-border/80 bg-card shadow-xs">
+        <CardHeader className="pb-3 border-b border-border/70 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-bold text-foreground">
+              All Enterprise Directory Profiles
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Page {page} · {hasNext ? 'More records available' : 'End of records'}
+            </CardDescription>
+          </div>
+          <span className="text-[11px] font-mono text-muted-foreground">
+            {items.length} records shown
+          </span>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6">
+              <LoadingState label="Loading company records…" rows={6} />
+            </div>
+          ) : error ? (
+            <div className="p-6">
+              <EmptyState
+                title="Unable to load companies"
+                description={error}
+                action={
+                  <Button size="sm" onClick={() => void handleRefreshAll()} className="rounded-xl">
+                    Try again
+                  </Button>
+                }
+              />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title="No companies found"
+                description={
+                  hasFilters
+                    ? 'No enterprise profiles match your current search criteria. Try clearing or relaxing filters.'
+                    : 'Companies from all users will appear here.'
+                }
+                action={
+                  hasFilters ? (
+                    <Button variant="outline" size="sm" onClick={clearFilters} className="rounded-xl">
+                      Clear filters
+                    </Button>
+                  ) : undefined
+                }
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-14 pl-5">Logo</TableHead>
+                      <TableHead>Company & Industry</TableHead>
+                      <TableHead>Research Status</TableHead>
+                      <TableHead className="hidden lg:table-cell">Location</TableHead>
+                      <TableHead className="hidden sm:table-cell">Pipeline Depth</TableHead>
+                      <TableHead>Candidate</TableHead>
+                      <TableHead className="hidden sm:table-cell">Updated</TableHead>
+                      <TableHead className="w-12 pr-5 text-right">
+                        <span className="sr-only">Inspect</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((company) => {
+                      const isSelected = selectedCompanyId === company.id && drawerOpen
+                      return (
+                        <TableRow
+                          key={company.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Inspect ${company.name}`}
+                          className={`cursor-pointer transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none ${
+                            isSelected ? 'bg-muted/60 ring-1 ring-primary/30' : ''
+                          }`}
+                          onClick={() => openCompanyDrawer(company.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              openCompanyDrawer(company.id)
+                            }
+                          }}
+                        >
+                          {/* Monogram Avatar */}
+                          <TableCell className="pl-5 py-3.5">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-indigo-500/25 bg-indigo-500/10 font-mono text-xs font-black text-indigo-700 dark:text-indigo-300 shadow-2xs">
+                              {getMonogram(company.name)}
+                            </span>
+                          </TableCell>
+
+                          {/* Company Name & Industry */}
+                          <TableCell className="whitespace-normal py-3.5">
+                            <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                              <span>{company.name}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <Building2 className="size-3 text-muted-foreground/70 shrink-0" />
+                              <span className="truncate">{company.industry || 'Industry unknown'}</span>
+                            </div>
+                          </TableCell>
+
+                          {/* Research Status */}
+                          <TableCell className="py-3.5">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                                company.researched
+                                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                                  : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300'
+                              }`}
+                            >
+                              {company.researched ? (
+                                <>
+                                  <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400" />
+                                  <span>Researched</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="size-1.5 rounded-full bg-amber-500" />
+                                  <span>Not researched</span>
+                                </>
+                              )}
+                            </span>
+                          </TableCell>
+
+                          {/* Location */}
+                          <TableCell className="hidden max-w-36 truncate text-xs text-muted-foreground lg:table-cell py-3.5">
+                            {company.location ? (
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin className="size-3 text-muted-foreground/70 shrink-0" />
+                                <span className="truncate">{company.location}</span>
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/50">—</span>
+                            )}
+                          </TableCell>
+
+                          {/* Opportunities / Pipeline Depth */}
+                          <TableCell className="hidden sm:table-cell py-3.5">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/25 bg-blue-500/10 px-2 py-0.5 font-mono text-xs font-bold text-blue-700 dark:text-blue-300">
+                              <Briefcase className="size-3 text-blue-600 dark:text-blue-400" />
+                              <span>{company.jobCount}</span>
+                              <span className="text-[10px] font-normal uppercase text-muted-foreground">
+                                {company.jobCount === 1 ? 'role' : 'roles'}
+                              </span>
+                            </span>
+                          </TableCell>
+
+                          {/* Candidate Attribution */}
+                          <TableCell className="max-w-36 truncate text-xs py-3.5">
+                            <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-muted/40 px-2 py-1 text-xs text-foreground">
+                              <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary">
+                                {userLabel(company.userId).slice(0, 1).toUpperCase()}
+                              </span>
+                              <span className="truncate">{userLabel(company.userId)}</span>
+                            </span>
+                          </TableCell>
+
+                          {/* Updated Date */}
+                          <TableCell className="hidden text-xs text-muted-foreground sm:table-cell py-3.5">
+                            {formatDate(company.updatedAt)}
+                          </TableCell>
+
+                          {/* Action Chevron */}
+                          <TableCell className="text-right pr-5 py-3.5">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => navigateToCompanyFull(company.id, e)}
+                                className="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                                title="Open full record page"
+                              >
+                                <ExternalLink className="size-3.5" />
+                              </Button>
+                              <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground transition-transform group-hover:translate-x-0.5" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="p-4 border-t border-border/70">
+                <CursorPaginationBar
+                  page={page}
+                  loading={loading}
+                  hasPrev={cursorStack.length > 0}
+                  hasNext={hasNext}
+                  onPrev={goPrevPage}
+                  onNext={goNextPage}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Slide-Over Company Dossier Drawer */}
+      <AdminCompanyDrawer
+        companyId={selectedCompanyId}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
     </div>
   )
 }

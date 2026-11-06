@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   documentId,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -23,6 +24,37 @@ import type { CursorValue } from '@/lib/cursorPagination'
 import type { AdminResume, AdminResumeDetail } from '@/types/admin'
 
 export type AdminResumeDefaultFilter = 'all' | 'default' | 'non-default'
+
+export interface AdminResumeMetrics {
+  total: number
+  defaultBaselines: number
+  tailoredVariants: number
+}
+
+export async function loadAdminResumeMetrics(): Promise<AdminResumeMetrics> {
+  const resumesCol = collection(db, collections.resumeVariants)
+
+  try {
+    const [totalSnap, defaultSnap, tailoredSnap] = await Promise.all([
+      getCountFromServer(resumesCol),
+      getCountFromServer(query(resumesCol, where('isDefault', '==', true))),
+      getCountFromServer(query(resumesCol, where('isDefault', '==', false))),
+    ])
+
+    return {
+      total: totalSnap.data().count,
+      defaultBaselines: defaultSnap.data().count,
+      tailoredVariants: tailoredSnap.data().count,
+    }
+  } catch (error) {
+    console.error('Failed to load resume metrics', error)
+    return {
+      total: 0,
+      defaultBaselines: 0,
+      tailoredVariants: 0,
+    }
+  }
+}
 
 export interface AdminResumeQuery {
   search?: string
@@ -53,7 +85,7 @@ function buildConstraints(input: AdminResumeQuery): QueryConstraint[] {
     constraints.push(where('searchTokens', 'array-contains-any', tokens))
   }
   constraints.push(orderBy('updatedAt', 'desc'))
-  constraints.push(orderBy(documentId(), 'asc'))
+  constraints.push(orderBy(documentId(), 'desc'))
   return constraints
 }
 
