@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   documentId,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -40,6 +41,44 @@ export interface AdminOpportunityPage {
   items: AdminOpportunity[]
   nextCursor: CursorValue | null
   hasMore: boolean
+}
+
+export interface AdminOpportunityMetrics {
+  total: number
+  qualified: number
+  newCount: number
+  rejected: number
+  archived: number
+}
+
+export async function loadAdminOpportunityMetrics(): Promise<AdminOpportunityMetrics> {
+  const jobsCol = collection(db, collections.jobs)
+  try {
+    const [totalSnap, qualifiedSnap, newSnap, rejectedSnap, archivedSnap] = await Promise.all([
+      getCountFromServer(jobsCol),
+      getCountFromServer(query(jobsCol, where('status', '==', 'qualified'))),
+      getCountFromServer(query(jobsCol, where('status', '==', 'new'))),
+      getCountFromServer(query(jobsCol, where('status', '==', 'rejected'))),
+      getCountFromServer(query(jobsCol, where('status', '==', 'archived'))),
+    ])
+
+    return {
+      total: totalSnap.data().count,
+      qualified: qualifiedSnap.data().count,
+      newCount: newSnap.data().count,
+      rejected: rejectedSnap.data().count,
+      archived: archivedSnap.data().count,
+    }
+  } catch (error) {
+    console.error('Failed to load opportunity metrics', error)
+    return {
+      total: 0,
+      qualified: 0,
+      newCount: 0,
+      rejected: 0,
+      archived: 0,
+    }
+  }
 }
 
 const jobs = collection(db, collections.jobs)
