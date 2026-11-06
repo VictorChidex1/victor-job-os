@@ -1,9 +1,11 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { Briefcase, LayoutGrid, List, Loader2, Search, X } from 'lucide-react'
 import { ApplicationBoard } from '@/components/applications/ApplicationBoard'
 import { ApplicationDetail } from '@/components/applications/ApplicationDetail'
 import { ApplicationTable } from '@/components/applications/ApplicationTable'
+import { PipelineMetricsStrip } from '@/components/applications/PipelineMetricsStrip'
+import { PipelineFlowBar } from '@/components/applications/PipelineFlowBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -21,6 +23,7 @@ import { usePageMeta } from '@/hooks/usePageMeta'
 import {
   applicationSummary,
   filterApplications,
+  groupApplications,
 } from '@/lib/applicationPipeline'
 
 type PipelineView = 'board' | 'list'
@@ -33,6 +36,7 @@ export function ApplicationsPage() {
   const query = searchParams.get('q') ?? ''
   const view: PipelineView = searchParams.get('view') === 'list' ? 'list' : 'board'
   const { items, loading, error, refresh } = useApplications()
+  const [targetStageId, setTargetStageId] = useState<string | undefined>()
 
   const updateSearchParam = useCallback(
     (key: string, value: string) => {
@@ -67,7 +71,12 @@ export function ApplicationsPage() {
   })
 
   const summary = useMemo(() => applicationSummary(items), [items])
+  const columns = useMemo(() => groupApplications(items), [items])
   const filtered = useMemo(() => filterApplications(items, query), [items, query])
+  const needsReviewCount = useMemo(
+    () => items.filter((a) => a.status === 'needs-review').length,
+    [items],
+  )
 
   const applicationHref = useCallback(
     (id: string) => {
@@ -136,6 +145,19 @@ export function ApplicationsPage() {
         />
       ) : (
         <div className="flex flex-col gap-4" aria-busy={loading}>
+          {/* Top 4-KPI Metric Strip */}
+          <PipelineMetricsStrip summary={summary} needsReviewCount={needsReviewCount} />
+
+          {/* Interactive 9-Stage Pipeline Flow Bar */}
+          <PipelineFlowBar
+            columns={columns}
+            activeStageId={targetStageId}
+            onSelectStage={(stageId) => {
+              setTargetStageId(stageId)
+              if (view !== 'board') setView('board')
+            }}
+          />
+
           <Card className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3">
             <div className="relative w-full sm:max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -201,6 +223,7 @@ export function ApplicationsPage() {
             <ApplicationBoard
               applications={filtered}
               applicationHref={applicationHref}
+              targetStageId={targetStageId}
             />
           ) : (
             <ApplicationTable

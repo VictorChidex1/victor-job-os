@@ -1,12 +1,15 @@
 import { db } from '@/services/firestore'
-import { createApplicationResumeService } from '@/services/applicationResumeService'
+import {
+  createApplicationResumeService,
+  type ApplicationResumeAttachment,
+} from '@/services/applicationResumeService'
 
 const service = createApplicationResumeService(db)
 
 export function attachResumeToApplication(
   uid: string,
   applicationId: string,
-  resumeUrl: string,
+  attachment: ApplicationResumeAttachment,
 ): Promise<void> {
-  return service.attach(uid, applicationId, resumeUrl)
+  return service.attach(uid, applicationId, attachment)
 }

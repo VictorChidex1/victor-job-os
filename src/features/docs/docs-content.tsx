@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Compass,
+  FileText,
   FolderKanban,
   Info,
   LayoutDashboard,
@@ -110,6 +111,7 @@ export const DOC_SECTIONS: DocsSection[] = [
               'Follow-up tracking',
               'Application pipeline and timeline',
               'Application preparation workspace',
+              'Resume variant library',
               'Profile and project evidence',
             ].map((item) => (
               <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -381,6 +383,10 @@ export const DOC_SECTIONS: DocsSection[] = [
             profile resume, record resume notes, draft and approve a cover letter, and prepare
             answers to application questions.
           </FeatureCard>
+          <FeatureCard icon={FileText} title="Resume variants">
+            Create named resume versions for different role targets, mark one as the suggested
+            default, and apply the right variant while preparing each application.
+          </FeatureCard>
           <FeatureCard icon={ShieldCheck} title="Strict status flow">
             The app enforces legal status transitions. You cannot jump from Submitted straight to
             Offer or bypass the review stages.
@@ -398,8 +404,8 @@ export const DOC_SECTIONS: DocsSection[] = [
           context, resume, cover letter, and application answers. The resume URL is snapshotted
           onto the application when attached. Use Save resume &amp; return in Profile to attach it
           and come back to the application Resume tab; the back arrow also saves unsaved resume
-          changes. Changing the resume resets the review checkbox. Resume variants and ATS metadata
-          are next.
+          changes. Resume variants are available from the Resumes page and can be applied per
+          application. Changing the resume resets the review checkbox. ATS metadata is next.
         </Callout>
 
         <Callout icon={Archive} title="Closed means closed" tone="muted">
@@ -594,8 +600,8 @@ export const DOC_SECTIONS: DocsSection[] = [
             and understand what changed.
           </FeatureCard>
           <FeatureCard icon={TriangleAlert} title="Current limitations">
-            Resume variants, ATS metadata, browser automation, and automatic submission are not
-            available yet. Do not treat generated content as verified fact.
+            ATS metadata, browser automation, and automatic submission are not available yet.
+            Do not treat generated content as verified fact.
           </FeatureCard>
         </FeatureGrid>
 
@@ -699,16 +705,16 @@ Rules:
         <div className="flex flex-wrap items-center gap-2">
           <Availability status="available" />
           <span className="text-sm text-muted-foreground">
-            Opportunity intelligence, outreach, applications, preparation, and company context
-            are available now.
+            Opportunity intelligence, outreach, applications, preparation, resume variants, and
+            company context are available now.
           </span>
         </div>
 
         <div className="space-y-3">
           <RoadmapItem
             status="next"
-            title="Resume variants and ATS metadata"
-            description="Tailor resume versions to a role and keep the metadata needed to understand what was submitted and why."
+            title="ATS metadata"
+            description="Capture application fields, screening questions, and ATS requirements where the source makes them available."
           />
           <RoadmapItem
             status="planned"

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { ExternalLink, FileText, Link2, Plus } from 'lucide-react'
+import { ExternalLink, FileText, Link2, Plus, Star } from 'lucide-react'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -11,15 +12,29 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import type { ApplicationResumeAttachment } from '@/services/applicationResumeService'
 import type { ApplicationPreparation } from '@/types/applicationPreparation'
+import type { ResumeVariant } from '@/types/resumeVariants'
+
+const PROFILE_RESUME = 'profile'
 
 export function ResumePreparation({
   applicationId,
   preparation,
   applicationResumeUrl,
+  applicationResumeVariantId,
+  applicationResumeVariantName,
   profileResumeUrl,
+  variants,
   readOnly,
   onSave,
   onAttachResume,
@@ -27,18 +42,22 @@ export function ResumePreparation({
   applicationId: string
   preparation: ApplicationPreparation
   applicationResumeUrl?: string
+  applicationResumeVariantId?: string
+  applicationResumeVariantName?: string
   profileResumeUrl?: string
+  variants: ResumeVariant[]
   readOnly: boolean
   onSave: (patch: {
     resumeNotes: string
     resumeReviewed: boolean
   }) => Promise<void>
-  onAttachResume: (resumeUrl: string) => Promise<void>
+  onAttachResume: (attachment: ApplicationResumeAttachment) => Promise<void>
 }) {
   const [notes, setNotes] = useState(preparation.resumeNotes)
   const [reviewed, setReviewed] = useState(preparation.resumeReviewed)
   const [saving, setSaving] = useState(false)
   const [attaching, setAttaching] = useState(false)
+  const [selectedResume, setSelectedResume] = useState('')
 
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- sync editor state after preparation refresh
@@ -47,6 +66,10 @@ export function ResumePreparation({
     setReviewed(preparation.resumeReviewed)
   }, [preparation.resumeNotes, preparation.resumeReviewed])
 
+  const attachedVariantId =
+    preparation.resumeVariantId ?? applicationResumeVariantId ?? ''
+  const attachedVariantName =
+    preparation.resumeVariantName ?? applicationResumeVariantName ?? ''
   const attachedResumeUrl = preparation.resumeUrl || applicationResumeUrl || ''
   const displayResumeUrl = attachedResumeUrl || profileResumeUrl || ''
   const usingProfileFallback = !attachedResumeUrl && Boolean(profileResumeUrl)
@@ -54,6 +77,22 @@ export function ResumePreparation({
   const profileState = {
     from: `/app/applications/${encodeURIComponent(applicationId)}/prepare?tab=resume`,
   }
+
+  useEffect(() => {
+    const defaultVariant = variants.find((variant) => variant.isDefault)
+    const attachedVariantExists = variants.some(
+      (variant) => variant.id === attachedVariantId,
+    )
+    const attachedIsProfile = Boolean(attachedResumeUrl && !attachedVariantId)
+    const suggested =
+      (attachedVariantExists ? attachedVariantId : '') ||
+      (attachedIsProfile
+        ? PROFILE_RESUME
+        : defaultVariant?.id ||
+          (usingProfileFallback ? PROFILE_RESUME : variants[0]?.id ?? PROFILE_RESUME))
+    // oxlint-disable-next-line react/set-state-in-effect -- keep selector in sync after preparation refresh
+    setSelectedResume(suggested)
+  }, [attachedResumeUrl, attachedVariantId, usingProfileFallback, variants])
 
   async function save() {
     setSaving(true)
@@ -67,18 +106,46 @@ export function ResumePreparation({
     }
   }
 
-  async function attachProfileResume() {
-    if (!profileResumeUrl) return
+  async function applyResume() {
+    if (selectedResume === PROFILE_RESUME) {
+      if (!profileResumeUrl) {
+        toast('Add a resume URL to your Profile first')
+        return
+      }
+      setAttaching(true)
+      try {
+        await onAttachResume({ resumeUrl: profileResumeUrl })
+        toast('Profile resume attached to this application')
+      } catch {
+        toast('Unable to attach the profile resume')
+      } finally {
+        setAttaching(false)
+      }
+      return
+    }
+
+    const variant = variants.find((item) => item.id === selectedResume)
+    if (!variant) {
+      toast('Choose a resume variant first')
+      return
+    }
+
     setAttaching(true)
     try {
-      await onAttachResume(profileResumeUrl)
-      toast('Profile resume attached to this application')
+      await onAttachResume({
+        resumeUrl: variant.resumeUrl,
+        resumeVariantId: variant.id,
+        resumeVariantName: variant.name,
+      })
+      toast(`${variant.name} attached to this application`)
     } catch {
-      toast('Unable to attach the profile resume')
+      toast('Unable to attach the resume variant')
     } finally {
       setAttaching(false)
     }
   }
+
+  const hasOptions = Boolean(profileResumeUrl) || variants.length > 0
 
   return (
     <div className="flex flex-col gap-4">
@@ -89,15 +156,23 @@ export function ResumePreparation({
             Resume for this application
           </CardTitle>
           <CardDescription>
-            The resume attached here is a snapshot for this application. Resume variants and
-            tailored versions arrive in item 59.
+            The resume attached here is a snapshot for this application. Choose a named
+            variant or use the current Profile resume.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {displayResumeUrl ? (
             <div className="rounded-lg border bg-muted/20 p-4">
-              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {usingProfileFallback ? 'Profile resume available' : 'Attached resume'}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {usingProfileFallback ? 'Profile resume available' : 'Attached resume'}
+                </div>
+                {attachedVariantName && (
+                  <Badge variant="secondary" className="gap-1">
+                    <FileText className="size-3" />
+                    {attachedVariantName}
+                  </Badge>
+                )}
               </div>
               <a
                 href={displayResumeUrl}
@@ -118,16 +193,6 @@ export function ResumePreparation({
                   <ExternalLink />
                   Open resume
                 </Button>
-                {usingProfileFallback && !readOnly && (
-                  <Button
-                    size="sm"
-                    onClick={() => void attachProfileResume()}
-                    disabled={attaching}
-                  >
-                    <Link2 />
-                    {attaching ? 'Attaching…' : 'Use this resume for this application'}
-                  </Button>
-                )}
               </div>
             </div>
           ) : (
@@ -175,6 +240,65 @@ export function ResumePreparation({
               disabled={readOnly}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Star className="size-4 text-primary" />
+            Resume variants
+          </CardTitle>
+          <CardDescription>
+            The default variant is a suggestion and is never attached automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {hasOptions ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Select
+                value={selectedResume}
+                onValueChange={(value) => setSelectedResume(value ?? '')}
+                disabled={readOnly || attaching}
+              >
+                <SelectTrigger className="w-full sm:max-w-sm">
+                  <SelectValue placeholder="Select a resume" />
+                </SelectTrigger>
+                <SelectContent>
+                  {profileResumeUrl && (
+                    <SelectItem value={PROFILE_RESUME}>Profile resume</SelectItem>
+                  )}
+                  {variants.map((variant) => (
+                    <SelectItem key={variant.id} value={variant.id}>
+                      {variant.name}
+                      {variant.isDefault ? ' (default)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={() => void applyResume()}
+                disabled={readOnly || attaching || !selectedResume}
+              >
+                <Link2 />
+                {attaching ? 'Attaching…' : 'Use selected resume'}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No resume variants yet. Create one from the Resumes page, or add a resume URL to
+              your Profile.
+            </p>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-fit"
+            render={<Link to="/app/resumes" />}
+          >
+            Manage resume variants
+          </Button>
         </CardContent>
       </Card>
 

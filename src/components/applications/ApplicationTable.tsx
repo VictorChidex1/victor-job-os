@@ -56,7 +56,11 @@ export function ApplicationTable({
                     {application.resumeUrl && (
                       <span
                         className="inline-flex items-center gap-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300"
-                        title="Resume attached"
+                        title={
+                          application.resumeVariantName
+                            ? `${application.resumeVariantName} resume attached`
+                            : 'Resume attached'
+                        }
                       >
                         <FileText className="size-2.5" />
                         Resume

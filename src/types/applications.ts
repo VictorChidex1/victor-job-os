@@ -51,6 +51,7 @@ export interface Application {
 
   /** Populated by later V2 steps (resume variants, contacts, preparation). */
   resumeVariantId?: string
+  resumeVariantName?: string
   /** Snapshot of the resume URL attached while preparing this application. */
   resumeUrl?: string
   contactId?: string
@@ -86,6 +87,7 @@ export type ApplicationDetailsPatch = Partial<
     | 'nextAction'
     | 'nextActionAt'
     | 'resumeVariantId'
+    | 'resumeVariantName'
     | 'resumeUrl'
     | 'contactId'
   >

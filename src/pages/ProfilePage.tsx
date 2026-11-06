@@ -305,7 +305,9 @@ export function ProfilePage() {
       return false
     }
     try {
-      await attachResumeToApplication(user.uid, linkedApplicationId, resumeUrl)
+      await attachResumeToApplication(user.uid, linkedApplicationId, {
+        resumeUrl,
+      })
       return true
     } catch (error) {
       toast('Resume saved to Profile', {

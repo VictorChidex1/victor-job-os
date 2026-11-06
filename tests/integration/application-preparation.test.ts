@@ -178,7 +178,7 @@ describe('application preparation service', () => {
     const resumeService = createApplicationResumeService(firestoreFor(owner))
     const preparationService = createApplicationPreparationService(firestoreFor(owner))
 
-    await resumeService.attach(owner, applicationId, 'https://example.com/resume-v1.pdf')
+    await resumeService.attach(owner, applicationId, { resumeUrl: 'https://example.com/resume-v1.pdf' })
 
     const application = await applicationService.get(applicationId)
     const preparation = await preparationService.get(owner, applicationId)
@@ -187,18 +187,59 @@ describe('application preparation service', () => {
     expect(preparation?.resumeReviewed).toBe(false)
   })
 
+  it('attaches a resume variant snapshot to the application and preparation', async () => {
+    const { applicationService, applicationId } = await createApplication()
+    const resumeService = createApplicationResumeService(firestoreFor(owner))
+    const preparationService = createApplicationPreparationService(firestoreFor(owner))
+
+    await resumeService.attach(owner, applicationId, {
+      resumeUrl: 'https://example.com/full-stack.pdf',
+      resumeVariantId: 'variant-full-stack',
+      resumeVariantName: 'Full Stack',
+    })
+
+    const application = await applicationService.get(applicationId)
+    const preparation = await preparationService.get(owner, applicationId)
+    expect(application?.resumeVariantId).toBe('variant-full-stack')
+    expect(application?.resumeVariantName).toBe('Full Stack')
+    expect(application?.resumeUrl).toBe('https://example.com/full-stack.pdf')
+    expect(preparation?.resumeVariantId).toBe('variant-full-stack')
+    expect(preparation?.resumeVariantName).toBe('Full Stack')
+    expect(preparation?.resumeUrl).toBe('https://example.com/full-stack.pdf')
+    expect(preparation?.resumeReviewed).toBe(false)
+  })
+
+  it('clears the variant when attaching the plain profile resume', async () => {
+    const { applicationService, applicationId } = await createApplication()
+    const resumeService = createApplicationResumeService(firestoreFor(owner))
+
+    await resumeService.attach(owner, applicationId, {
+      resumeUrl: 'https://example.com/full-stack.pdf',
+      resumeVariantId: 'variant-full-stack',
+      resumeVariantName: 'Full Stack',
+    })
+    await resumeService.attach(owner, applicationId, {
+      resumeUrl: 'https://example.com/profile.pdf',
+    })
+
+    const application = await applicationService.get(applicationId)
+    expect(application?.resumeVariantId).toBeUndefined()
+    expect(application?.resumeVariantName).toBeUndefined()
+    expect(application?.resumeUrl).toBe('https://example.com/profile.pdf')
+  })
+
   it('preserves resume review when the URL does not change and resets it when it does', async () => {
     const { applicationId } = await createApplication()
     const resumeService = createApplicationResumeService(firestoreFor(owner))
     const preparationService = createApplicationPreparationService(firestoreFor(owner))
 
-    await resumeService.attach(owner, applicationId, 'https://example.com/resume-v1.pdf')
+    await resumeService.attach(owner, applicationId, { resumeUrl: 'https://example.com/resume-v1.pdf' })
     await preparationService.save(owner, applicationId, { resumeReviewed: true })
 
-    await resumeService.attach(owner, applicationId, 'https://example.com/resume-v1.pdf')
+    await resumeService.attach(owner, applicationId, { resumeUrl: 'https://example.com/resume-v1.pdf' })
     expect((await preparationService.get(owner, applicationId))?.resumeReviewed).toBe(true)
 
-    await resumeService.attach(owner, applicationId, 'https://example.com/resume-v2.pdf')
+    await resumeService.attach(owner, applicationId, { resumeUrl: 'https://example.com/resume-v2.pdf' })
     expect((await preparationService.get(owner, applicationId))?.resumeReviewed).toBe(false)
   })
 
@@ -207,7 +248,7 @@ describe('application preparation service', () => {
     const otherResumeService = createApplicationResumeService(firestoreFor(other))
 
     await expect(
-      otherResumeService.attach(other, applicationId, 'https://example.com/hacked.pdf'),
+      otherResumeService.attach(other, applicationId, { resumeUrl: 'https://example.com/hacked.pdf' }),
     ).rejects.toThrow()
   })
 
@@ -219,7 +260,7 @@ describe('application preparation service', () => {
 
     const resumeService = createApplicationResumeService(firestoreFor(owner))
     await expect(
-      resumeService.attach(owner, applicationId, 'https://example.com/resume.pdf'),
+      resumeService.attach(owner, applicationId, { resumeUrl: 'https://example.com/resume.pdf' }),
     ).rejects.toThrow('locked')
   })
 })

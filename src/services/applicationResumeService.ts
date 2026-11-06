@@ -1,4 +1,5 @@
 import {
+  deleteField,
   doc,
   runTransaction,
   serverTimestamp,
@@ -12,13 +13,23 @@ import {
 } from '@/lib/applicationPreparation'
 import type { ApplicationStatus } from '@/types/applications'
 
+export interface ApplicationResumeAttachment {
+  resumeUrl: string
+  resumeVariantId?: string
+  resumeVariantName?: string
+}
+
 export interface ApplicationResumeService {
-  attach(uid: string, applicationId: string, resumeUrl: string): Promise<void>
+  attach(
+    uid: string,
+    applicationId: string,
+    attachment: ApplicationResumeAttachment,
+  ): Promise<void>
 }
 
 /**
  * Attaches a resume snapshot to both the application and its preparation
- * record. Changing the URL resets the resume review state.
+ * record. Changing the URL or variant resets the resume review state.
  */
 export function createApplicationResumeService(
   firestore: Firestore,
@@ -26,9 +37,11 @@ export function createApplicationResumeService(
   async function attach(
     uid: string,
     applicationId: string,
-    resumeUrl: string,
+    attachment: ApplicationResumeAttachment,
   ): Promise<void> {
-    const normalized = resumeUrl.trim()
+    const normalized = attachment.resumeUrl.trim()
+    const variantId = attachment.resumeVariantId?.trim() || undefined
+    const variantName = attachment.resumeVariantName?.trim() || undefined
     const applicationRef = doc(firestore, collections.applications, applicationId)
     const preparationRef = doc(
       firestore,
@@ -41,10 +54,11 @@ export function createApplicationResumeService(
       if (!applicationSnapshot.exists()) {
         throw new Error('Application not found.')
       }
-      if (applicationSnapshot.data()?.userId !== uid) {
+      const application = applicationSnapshot.data() ?? {}
+      if (application.userId !== uid) {
         throw new Error('This application does not belong to you.')
       }
-      const status = applicationSnapshot.data()?.status as ApplicationStatus | undefined
+      const status = application.status as ApplicationStatus | undefined
       if (status && isPreparationReadOnly(status)) {
         throw new Error('Preparation is locked for this application.')
       }
@@ -54,17 +68,40 @@ export function createApplicationResumeService(
         ? preparationSnapshot.data()
         : null
       const previousResume =
-        typeof existing?.resumeUrl === 'string' ? existing.resumeUrl : ''
-      const resumeChanged = previousResume !== normalized
+        typeof existing?.resumeUrl === 'string'
+          ? existing.resumeUrl
+          : typeof application.resumeUrl === 'string'
+            ? application.resumeUrl
+            : ''
+      const previousVariantId =
+        typeof existing?.resumeVariantId === 'string'
+          ? existing.resumeVariantId
+          : typeof application.resumeVariantId === 'string'
+            ? application.resumeVariantId
+            : ''
+      const resumeChanged =
+        previousResume !== normalized || previousVariantId !== (variantId ?? '')
 
       transaction.update(applicationRef, {
         resumeUrl: normalized,
+        ...(variantId
+          ? { resumeVariantId: variantId }
+          : { resumeVariantId: deleteField() }),
+        ...(variantName
+          ? { resumeVariantName: variantName }
+          : { resumeVariantName: deleteField() }),
         updatedAt: serverTimestamp(),
       })
 
       if (preparationSnapshot.exists()) {
         transaction.update(preparationRef, {
           resumeUrl: normalized,
+          ...(variantId
+            ? { resumeVariantId: variantId }
+            : { resumeVariantId: deleteField() }),
+          ...(variantName
+            ? { resumeVariantName: variantName }
+            : { resumeVariantName: deleteField() }),
           ...(resumeChanged ? { resumeReviewed: false } : {}),
           updatedAt: serverTimestamp(),
         })
@@ -75,6 +112,8 @@ export function createApplicationResumeService(
           coverLetter: createEmptyCoverLetter(),
           answers: [],
           resumeUrl: normalized,
+          ...(variantId ? { resumeVariantId: variantId } : {}),
+          ...(variantName ? { resumeVariantName: variantName } : {}),
           resumeNotes: '',
           resumeReviewed: false,
           createdAt: serverTimestamp(),

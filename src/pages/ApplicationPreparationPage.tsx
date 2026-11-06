@@ -32,7 +32,9 @@ import { useJobAnalysis } from '@/hooks/useJobAnalysis'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { useProfile } from '@/hooks/useProfile'
 import { useProjects } from '@/hooks/useProjects'
+import { useResumeVariants } from '@/hooks/useResumeVariants'
 import { attachResumeToApplication } from '@/services/applicationResume'
+import type { ApplicationResumeAttachment } from '@/services/applicationResumeService'
 import {
   createEmptyPreparation,
   isPreparationReadOnly,
@@ -104,6 +106,7 @@ export function ApplicationPreparationPage() {
   const { company } = useCompany(application?.companyId)
   const { profile } = useProfile()
   const { projects } = useProjects()
+  const { variants } = useResumeVariants()
 
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = searchParams.get('tab')
@@ -149,11 +152,11 @@ export function ApplicationPreparationPage() {
     navigate('/app/applications')
   }
 
-  async function attachResume(resumeUrl: string) {
+  async function attachResume(attachment: ApplicationResumeAttachment) {
     if (!user || !application) {
       throw new Error('Sign in required to attach a resume.')
     }
-    await attachResumeToApplication(user.uid, application.id, resumeUrl)
+    await attachResumeToApplication(user.uid, application.id, attachment)
     await Promise.all([refreshPreparation(), refreshApplication()])
   }
 
@@ -292,7 +295,10 @@ export function ApplicationPreparationPage() {
               applicationId={application.id}
               preparation={effectivePreparation}
               applicationResumeUrl={application.resumeUrl}
+              applicationResumeVariantId={application.resumeVariantId}
+              applicationResumeVariantName={application.resumeVariantName}
               profileResumeUrl={profile?.resumeUrl}
+              variants={variants}
               readOnly={readOnly}
               onSave={save}
               onAttachResume={attachResume}

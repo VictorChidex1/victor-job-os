@@ -331,6 +331,7 @@ function toApplication(id: string, data: DocumentData): Application {
     outcome: data.outcome,
     origin: (data.origin as ApplicationOrigin) ?? 'opportunity',
     resumeVariantId: data.resumeVariantId,
+    resumeVariantName: data.resumeVariantName,
     resumeUrl: data.resumeUrl,
     contactId: data.contactId,
     nextAction: data.nextAction,

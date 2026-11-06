@@ -47,6 +47,13 @@ service cloud.firestore {
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
+    match /resumeVariants/{documentId} {
+      allow read: if signedIn() && (resource == null || ownsUserField(resource.data));
+      allow delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data);
+      allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
+    }
+
     match /jobSources/{documentId} {
       allow read, delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);

@@ -83,6 +83,7 @@ describe('Firestore security rules', () => {
       'applications',
       'applicationEvents',
       'applicationPreparations',
+      'resumeVariants',
       'contacts',
       'followUps',
       'activityLogs',

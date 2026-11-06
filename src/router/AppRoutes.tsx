@@ -19,6 +19,12 @@ export const ProjectsPage = lazy(() =>
   import('@/pages/ProjectsPage').then((module) => ({ default: module.ProjectsPage })),
 )
 
+export const ResumeVariantsPage = lazy(() =>
+  import('@/pages/ResumeVariantsPage').then((module) => ({
+    default: module.ResumeVariantsPage,
+  })),
+)
+
 export const SettingsPage = lazy(() =>
   import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })),
 )
@@ -111,6 +117,14 @@ export function ProjectsRoute() {
   return (
     <Suspense fallback={<LoadingState rows={3} />}>
       <ProjectsPage />
+    </Suspense>
+  )
+}
+
+export function ResumeVariantsRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <ResumeVariantsPage />
     </Suspense>
   )
 }

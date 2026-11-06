@@ -81,6 +81,16 @@ export function createApplicationPreparationService(
           patch.resumeUrl !== undefined
             ? stripHtml(patch.resumeUrl).trim()
             : (existing?.resumeUrl ?? ''),
+        ...(patch.resumeVariantId !== undefined
+          ? { resumeVariantId: patch.resumeVariantId }
+          : existing?.resumeVariantId
+            ? { resumeVariantId: existing.resumeVariantId }
+            : {}),
+        ...(patch.resumeVariantName !== undefined
+          ? { resumeVariantName: patch.resumeVariantName }
+          : existing?.resumeVariantName
+            ? { resumeVariantName: existing.resumeVariantName }
+            : {}),
         resumeNotes:
            patch.resumeNotes !== undefined
              ? stripHtml(patch.resumeNotes).trim()
@@ -162,6 +172,12 @@ function toPreparation(
       ? data.answers.map((answer) => toAnswer(answer as DocumentData))
       : [],
     resumeUrl: typeof data.resumeUrl === 'string' ? data.resumeUrl : '',
+    ...(typeof data.resumeVariantId === 'string' && data.resumeVariantId
+      ? { resumeVariantId: data.resumeVariantId }
+      : {}),
+    ...(typeof data.resumeVariantName === 'string' && data.resumeVariantName
+      ? { resumeVariantName: data.resumeVariantName }
+      : {}),
     resumeNotes: typeof data.resumeNotes === 'string' ? data.resumeNotes : '',
     resumeReviewed: data.resumeReviewed === true,
     createdAt: optionalTimestamp(data.createdAt),

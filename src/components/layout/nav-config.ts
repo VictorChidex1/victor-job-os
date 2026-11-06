@@ -5,6 +5,7 @@ import {
   Briefcase,
   Building2,
   ClipboardList,
+  FileText,
   FolderKanban,
   LayoutDashboard,
   Send,
@@ -40,6 +41,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: 'Companies', to: '/app/companies', icon: Building2 },
       { label: 'Projects', to: '/app/projects', icon: FolderKanban },
+      { label: 'Resumes', to: '/app/resumes', icon: FileText },
     ],
   },
   {
@@ -66,6 +68,7 @@ export const topBarTitles: Record<string, string> = {
   '/app/outreach': 'Outreach',
   '/app/companies': 'Companies',
   '/app/projects': 'Projects',
+  '/app/resumes': 'Resumes',
   '/app/activity': 'Activity',
   '/app/automation': 'Automation',
   '/app/profile': 'Profile',

@@ -40,6 +40,8 @@ export interface ApplicationPreparation {
   answers: ApplicationAnswerDraft[]
   /** Snapshot of the resume URL attached to this application. */
   resumeUrl: string
+  resumeVariantId?: string
+  resumeVariantName?: string
   resumeNotes: string
   resumeReviewed: boolean
   createdAt?: Timestamp
@@ -50,6 +52,8 @@ export interface ApplicationPreparationPatch {
   coverLetter?: CoverLetterDraft
   answers?: ApplicationAnswerDraft[]
   resumeUrl?: string
+  resumeVariantId?: string
+  resumeVariantName?: string
   resumeNotes?: string
   resumeReviewed?: boolean
 }

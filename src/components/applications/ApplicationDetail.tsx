@@ -355,7 +355,7 @@ export function ApplicationDetail({
                     rel="noreferrer"
                     className="inline-flex max-w-[12rem] items-center gap-1 truncate text-sm text-primary underline underline-offset-4"
                   >
-                    Attached resume
+                    {application.resumeVariantName || 'Attached resume'}
                     <ExternalLink className="size-3 shrink-0" />
                   </a>
                 </div>

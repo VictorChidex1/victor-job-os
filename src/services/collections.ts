@@ -2,6 +2,7 @@ export const collections = {
   users: 'users',
   profiles: 'profiles',
   projects: 'projects',
+  resumeVariants: 'resumeVariants',
   settings: 'settings',
   jobSources: 'jobSources',
   jobs: 'jobs',
