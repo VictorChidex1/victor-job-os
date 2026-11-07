@@ -28,7 +28,12 @@
     "admin:grant-owner:emulator": "node functions/scripts/grant-admin.mjs --owner --emulator",
     "deploy:rules": "node scripts/deploy-firestore-rules.mjs --confirm",
     "admin:audit-owner": "node functions/scripts/grant-admin.mjs --owner --audit-only",
-    "admin:audit-owner:emulator": "node functions/scripts/grant-admin.mjs --owner --audit-only --emulator"
+    "admin:audit-owner:emulator": "node functions/scripts/grant-admin.mjs --owner --audit-only --emulator",
+    "deploy:indexes": "firebase deploy --only firestore:indexes --project victor-job-os --non-interactive",
+    "deploy:hosting": "firebase deploy --only hosting --project victor-job-os --non-interactive",
+    "deploy:functions": "firebase deploy --only functions --project victor-job-os --non-interactive",
+    "deploy:admin": "npm run build && node scripts/deploy-firestore-rules.mjs --confirm --yes && firebase deploy --only firestore:indexes --project victor-job-os --non-interactive && firebase deploy --only hosting --project victor-job-os --non-interactive",
+    "verify:admin": "node scripts/verify-admin-deployment.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

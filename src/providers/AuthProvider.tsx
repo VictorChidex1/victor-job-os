@@ -1,6 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
 import { AuthContext, type AuthContextValue } from '@/providers/auth-context'
-import { auth, onAuthStateChange } from '@/services/auth'
+import { auth, onAuthStateChange, signOutUser } from '@/services/auth'
+import { db } from '@/services/firestore'
+import { collections } from '@/services/collections'
 import { ensureUserDocument } from '@/services/users'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -23,13 +26,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setIsAdminLoading(true)
-      void nextUser
-        .getIdTokenResult()
-        .then((token) => {
+      void Promise.all([
+        // Force a refresh so newly granted or revoked admin claims apply as
+        // soon as the console loads.
+        nextUser.getIdTokenResult(true),
+        getDoc(doc(db, collections.users, nextUser.uid)),
+      ])
+        .then(([token, snapshot]) => {
           if (!active || auth.currentUser?.uid !== nextUser.uid) return
-          setIsAdmin(token.claims.admin === true)
+
+          const data = snapshot.exists() ? snapshot.data() : null
+          if (data?.disabled === true) {
+            setIsAdmin(false)
+            void signOutUser()
+            return
+          }
+
+          const role = data?.role
+          const hasAdminRole = role === 'admin' || role === 'owner'
+          setIsAdmin(token.claims.admin === true && hasAdminRole)
         })
         .catch(() => {
+          // A disabled account can be denied this read by the strict rules.
           if (active) setIsAdmin(false)
         })
         .finally(() => {
