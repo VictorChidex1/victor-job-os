@@ -1,6 +1,13 @@
 import { useMemo } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
-import { ChevronRight, ScrollText } from 'lucide-react'
+import {
+  ChevronRight,
+  ScrollText,
+  ShieldAlert,
+  Target,
+  UserCheck,
+  X,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +22,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import {
   Table,
@@ -177,74 +183,154 @@ export function AdminAuditLogPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="grid gap-2 lg:grid-cols-[15rem_14rem_14rem]">
-            <Select
-              value={action || 'all'}
-              onValueChange={(value) =>
-                updateFilter('action', value === 'all' ? '' : (value ?? ''))
-              }
-            >
-              <SelectTrigger className="h-9 bg-white">
-                <SelectValue placeholder="Action" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All actions</SelectItem>
-                {AUDIT_ACTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {actionLabel(option)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Audit Action Select */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <ShieldAlert className="size-3 text-primary" />
+                <span>Audit Action</span>
+              </label>
+              <Select
+                value={action || 'all'}
+                onValueChange={(value) =>
+                  updateFilter('action', value === 'all' ? '' : (value ?? ''))
+                }
+              >
+                <SelectTrigger className="h-9 w-full bg-white text-xs">
+                  <div className="flex items-center gap-1.5 truncate text-left flex-1 min-w-0">
+                    <span className="font-semibold text-muted-foreground">Action:</span>
+                    <span className="font-bold text-foreground truncate">
+                      {action ? actionLabel(action) : 'All actions'}
+                    </span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All actions</SelectItem>
+                  {AUDIT_ACTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {actionLabel(option)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select
-              value={actorUid || 'all'}
-              onValueChange={(value) =>
-                updateFilter('actor', value === 'all' ? '' : (value ?? ''))
-              }
-            >
-              <SelectTrigger className="h-9 bg-white">
-                <SelectValue placeholder="Actor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All actors</SelectItem>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.displayName || user.email || user.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Actor Select */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <UserCheck className="size-3 text-primary" />
+                <span>Actor / Initiator</span>
+              </label>
+              <Select
+                value={actorUid || 'all'}
+                onValueChange={(value) =>
+                  updateFilter('actor', value === 'all' ? '' : (value ?? ''))
+                }
+              >
+                <SelectTrigger className="h-9 w-full bg-white text-xs">
+                  <div className="flex items-center gap-1.5 truncate text-left flex-1 min-w-0">
+                    <span className="font-semibold text-muted-foreground">Actor:</span>
+                    <span className="font-bold text-foreground truncate">
+                      {actorUid ? userLabel(actorUid) : 'All actors'}
+                    </span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All actors</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.displayName || user.email || user.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select
-              value={targetUid || 'all'}
-              onValueChange={(value) =>
-                updateFilter('target', value === 'all' ? '' : (value ?? ''))
-              }
-            >
-              <SelectTrigger className="h-9 bg-white">
-                <SelectValue placeholder="Target" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All targets</SelectItem>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.displayName || user.email || user.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Target Select */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Target className="size-3 text-primary" />
+                <span>Target Subject</span>
+              </label>
+              <Select
+                value={targetUid || 'all'}
+                onValueChange={(value) =>
+                  updateFilter('target', value === 'all' ? '' : (value ?? ''))
+                }
+              >
+                <SelectTrigger className="h-9 w-full bg-white text-xs">
+                  <div className="flex items-center gap-1.5 truncate text-left flex-1 min-w-0">
+                    <span className="font-semibold text-muted-foreground">Target:</span>
+                    <span className="font-bold text-foreground truncate">
+                      {targetUid ? userLabel(targetUid) : 'All targets'}
+                    </span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All targets</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.displayName || user.email || user.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
+          {/* Active Filter Indicators */}
           {hasFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-fit text-slate-500"
-              onClick={clearFilters}
-            >
-              Clear filters
-            </Button>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-slate-400 text-[11px]">Active filters:</span>
+                {action && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                    Action: <b>{actionLabel(action)}</b>
+                    <button
+                      type="button"
+                      onClick={() => updateFilter('action', '')}
+                      className="text-slate-400 hover:text-slate-700"
+                      aria-label="Remove action filter"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                )}
+                {actorUid && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                    Actor: <b>{userLabel(actorUid)}</b>
+                    <button
+                      type="button"
+                      onClick={() => updateFilter('actor', '')}
+                      className="text-slate-400 hover:text-slate-700"
+                      aria-label="Remove actor filter"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                )}
+                {targetUid && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                    Target: <b>{userLabel(targetUid)}</b>
+                    <button
+                      type="button"
+                      onClick={() => updateFilter('target', '')}
+                      className="text-slate-400 hover:text-slate-700"
+                      aria-label="Remove target filter"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-[11px] font-medium text-primary hover:underline"
+              >
+                Reset all
+              </button>
+            </div>
           )}
         </CardContent>
       </Card>
