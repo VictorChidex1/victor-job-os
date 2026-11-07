@@ -4,10 +4,10 @@ import {
   Building2,
   CalendarClock,
   ChevronRight,
-  Filter,
   Mail,
   RefreshCw,
   Search,
+  SendHorizontal,
   User,
   X,
 } from 'lucide-react'
@@ -25,7 +25,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import {
   Table,
@@ -233,69 +232,95 @@ export function AdminOutreachPage() {
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_13rem_14rem]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_14rem_14rem]">
             {/* Search Input */}
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search company, role, contact, or subject…"
-                className="h-9 bg-white pl-9 pr-8 text-xs"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  onClick={() => setSearchInput('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700"
-                  aria-label="Clear search"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Search className="size-3 text-primary" />
+                <span>Keyword Search</span>
+              </label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder="Search company, role, contact, or subject…"
+                  className="h-9 bg-white pl-9 pr-8 text-xs"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchInput('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700"
+                    aria-label="Clear search"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Status Select */}
-            <Select
-              value={status || 'all'}
-              onValueChange={(value) =>
-                updateFilter('status', value === 'all' ? '' : (value ?? ''))
-              }
-            >
-              <SelectTrigger className="h-9 bg-white text-xs gap-1.5">
-                <Filter className="size-3 text-slate-400 shrink-0" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option} className="capitalize">
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <SendHorizontal className="size-3 text-primary" />
+                <span>Delivery Status</span>
+              </label>
+              <Select
+                value={status || 'all'}
+                onValueChange={(value) =>
+                  updateFilter('status', value === 'all' ? '' : (value ?? ''))
+                }
+              >
+                <SelectTrigger className="h-9 w-full bg-white text-xs">
+                  <div className="flex items-center gap-1.5 truncate text-left flex-1 min-w-0">
+                    <span className="font-semibold text-muted-foreground">Status:</span>
+                    <span className="font-bold text-foreground truncate">
+                      {status ? (status.charAt(0).toUpperCase() + status.slice(1).replace(/-/g, ' ')) : 'All outreach'}
+                    </span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option} className="capitalize">
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* User Select */}
-            <Select
-              value={userId || 'all'}
-              onValueChange={(value) =>
-                updateFilter('user', value === 'all' ? '' : (value ?? ''))
-              }
-            >
-              <SelectTrigger className="h-9 bg-white text-xs gap-1.5">
-                <User className="size-3 text-slate-400 shrink-0" />
-                <SelectValue placeholder="User" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All users</SelectItem>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.displayName || user.email || user.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <User className="size-3 text-primary" />
+                <span>Candidate / User</span>
+              </label>
+              <Select
+                value={userId || 'all'}
+                onValueChange={(value) =>
+                  updateFilter('user', value === 'all' ? '' : (value ?? ''))
+                }
+              >
+                <SelectTrigger className="h-9 w-full bg-white text-xs">
+                  <div className="flex items-center gap-1.5 truncate text-left flex-1 min-w-0">
+                    <span className="font-semibold text-muted-foreground">Candidate:</span>
+                    <span className="font-bold text-foreground truncate">
+                      {userId ? (users.find((u) => u.id === userId)?.displayName || users.find((u) => u.id === userId)?.email || userId) : 'All users'}
+                    </span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All users</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.displayName || user.email || user.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Active Filter Indicators */}
