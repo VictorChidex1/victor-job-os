@@ -10,6 +10,11 @@ import {
   generateCoverLetter,
   generateApplicationAnswers,
 } from './applications/preparationFunctions.js'
+import {
+  adminSetUserRole,
+  adminSetUserDisabled,
+  adminDeleteUser,
+} from './admin/userManagement.js'
 
 export {
   discoverJobs,
@@ -24,4 +29,7 @@ export {
   runFollowUpsNow,
   generateCoverLetter,
   generateApplicationAnswers,
+  adminSetUserRole,
+  adminSetUserDisabled,
+  adminDeleteUser,
 }

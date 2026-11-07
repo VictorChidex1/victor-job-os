@@ -124,6 +124,18 @@ export const AdminErrorDetailPage = lazy(() =>
   })),
 )
 
+export const AdminAuditLogPage = lazy(() =>
+  import('@/pages/AdminAuditLogPage').then((module) => ({
+    default: module.AdminAuditLogPage,
+  })),
+)
+
+export const AdminAuditLogDetailPage = lazy(() =>
+  import('@/pages/AdminAuditLogDetailPage').then((module) => ({
+    default: module.AdminAuditLogDetailPage,
+  })),
+)
+
 export const ProfilePage = lazy(() =>
   import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })),
 )
@@ -380,6 +392,22 @@ export function AdminErrorDetailRoute() {
   return (
     <Suspense fallback={<LoadingState rows={5} />}>
       <AdminErrorDetailPage />
+    </Suspense>
+  )
+}
+
+export function AdminAuditLogRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminAuditLogPage />
+    </Suspense>
+  )
+}
+
+export function AdminAuditLogDetailRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminAuditLogDetailPage />
     </Suspense>
   )
 }

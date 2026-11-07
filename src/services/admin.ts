@@ -303,6 +303,7 @@ export function toAdminUser(id: string, data: DocumentData): AdminUserSummary {
     displayName:
       typeof data.displayName === 'string' ? data.displayName : null,
     role: isUserRole(data.role) ? data.role : 'user',
+    disabled: data.disabled === true,
     createdAt: data.createdAt as FirestoreTimestamp | undefined,
   }
 }

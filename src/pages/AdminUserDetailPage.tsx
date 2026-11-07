@@ -9,6 +9,7 @@ import {
   Send,
   ShieldCheck,
 } from 'lucide-react'
+import { AdminUserManagementCard } from '@/components/admin/AdminUserManagementCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -108,11 +109,17 @@ export function AdminUserDetailPage() {
   }
 
   return (
-    <UserDetailContent detail={detail} />
+    <UserDetailContent detail={detail} onRefresh={refresh} />
   )
 }
 
-function UserDetailContent({ detail }: { detail: AdminUserDetail }) {
+function UserDetailContent({
+  detail,
+  onRefresh,
+}: {
+  detail: AdminUserDetail
+  onRefresh: () => Promise<void>
+}) {
   const user = detail.user
   const initials = (user.displayName || user.email || 'U')
     .split(/\s+/)
@@ -130,7 +137,7 @@ function UserDetailContent({ detail }: { detail: AdminUserDetail }) {
         </Button>
         <Badge variant="outline" className="gap-1 border-slate-200 text-slate-500">
           <ShieldCheck className="size-3" />
-          Read-only admin view
+          Secure admin view
         </Badge>
       </div>
 
@@ -146,6 +153,9 @@ function UserDetailContent({ detail }: { detail: AdminUserDetail }) {
                   {user.displayName || 'Unnamed user'}
                 </h1>
                 <Badge variant={roleVariant(user.role)}>{user.role}</Badge>
+                <Badge variant={user.disabled ? 'outline' : 'secondary'}>
+                  {user.disabled ? 'Disabled' : 'Active'}
+                </Badge>
               </div>
               <p className="mt-1 text-sm text-slate-500">{user.email || 'No email'}</p>
               <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-500">
@@ -155,11 +165,13 @@ function UserDetailContent({ detail }: { detail: AdminUserDetail }) {
             </div>
           </div>
           <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-            This is a read-only user inspection view. Impersonation and account management
-            actions are not enabled.
+            Read-only data inspection remains the default. Protected account actions are
+            available in the management panel below.
           </p>
         </CardContent>
       </Card>
+
+      <AdminUserManagementCard user={user} onUpdated={onRefresh} />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {COUNT_METRICS.map((metric) => {

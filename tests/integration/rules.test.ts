@@ -197,6 +197,10 @@ describe('Firestore security rules', () => {
         userId: owner,
         token: 'lock-token',
       })
+      await setDoc(doc(firestore, 'users', 'user-admin'), {
+        uid: 'user-admin',
+        role: 'admin',
+      })
     })
 
     const dbAdmin = testEnv
@@ -224,6 +228,12 @@ describe('Firestore security rules', () => {
     )
 
     const admin = 'user-admin'
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users', admin), {
+        uid: admin,
+        role: 'admin',
+      })
+    })
     const dbAdmin = testEnv
       .authenticatedContext(admin, { admin: true })
       .firestore()
@@ -250,12 +260,64 @@ describe('Firestore security rules', () => {
       updateDoc(doc(dbOwner, 'users', owner), { uid: 'someone-else' }),
     )
 
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users', 'user-admin'), {
+        uid: 'user-admin',
+        role: 'admin',
+      })
+    })
     const dbAdmin = testEnv
       .authenticatedContext('user-admin', { admin: true })
       .firestore()
-    await assertSucceeds(
+    await assertFails(
       updateDoc(doc(dbAdmin, 'users', owner), { role: 'admin' }),
     )
-    await assertSucceeds(getDoc(doc(dbAdmin, 'users', owner)))
+  })
+
+  it('blocks disabled accounts immediately', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore()
+      await setDoc(doc(firestore, 'users', owner), {
+        uid: owner,
+        role: 'user',
+        disabled: true,
+      })
+      await setDoc(doc(firestore, 'jobs', 'disabled-job'), {
+        userId: owner,
+        title: 'Should stay private',
+      })
+    })
+
+    const dbOwner = testEnv.authenticatedContext(owner).firestore()
+    await assertFails(getDoc(doc(dbOwner, 'jobs', 'disabled-job')))
+    await assertFails(getDoc(doc(dbOwner, 'users', owner)))
+  })
+
+  it('allows admins to read audit logs but not write them', async () => {
+    const admin = 'user-admin-audit'
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore()
+      await setDoc(doc(firestore, 'users', admin), {
+        uid: admin,
+        role: 'admin',
+      })
+      await setDoc(doc(firestore, 'adminAuditLogs', 'audit-1'), {
+        actorUid: admin,
+        targetUid: owner,
+        action: 'role-changed',
+      })
+    })
+
+    const dbAdmin = testEnv
+      .authenticatedContext(admin, { admin: true })
+      .firestore()
+    await assertSucceeds(getDoc(doc(dbAdmin, 'adminAuditLogs', 'audit-1')))
+    await assertFails(
+      setDoc(doc(dbAdmin, 'adminAuditLogs', 'audit-2'), {
+        actorUid: admin,
+        targetUid: owner,
+        action: 'role-changed',
+      }),
+    )
   })
 })

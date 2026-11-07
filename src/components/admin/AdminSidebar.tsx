@@ -51,20 +51,6 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
           )
         })}
 
-        <div className="px-3 pb-1 pt-6 text-[0.65rem] font-bold uppercase tracking-widest text-slate-400">
-          Coming next
-        </div>
-        {['Audit log'].map(
-          (label) => (
-            <div
-              key={label}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400"
-            >
-              <span className="size-1.5 rounded-full bg-slate-300" />
-              {label}
-            </div>
-          ),
-        )}
       </nav>
 
       <div className="shrink-0 space-y-1 border-t border-slate-200 p-3">

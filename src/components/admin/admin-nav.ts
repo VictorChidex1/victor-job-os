@@ -39,4 +39,5 @@ export const adminTopBarTitles: Record<string, string> = {
   '/admin/system': 'System health',
   '/admin/system/ai-usage': 'AI usage',
   '/admin/system/errors': 'Errors',
+  '/admin/system/audit': 'Audit log',
 }

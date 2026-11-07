@@ -23,7 +23,12 @@
     "emulators:exec": "npm --prefix functions run build && firebase emulators:exec --import=.firebase/emulator-export --export-on-exit=.firebase/emulator-export",
     "emulators:export": "firebase emulators:export .firebase/emulator-export",
     "emulators:backup": "bash -c 'ts=$(date +%Y%m%d-%H%M%S); mkdir -p .firebase/backups; if [ -d .firebase/emulator-export ] && [ -n \"$(ls -A .firebase/emulator-export)\" ]; then cp -R .firebase/emulator-export .firebase/backups/emulator-export-$ts && echo \"Backup saved to .firebase/backups/emulator-export-$ts\"; else echo \"No emulator-export data to back up (run npm run emulators:export first).\"; fi'",
-    "emulators:stop": "lsof -iTCP:8080 -sTCP:LISTEN -t | xargs kill"
+    "emulators:stop": "lsof -iTCP:8080 -sTCP:LISTEN -t | xargs kill",
+    "admin:grant-owner": "node functions/scripts/grant-admin.mjs --owner",
+    "admin:grant-owner:emulator": "node functions/scripts/grant-admin.mjs --owner --emulator",
+    "deploy:rules": "node scripts/deploy-firestore-rules.mjs --confirm",
+    "admin:audit-owner": "node functions/scripts/grant-admin.mjs --owner --audit-only",
+    "admin:audit-owner:emulator": "node functions/scripts/grant-admin.mjs --owner --audit-only --emulator"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

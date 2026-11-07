@@ -17,29 +17,50 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    // Disabled accounts lose Firestore access immediately, even if their
+    // existing ID token has not expired yet.
+    function isActiveAccount() {
+      return signedIn() && (
+        !exists(userPath(request.auth.uid)) ||
+        get(userPath(request.auth.uid)).data.get('disabled', false) != true
+      );
+    }
+
     // Documents keyed by the authenticated user's UID.
     function isOwnerId(uid) {
-      return signedIn() && request.auth.uid == uid;
+      return isActiveAccount() && request.auth.uid == uid;
     }
 
     // Documents carrying a `userId` field owned by the authenticated user.
     function ownsUserField(data) {
-      return signedIn() && data.userId == request.auth.uid;
+      return isActiveAccount() && data.userId == request.auth.uid;
     }
 
+    // The custom claim grants admin intent, while the role mirror lets us
+    // revoke demoted admins immediately. Both must agree.
     function isAdmin() {
-      return signedIn() && request.auth.token.admin == true;
+      return isActiveAccount() &&
+        request.auth.token.admin == true &&
+        exists(userPath(request.auth.uid)) &&
+        (
+          get(userPath(request.auth.uid)).data.get('role', 'user') == 'admin' ||
+          get(userPath(request.auth.uid)).data.get('role', 'user') == 'owner'
+        );
     }
 
     // Owned documents keyed by the authenticated user's UID.
     match /users/{uid} {
       allow read: if isOwnerId(uid) || isAdmin();
       allow create: if isOwnerId(uid) && request.resource.data.role == 'user';
-      allow update: if isAdmin() || (
-        isOwnerId(uid) &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'uid'])
-      );
-      allow delete: if isAdmin();
+      allow update: if isOwnerId(uid) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+          ['role', 'uid', 'disabled', 'createdAt'],
+        );
+      allow delete: if false;
     }
 
     match /profiles/{uid} {
@@ -61,7 +82,7 @@ service cloud.firestore {
     }
 
     match /resumeVariants/{documentId} {
-      allow read: if isAdmin() || (signedIn() && (resource == null || ownsUserField(resource.data)));
+      allow read: if isAdmin() || (isActiveAccount() && (resource == null || ownsUserField(resource.data)));
       allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
@@ -106,7 +127,7 @@ service cloud.firestore {
     // means clients may probe for an existing application before creating it,
     // so reads of a missing document are allowed for signed-in users.
     match /applications/{documentId} {
-      allow read: if isAdmin() || (signedIn() && (resource == null || ownsUserField(resource.data)));
+      allow read: if isAdmin() || (isActiveAccount() && (resource == null || ownsUserField(resource.data)));
       allow delete: if ownsUserField(resource.data);
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
@@ -125,8 +146,8 @@ service cloud.firestore {
     // pipeline list stays lightweight. A deterministic uid-prefixed id keeps
     // preparation documents isolated even if another user knows an app id.
     match /applicationPreparations/{documentId} {
-      allow read: if isAdmin() || (signedIn() && (resource == null || ownsUserField(resource.data)));
-      allow delete: if signedIn() && (resource == null || ownsUserField(resource.data));
+      allow read: if isAdmin() || (isActiveAccount() && (resource == null || ownsUserField(resource.data)));
+      allow delete: if isActiveAccount() && (resource == null || ownsUserField(resource.data));
       allow create: if ownsUserField(request.resource.data);
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
@@ -163,6 +184,12 @@ service cloud.firestore {
       allow read: if ownsUserField(resource.data) || isAdmin();
       allow create: if ownsUserField(request.resource.data);
       allow update, delete: if false;
+    }
+
+    // Admin audit records are written only by trusted Cloud Functions.
+    match /adminAuditLogs/{documentId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Discovery locks are written only by trusted Cloud Functions. Admins may

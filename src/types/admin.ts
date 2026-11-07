@@ -6,7 +6,14 @@ export interface AdminUserSummary {
   email: string | null
   displayName: string | null
   role: UserRole
+  disabled: boolean
   createdAt?: Timestamp
+}
+
+export interface AdminUserManagementState {
+  uid: string
+  role: UserRole
+  disabled: boolean
 }
 
 export interface AdminOverview {
@@ -392,4 +399,26 @@ export interface AdminSystemHealth {
   recentErrors: AdminErrorLog[]
   recentAiRuns: AdminAiRun[]
   recentActivity: AdminActivityEntry[]
+}
+
+export interface AdminAuditLog {
+  id: string
+  actorUid: string
+  actorType?: 'admin' | 'cli'
+  actorEmail?: string
+  targetUid: string
+  targetEmail?: string
+  action: string
+  reason?: string
+  beforeRole?: string
+  afterRole?: string
+  beforeDisabled?: boolean
+  afterDisabled?: boolean
+  metadata?: Record<string, unknown>
+  createdAt?: Timestamp
+}
+
+export interface AdminAuditLogDetail extends AdminAuditLog {
+  actor: AdminUserSummary | null
+  target: AdminUserSummary | null
 }

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router'
-import { Activity, AlertTriangle, BrainCircuit } from 'lucide-react'
+import { Activity, AlertTriangle, BrainCircuit, ScrollText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const tabs = [
@@ -18,6 +18,11 @@ const tabs = [
     to: '/admin/system/errors',
     label: 'Errors & Anomalies',
     icon: AlertTriangle,
+  },
+  {
+    to: '/admin/system/audit',
+    label: 'Audit Trail',
+    icon: ScrollText,
   },
 ]
 

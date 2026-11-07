@@ -19,6 +19,8 @@ import {
   AdminAiRunDetailRoute,
   AdminErrorsRoute,
   AdminErrorDetailRoute,
+  AdminAuditLogRoute,
+  AdminAuditLogDetailRoute,
   ApplicationsRoute,
   ApplicationPreparationRoute,
   ApplicationViewRoute,
@@ -83,6 +85,8 @@ export const router = createBrowserRouter([
       { path: 'system/ai-usage/:id', element: <AdminAiRunDetailRoute /> },
       { path: 'system/errors', element: <AdminErrorsRoute /> },
       { path: 'system/errors/:id', element: <AdminErrorDetailRoute /> },
+      { path: 'system/audit', element: <AdminAuditLogRoute /> },
+      { path: 'system/audit/:id', element: <AdminAuditLogDetailRoute /> },
     ],
   },
   {

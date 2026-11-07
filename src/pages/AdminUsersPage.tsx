@@ -56,7 +56,7 @@ export function AdminUsersPage() {
     const search = query.trim().toLowerCase()
     if (!search) return users
     return users.filter((user) =>
-      [user.displayName, user.email, user.id, user.role]
+      [user.displayName, user.email, user.id, user.role, user.disabled ? 'disabled' : 'active']
         .filter(Boolean)
         .some((value) => value?.toLowerCase().includes(search)),
     )
@@ -67,8 +67,7 @@ export function AdminUsersPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-950">Users</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Read-only directory of authenticated accounts. Role and account management tools
-          will be added next.
+          Directory of authenticated accounts with protected role and account management.
         </p>
       </div>
 
@@ -128,6 +127,7 @@ export function AdminUsersPage() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="hidden md:table-cell">UID</TableHead>
                   <TableHead className="hidden sm:table-cell">Joined</TableHead>
                   <TableHead className="w-10">
@@ -159,6 +159,11 @@ export function AdminUsersPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={roleVariant(user.role)}>{user.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={user.disabled ? 'outline' : 'secondary'}>
+                        {user.disabled ? 'Disabled' : 'Active'}
+                      </Badge>
                     </TableCell>
                     <TableCell className="hidden max-w-48 truncate font-mono text-xs text-slate-500 md:table-cell">
                       {user.id}
