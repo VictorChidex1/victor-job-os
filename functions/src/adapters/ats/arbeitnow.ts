@@ -1,4 +1,5 @@
 import type { ATSAdapter, ApplicationMetadata, NormalizedJob, RawJob } from './types.js'
+import { baseApplicationMetadata } from './applicationMetadata.js'
 import { stripHtml, toNormalizedJob } from '../../utils/normalizeJob.js'
 
 interface ArbeitnowJob {
@@ -53,6 +54,6 @@ export const arbeitnowAdapter: ATSAdapter = {
   },
 
   getApplicationMetadata(job: NormalizedJob): ApplicationMetadata {
-    return { applicationUrl: job.applicationUrl }
+    return baseApplicationMetadata(job)
   },
 }

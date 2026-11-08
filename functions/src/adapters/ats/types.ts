@@ -29,6 +29,7 @@ export interface NormalizedJob {
   skills: string[]
   searchTerms: string[]
   sourceMetadata: Record<string, unknown>
+  atsMetadata?: ApplicationMetadata
   status: JobStatus
   fingerprint: string
   /** Normalized company + title, used for cross-source duplicate detection. */
@@ -52,11 +53,30 @@ export interface RawJob {
   sourceMetadata: Record<string, unknown>
 }
 
+export type AtsApplicationFieldType =
+  | 'text'
+  | 'textarea'
+  | 'select'
+  | 'file'
+  | 'checkbox'
+  | 'unknown'
+
+export interface AtsApplicationField {
+  name: string
+  required?: boolean
+  type?: AtsApplicationFieldType
+  options?: string[]
+}
+
 export interface ApplicationMetadata {
+  source: JobSource
+  sourceJobId: string
   applicationUrl: string
   requiresResume?: boolean
   requiresCoverLetter?: boolean
+  formFields?: AtsApplicationField[]
   questions?: string[]
+  completeness: 'complete' | 'partial' | 'unknown'
 }
 
 export interface ATSAdapter {

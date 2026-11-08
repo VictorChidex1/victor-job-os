@@ -1,5 +1,6 @@
 import type { Timestamp } from 'firebase/firestore'
 import type { UserRole } from '@/types/users'
+import type { AtsApplicationMetadata } from '@/types/jobs'
 
 export interface AdminUserSummary {
   id: string
@@ -145,6 +146,7 @@ export interface AdminApplication {
   companyName: string
   jobTitle: string
   jobSource: string
+  atsMetadata?: AtsApplicationMetadata
   status: string
   outcome?: string
   origin: string

@@ -35,6 +35,12 @@ const job: Job = {
   location: 'Remote (EU)',
   remote: true,
   applicationUrl: 'https://acme.example/jobs/1',
+  atsMetadata: {
+    source: 'greenhouse',
+    sourceJobId: 'source-job-application-1',
+    applicationUrl: 'https://acme.example/jobs/1',
+    completeness: 'partial',
+  },
   discoveredAt: timestamp,
   skills: ['React', 'TypeScript'],
   searchTerms: ['react'],
@@ -126,6 +132,11 @@ describe('application service', () => {
       jobTitle: 'Senior React Engineer',
       status: 'not-started',
       origin: 'opportunity',
+      atsMetadata: expect.objectContaining({
+        source: 'greenhouse',
+        applicationUrl: 'https://acme.example/jobs/1',
+        completeness: 'partial',
+      }),
     })
 
     const byJob = await service.getForJob(owner, job.id)

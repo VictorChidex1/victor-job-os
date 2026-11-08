@@ -4,6 +4,7 @@ import type {
   NormalizedJob,
   RawJob,
 } from './types.js'
+import { baseApplicationMetadata } from './applicationMetadata.js'
 import { humanizeBoardSlug, toNormalizedJob } from '../../utils/normalizeJob.js'
 
 interface AshbyJob {
@@ -72,6 +73,10 @@ export const ashbyAdapter: ATSAdapter = {
   },
 
   getApplicationMetadata(job: NormalizedJob): ApplicationMetadata {
-    return { applicationUrl: job.applicationUrl }
+    return baseApplicationMetadata(job, {
+      applicationUrl: typeof job.sourceMetadata.applyUrl === 'string' && job.sourceMetadata.applyUrl
+        ? job.sourceMetadata.applyUrl
+        : job.applicationUrl,
+    })
   },
 }

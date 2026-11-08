@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore'
 import { collections } from '@/services/collections'
 import { stripHtml } from '@/lib/html'
+import { normalizeAtsMetadata } from '@/lib/atsApplicationMetadata'
 import type { JobSource } from '@/types/jobs'
 import type {
   Application,
@@ -127,6 +128,9 @@ export function createApplicationService(firestore: Firestore): ApplicationServi
               typeof jobData.applicationUrl === 'string'
                 ? jobData.applicationUrl
                 : '',
+            atsMetadata: jobData.atsMetadata as
+              | import('@/types/jobs').AtsApplicationMetadata
+              | undefined,
             location:
               typeof jobData.location === 'string'
                 ? stripHtml(jobData.location)
@@ -325,6 +329,10 @@ function toApplication(id: string, data: DocumentData): Application {
     jobTitle: stripHtml(data.jobTitle ?? ''),
     jobSource: data.jobSource ?? 'custom',
     applicationUrl: data.applicationUrl ?? '',
+    atsMetadata: normalizeAtsMetadata(data.atsMetadata, {
+      source: data.jobSource ?? 'custom',
+      applicationUrl: data.applicationUrl ?? '',
+    }),
     location: data.location ? stripHtml(data.location) : undefined,
     remote: data.remote ?? false,
     status: (data.status as ApplicationStatus) ?? 'not-started',

@@ -1,5 +1,5 @@
 import type { Timestamp } from 'firebase/firestore'
-import type { JobSource } from './jobs'
+import type { AtsApplicationMetadata, JobSource } from './jobs'
 
 /**
  * Lifecycle of one job application.
@@ -42,6 +42,7 @@ export interface Application {
   jobTitle: string
   jobSource: JobSource
   applicationUrl: string
+  atsMetadata?: AtsApplicationMetadata
   location?: string
   remote: boolean
 

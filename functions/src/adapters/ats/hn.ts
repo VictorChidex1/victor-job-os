@@ -1,4 +1,5 @@
 import type { ATSAdapter, ApplicationMetadata, NormalizedJob, RawJob } from './types.js'
+import { baseApplicationMetadata } from './applicationMetadata.js'
 import { stripHtml, toNormalizedJob } from '../../utils/normalizeJob.js'
 
 const ALGOLIA = 'https://hn.algolia.com/api/v1'
@@ -92,6 +93,6 @@ export const hnAdapter: ATSAdapter = {
   },
 
   getApplicationMetadata(job: NormalizedJob): ApplicationMetadata {
-    return { applicationUrl: job.applicationUrl }
+    return baseApplicationMetadata(job)
   },
 }

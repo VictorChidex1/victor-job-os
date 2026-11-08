@@ -6,6 +6,7 @@ import {
   ExternalLink,
   MapPin,
 } from 'lucide-react'
+import { AtsApplicationMetadataCard } from '@/components/applications/AtsApplicationMetadataCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -188,6 +189,8 @@ export function AdminApplicationDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <AtsApplicationMetadataCard metadata={detail.atsMetadata} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-4">

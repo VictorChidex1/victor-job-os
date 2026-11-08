@@ -1,4 +1,5 @@
 import type { ATSAdapter, ApplicationMetadata, NormalizedJob, RawJob } from './types.js'
+import { baseApplicationMetadata } from './applicationMetadata.js'
 import { humanizeBoardSlug, stripHtml, toNormalizedJob } from '../../utils/normalizeJob.js'
 import { mapWithConcurrency } from '../../utils/concurrency.js'
 
@@ -104,6 +105,6 @@ export const smartRecruitersAdapter: ATSAdapter = {
   },
 
   getApplicationMetadata(job: NormalizedJob): ApplicationMetadata {
-    return { applicationUrl: job.applicationUrl }
+    return baseApplicationMetadata(job)
   },
 }

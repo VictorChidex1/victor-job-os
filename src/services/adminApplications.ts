@@ -20,7 +20,9 @@ import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
 import { toAdminUser } from '@/services/admin'
 import { searchTokensForQuery } from '@/lib/searchTokens'
+import { normalizeAtsMetadata } from '@/lib/atsApplicationMetadata'
 import type { CursorValue } from '@/lib/cursorPagination'
+import type { JobSource } from '@/types/jobs'
 import type {
   AdminApplication,
   AdminApplicationDetail,
@@ -221,6 +223,10 @@ function toAdminApplication(id: string, data: DocumentData): AdminApplication {
     companyName: text(data.companyName),
     jobTitle: text(data.jobTitle),
     jobSource: text(data.jobSource) || 'custom',
+    atsMetadata: normalizeAtsMetadata(data.atsMetadata, {
+      source: (text(data.jobSource) || 'custom') as JobSource,
+      applicationUrl: text(data.applicationUrl),
+    }),
     status: text(data.status) || 'not-started',
     outcome: text(data.outcome) || undefined,
     origin: text(data.origin) || 'opportunity',

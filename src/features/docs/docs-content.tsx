@@ -405,7 +405,7 @@ export const DOC_SECTIONS: DocsSection[] = [
           onto the application when attached. Use Save resume &amp; return in Profile to attach it
           and come back to the application Resume tab; the back arrow also saves unsaved resume
           changes. Resume variants are available from the Resumes page and can be applied per
-          application. Changing the resume resets the review checkbox. ATS metadata is next.
+          application. Changing the resume resets the review checkbox. ATS application metadata is now captured from supported source listings.
         </Callout>
 
         <Callout icon={Archive} title="Closed means closed" tone="muted">
@@ -600,7 +600,7 @@ export const DOC_SECTIONS: DocsSection[] = [
             and understand what changed.
           </FeatureCard>
           <FeatureCard icon={TriangleAlert} title="Current limitations">
-            ATS metadata, browser automation, and automatic submission are not available yet.
+            Browser automation and automatic submission are not available yet. ATS application metadata is captured where the source exposes it.
             Do not treat generated content as verified fact.
           </FeatureCard>
         </FeatureGrid>

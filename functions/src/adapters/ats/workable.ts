@@ -1,4 +1,5 @@
 import type { ATSAdapter, ApplicationMetadata, NormalizedJob, RawJob } from './types.js'
+import { baseApplicationMetadata } from './applicationMetadata.js'
 import { humanizeBoardSlug, stripHtml, toNormalizedJob } from '../../utils/normalizeJob.js'
 
 interface WorkableJob {
@@ -34,7 +35,11 @@ function workableToRaw(job: WorkableJob, companyName: string): RawJob {
     applicationUrl: job.url ?? job.shortlink ?? job.application_url ?? '',
     postedAt: job.published_on ?? job.created_at,
     skills: [],
-    sourceMetadata: { department: job.department, shortcode: job.shortcode },
+    sourceMetadata: {
+      department: job.department,
+      shortcode: job.shortcode,
+      applicationUrl: job.application_url,
+    },
   }
 }
 
@@ -62,6 +67,10 @@ export const workableAdapter: ATSAdapter = {
   },
 
   getApplicationMetadata(job: NormalizedJob): ApplicationMetadata {
-    return { applicationUrl: job.applicationUrl }
+    return baseApplicationMetadata(job, {
+      applicationUrl: typeof job.sourceMetadata.applicationUrl === 'string' && job.sourceMetadata.applicationUrl
+        ? job.sourceMetadata.applicationUrl
+        : job.applicationUrl,
+    })
   },
 }

@@ -33,7 +33,10 @@
     "deploy:hosting": "firebase deploy --only hosting --project victor-job-os --non-interactive",
     "deploy:functions": "firebase deploy --only functions --project victor-job-os --non-interactive",
     "deploy:admin": "npm run build && node scripts/deploy-firestore-rules.mjs --confirm --yes && firebase deploy --only firestore:indexes --project victor-job-os --non-interactive && firebase deploy --only hosting --project victor-job-os --non-interactive",
-    "verify:admin": "node scripts/verify-admin-deployment.mjs"
+    "verify:admin": "node scripts/verify-admin-deployment.mjs",
+    "backfill:ats-metadata": "npm --prefix functions run build && node scripts/backfill-application-metadata.mjs --emulator",
+    "backfill:ats-metadata:emulator": "npm --prefix functions run build && node scripts/backfill-application-metadata.mjs --emulator",
+    "backfill:ats-metadata:production": "npm --prefix functions run build && node scripts/backfill-application-metadata.mjs --production"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

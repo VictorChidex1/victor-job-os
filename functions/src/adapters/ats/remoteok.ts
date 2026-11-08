@@ -1,4 +1,5 @@
 import type { ATSAdapter, ApplicationMetadata, NormalizedJob, RawJob } from './types.js'
+import { baseApplicationMetadata } from './applicationMetadata.js'
 import { stripHtml, toNormalizedJob } from '../../utils/normalizeJob.js'
 
 interface RemoteOkJob {
@@ -56,6 +57,6 @@ export const remoteOkAdapter: ATSAdapter = {
   },
 
   getApplicationMetadata(job: NormalizedJob): ApplicationMetadata {
-    return { applicationUrl: job.applicationUrl }
+    return baseApplicationMetadata(job)
   },
 }

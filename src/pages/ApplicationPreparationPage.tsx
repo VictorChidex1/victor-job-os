@@ -320,6 +320,7 @@ export function ApplicationPreparationPage() {
               readOnly={readOnly}
               onSave={save}
               onRefresh={refreshPreparation}
+              atsQuestions={application.atsMetadata?.questions ?? []}
             />
           )}
           {activeSection === 'review' && (

@@ -239,7 +239,16 @@ export async function runDiscovery(uid: string): Promise<{ stored: number; dupli
       if (job.companyTitleKey) existing.companyTitles.add(job.companyTitleKey)
       if (job.descriptionFingerprint) existing.descriptionFingerprints.add(job.descriptionFingerprint)
     }
-    const count = await storeJobs(unique, task.source.searchTerms, uid, knownCompanyIds)
+    const jobsWithMetadata = unique.map((job) => ({
+      ...job,
+      atsMetadata: task.adapter.getApplicationMetadata(job),
+    }))
+    const count = await storeJobs(
+      jobsWithMetadata,
+      task.source.searchTerms,
+      uid,
+      knownCompanyIds,
+    )
     stored += count
     results.push({ source: task.source.source, boardTarget: task.target, count: unique.length })
   }

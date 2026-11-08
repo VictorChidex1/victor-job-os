@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, ExternalLink, FileText } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
+import { AtsApplicationMetadataCard } from '@/components/applications/AtsApplicationMetadataCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -432,6 +433,8 @@ export function ApplicationDetail({
               </Button>
             </CardContent>
           </Card>
+
+          <AtsApplicationMetadataCard metadata={application.atsMetadata} />
         </div>
       </div>
     </PageContainer>

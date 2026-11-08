@@ -15,6 +15,32 @@ export type JobSource =
 
 export type JobStatus = 'new' | 'qualified' | 'rejected' | 'archived'
 
+export type AtsApplicationFieldType =
+  | 'text'
+  | 'textarea'
+  | 'select'
+  | 'file'
+  | 'checkbox'
+  | 'unknown'
+
+export interface AtsApplicationField {
+  name: string
+  required?: boolean
+  type?: AtsApplicationFieldType
+  options?: string[]
+}
+
+export interface AtsApplicationMetadata {
+  source: JobSource
+  sourceJobId: string
+  applicationUrl: string
+  requiresResume?: boolean
+  requiresCoverLetter?: boolean
+  formFields?: AtsApplicationField[]
+  questions?: string[]
+  completeness: 'complete' | 'partial' | 'unknown'
+}
+
 export interface Job {
   id: string
   userId?: string
@@ -29,6 +55,7 @@ export interface Job {
   employmentType?: string
   seniority?: string
   applicationUrl: string
+  atsMetadata?: AtsApplicationMetadata
   postedAt?: Timestamp
   discoveredAt: Timestamp
   skills: string[]

@@ -19,9 +19,10 @@ import {
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
 import { stripHtml } from '@/lib/html'
+import { normalizeAtsMetadata } from '@/lib/atsApplicationMetadata'
 import { searchTokensForQuery } from '@/lib/searchTokens'
 import type { CursorValue } from '@/lib/cursorPagination'
-import type { Job, JobStatus } from '@/types/jobs'
+import type { Job, JobSource, JobStatus } from '@/types/jobs'
 
 const jobsCollection = collection(db, collections.jobs)
 
@@ -228,6 +229,11 @@ function toJob(id: string, data: DocumentData): Job {
     employmentType: data.employmentType,
     seniority: data.seniority,
     applicationUrl: data.applicationUrl,
+    atsMetadata: normalizeAtsMetadata(data.atsMetadata, {
+      source: (data.source as JobSource) ?? 'custom',
+      sourceJobId: data.sourceJobId,
+      applicationUrl: data.applicationUrl ?? '',
+    }),
     postedAt: data.postedAt ? toTimestamp(data.postedAt) : undefined,
     discoveredAt: toTimestamp(data.discoveredAt),
     skills: data.skills ?? [],

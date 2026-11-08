@@ -31,6 +31,12 @@ const job: Job = {
   skills: ['React', 'TypeScript'],
   searchTerms: ['react'],
   status: 'qualified',
+  atsMetadata: {
+    source: 'greenhouse',
+    sourceJobId: 'source-job-1',
+    applicationUrl: 'https://acme.example/jobs/1',
+    completeness: 'partial',
+  },
   fingerprint: 'fingerprint-1',
   createdAt: timestamp,
   updatedAt: timestamp,
@@ -150,6 +156,10 @@ describe('application identity and snapshots', () => {
       remote: true,
       status: 'not-started',
       origin: 'opportunity',
+      atsMetadata: expect.objectContaining({
+        source: 'greenhouse',
+        applicationUrl: 'https://acme.example/jobs/1',
+      }),
       searchTokens: expect.arrayContaining([
         'acme',
         'corp',

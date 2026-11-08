@@ -92,6 +92,7 @@ export type ApplicationJobSource = Pick<
   | 'title'
   | 'source'
   | 'applicationUrl'
+  | 'atsMetadata'
   | 'location'
   | 'remote'
 >
@@ -111,6 +112,7 @@ export type ApplicationSeed = Pick<
   | 'status'
   | 'origin'
   | 'searchTokens'
+  | 'atsMetadata'
 >
 
 /** Snapshot the fields we need at creation time. */
@@ -132,6 +134,7 @@ export function buildApplicationSeed(
     jobTitle,
     jobSource: job.source,
     applicationUrl: job.applicationUrl,
+    ...(job.atsMetadata ? { atsMetadata: job.atsMetadata } : {}),
     location,
     remote: job.remote,
     status: 'not-started',

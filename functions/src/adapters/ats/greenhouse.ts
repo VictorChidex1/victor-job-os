@@ -4,6 +4,7 @@ import type {
   NormalizedJob,
   RawJob,
 } from './types.js'
+import { baseApplicationMetadata } from './applicationMetadata.js'
 import { humanizeBoardSlug, toNormalizedJob } from '../../utils/normalizeJob.js'
 
 interface GreenhouseJob {
@@ -71,6 +72,6 @@ export const greenhouseAdapter: ATSAdapter = {
   },
 
   getApplicationMetadata(job: NormalizedJob): ApplicationMetadata {
-    return { applicationUrl: job.applicationUrl }
+    return baseApplicationMetadata(job)
   },
 }

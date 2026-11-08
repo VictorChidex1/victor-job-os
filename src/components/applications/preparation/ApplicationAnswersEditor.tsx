@@ -49,12 +49,14 @@ export function ApplicationAnswersEditor({
   readOnly,
   onSave,
   onRefresh,
+  atsQuestions = [],
 }: {
   applicationId: string
   preparation: ApplicationPreparation
   readOnly: boolean
   onSave: (patch: { answers: ApplicationAnswerDraft[] }) => Promise<void>
   onRefresh: () => Promise<void>
+  atsQuestions?: string[]
 }) {
   const [answers, setAnswers] = useState(preparation.answers)
   const [busy, setBusy] = useState<string | null>(null)
@@ -65,7 +67,10 @@ export function ApplicationAnswersEditor({
   }, [preparation.answers])
 
   const dirty = answerSnapshot(answers) !== answerSnapshot(preparation.answers)
-  const suggestedQuestions = DEFAULT_APPLICATION_QUESTIONS.filter(
+  const questionPool = Array.from(
+    new Set([...atsQuestions, ...DEFAULT_APPLICATION_QUESTIONS]),
+  )
+  const suggestedQuestions = questionPool.filter(
     (question) =>
       !answers.some(
         (answer) => answer.question.trim().toLowerCase() === question.toLowerCase(),

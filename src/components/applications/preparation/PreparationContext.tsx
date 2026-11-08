@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { AtsApplicationMetadataCard } from '@/components/applications/AtsApplicationMetadataCard'
 import { SOURCE_LABELS } from '@/lib/job-sources'
 import type { Application } from '@/types/applications'
 import type { Company } from '@/types/companies'
@@ -115,6 +116,8 @@ export function PreparationContext({
           </div>
         </CardContent>
       </Card>
+
+      <AtsApplicationMetadataCard metadata={application.atsMetadata} />
 
       <Card>
         <CardHeader>
