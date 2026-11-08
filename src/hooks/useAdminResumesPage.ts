@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { loadAdminResumesPage, type AdminResumeQuery } from '@/services/adminResumes'
+import {
+  countAdminResumes,
+  loadAdminResumesPage,
+  type AdminResumeQuery,
+} from '@/services/adminResumes'
 import type { CursorValue } from '@/lib/cursorPagination'
 import type { AdminResume } from '@/types/admin'
 
 export interface UseAdminResumesPageResult {
   items: AdminResume[]
+  total: number
   hasNext: boolean
   nextCursor: CursorValue | null
   loading: boolean
@@ -19,6 +24,7 @@ export function useAdminResumesPage(
   const { isAdmin, isAdminLoading } = useAuth()
   const { search, defaultFilter, userId, cursor, pageSize } = input
   const [items, setItems] = useState<AdminResume[]>([])
+  const [total, setTotal] = useState(0)
   const [hasNext, setHasNext] = useState(false)
   const [nextCursor, setNextCursor] = useState<CursorValue | null>(null)
   const [loading, setLoading] = useState(true)
@@ -27,6 +33,7 @@ export function useAdminResumesPage(
   const refresh = useCallback(async () => {
     if (isAdminLoading || !isAdmin) {
       setItems([])
+      setTotal(0)
       setHasNext(false)
       setNextCursor(null)
       setLoading(isAdminLoading)
@@ -36,14 +43,18 @@ export function useAdminResumesPage(
 
     setLoading(true)
     try {
-      const data = await loadAdminResumesPage({
-        search,
-        defaultFilter,
-        userId,
-        cursor,
-        pageSize,
-      })
+      const [data, count] = await Promise.all([
+        loadAdminResumesPage({
+          search,
+          defaultFilter,
+          userId,
+          cursor,
+          pageSize,
+        }),
+        countAdminResumes({ search, defaultFilter, userId }),
+      ])
       setItems(data.items)
+      setTotal(count)
       setHasNext(data.hasMore)
       setNextCursor(data.nextCursor)
       setError(null)
@@ -59,5 +70,5 @@ export function useAdminResumesPage(
     void refresh()
   }, [refresh])
 
-  return { items, hasNext, nextCursor, loading, error, refresh }
+  return { items, total, hasNext, nextCursor, loading, error, refresh }
 }

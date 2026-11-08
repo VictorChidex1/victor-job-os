@@ -6,6 +6,7 @@ import { ApplicationDetail } from '@/components/applications/ApplicationDetail'
 import { ApplicationTable } from '@/components/applications/ApplicationTable'
 import { PipelineMetricsStrip } from '@/components/applications/PipelineMetricsStrip'
 import { PipelineFlowBar } from '@/components/applications/PipelineFlowBar'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -37,6 +38,7 @@ export function ApplicationsPage() {
   const view: PipelineView = searchParams.get('view') === 'list' ? 'list' : 'board'
   const { items, loading, error, refresh } = useApplications()
   const [targetStageId, setTargetStageId] = useState<string | undefined>()
+  const [page, setPage] = useState(1)
 
   const updateSearchParam = useCallback(
     (key: string, value: string) => {
@@ -52,12 +54,18 @@ export function ApplicationsPage() {
   )
 
   const setQuery = useCallback(
-    (value: string) => updateSearchParam('q', value),
+    (value: string) => {
+      setPage(1)
+      updateSearchParam('q', value)
+    },
     [updateSearchParam],
   )
 
   const setView = useCallback(
-    (value: PipelineView) => updateSearchParam('view', value === 'list' ? 'list' : ''),
+    (value: PipelineView) => {
+      setPage(1)
+      updateSearchParam('view', value === 'list' ? 'list' : '')
+    },
     [updateSearchParam],
   )
 
@@ -80,6 +88,15 @@ export function ApplicationsPage() {
     }
     return filtered.filter((a) => a.status === targetStageId)
   }, [filtered, targetStageId])
+  const pageSize = 30
+  const paginationBase = targetStageId ? stageFiltered : filtered
+  const totalPages = Math.max(1, Math.ceil(paginationBase.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pagedApplications = paginationBase.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  )
+
   const needsReviewCount = useMemo(
     () => items.filter((a) => a.status === 'needs-review').length,
     [items],
@@ -161,6 +178,7 @@ export function ApplicationsPage() {
             activeStageId={targetStageId}
             onSelectStage={(stageId) => {
               setTargetStageId(stageId)
+              setPage(1)
               if (view !== 'board') setView('board')
             }}
           />
@@ -226,18 +244,43 @@ export function ApplicationsPage() {
                 </Button>
               }
             />
-          ) : view === 'board' ? (
-            <ApplicationBoard
-              applications={filtered}
-              applicationHref={applicationHref}
-              targetStageId={targetStageId}
-              onSelectStage={setTargetStageId}
-            />
           ) : (
-            <ApplicationTable
-              applications={stageFiltered}
-              applicationHref={applicationHref}
-            />
+            <div className="flex flex-col gap-4">
+              <SlidingPaginationBar
+                page={currentPage}
+                totalPages={totalPages}
+                loading={loading}
+                hasPrev={currentPage > 1}
+                hasNext={currentPage < totalPages}
+                onPrev={() => setPage((value) => Math.max(1, value - 1))}
+                onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+              />
+              {view === 'board' ? (
+                <ApplicationBoard
+                  applications={pagedApplications}
+                  applicationHref={applicationHref}
+                  targetStageId={targetStageId}
+                  onSelectStage={(stageId) => {
+                    setTargetStageId(stageId)
+                    setPage(1)
+                  }}
+                />
+              ) : (
+                <ApplicationTable
+                  applications={pagedApplications}
+                  applicationHref={applicationHref}
+                />
+              )}
+              <SlidingPaginationBar
+                page={currentPage}
+                totalPages={totalPages}
+                loading={loading}
+                hasPrev={currentPage > 1}
+                hasNext={currentPage < totalPages}
+                onPrev={() => setPage((value) => Math.max(1, value - 1))}
+                onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+              />
+            </div>
           )}
         </div>
       )}

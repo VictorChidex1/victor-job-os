@@ -34,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { CursorPaginationBar } from '@/components/CursorPaginationBar'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { AdminOutreachDrawer } from '@/components/admin/AdminOutreachDrawer'
@@ -114,7 +114,7 @@ export function AdminOutreachPage() {
   const { metrics, loading: metricsLoading, refresh: refreshMetrics } =
     useAdminOutreachMetrics()
 
-  const { items, hasNext, nextCursor, loading, error, refresh: refreshPage } =
+  const { items, total, hasNext, nextCursor, loading, error, refresh: refreshPage } =
     useAdminOutreachPage({
       search: query,
       status,
@@ -546,8 +546,9 @@ export function AdminOutreachPage() {
               </div>
 
               {/* Cursor Pagination */}
-              <CursorPaginationBar
+              <SlidingPaginationBar
                 page={page}
+                totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
                 loading={loading}
                 hasPrev={cursorStack.length > 0}
                 hasNext={hasNext}

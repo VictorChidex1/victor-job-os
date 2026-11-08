@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import {
+  countAdminCompanies,
   loadAdminCompaniesPage,
   type AdminCompanyQuery,
 } from '@/services/adminCompanies'
@@ -9,6 +10,7 @@ import type { AdminCompany } from '@/types/admin'
 
 export interface UseAdminCompaniesPageResult {
   items: AdminCompany[]
+  total: number
   hasNext: boolean
   nextCursor: CursorValue | null
   loading: boolean
@@ -22,6 +24,7 @@ export function useAdminCompaniesPage(
   const { isAdmin, isAdminLoading } = useAuth()
   const { search, research, userId, cursor, pageSize } = input
   const [items, setItems] = useState<AdminCompany[]>([])
+  const [total, setTotal] = useState(0)
   const [hasNext, setHasNext] = useState(false)
   const [nextCursor, setNextCursor] = useState<CursorValue | null>(null)
   const [loading, setLoading] = useState(true)
@@ -30,6 +33,7 @@ export function useAdminCompaniesPage(
   const refresh = useCallback(async () => {
     if (isAdminLoading || !isAdmin) {
       setItems([])
+      setTotal(0)
       setHasNext(false)
       setNextCursor(null)
       setLoading(isAdminLoading)
@@ -39,14 +43,18 @@ export function useAdminCompaniesPage(
 
     setLoading(true)
     try {
-      const data = await loadAdminCompaniesPage({
-        search,
-        research,
-        userId,
-        cursor,
-        pageSize,
-      })
+      const [data, count] = await Promise.all([
+        loadAdminCompaniesPage({
+          search,
+          research,
+          userId,
+          cursor,
+          pageSize,
+        }),
+        countAdminCompanies({ search, research, userId }),
+      ])
       setItems(data.items)
+      setTotal(count)
       setHasNext(data.hasMore)
       setNextCursor(data.nextCursor)
       setError(null)
@@ -62,5 +70,5 @@ export function useAdminCompaniesPage(
     void refresh()
   }, [refresh])
 
-  return { items, hasNext, nextCursor, loading, error, refresh }
+  return { items, total, hasNext, nextCursor, loading, error, refresh }
 }

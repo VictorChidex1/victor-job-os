@@ -3,11 +3,9 @@ import { Link, useSearchParams } from 'react-router'
 import { motion, useReducedMotion } from 'motion/react'
 import {
   Briefcase,
-  ChevronLeft,
   ChevronRight,
   Clock3,
   ExternalLink,
-  Loader2,
   MapPin,
   Search,
   Sparkles,
@@ -17,6 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { EmptyState } from '@/components/states/EmptyState'
 import { QualifyNewButton } from '@/components/dashboard/QualifyNewButton'
@@ -430,82 +429,6 @@ function IntelligenceHUD({
   )
 }
 
-function PaginationBar({
-  page,
-  hasPrev,
-  hasNext,
-  loading,
-  compact = false,
-  onPrev,
-  onNext,
-}: {
-  page: number
-  hasPrev: boolean
-  hasNext: boolean
-  loading: boolean
-  compact?: boolean
-  onPrev: () => void
-  onNext: () => void
-}) {
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-2.5 rounded-2xl border border-border/60 bg-card/60 p-3 sm:px-4 sm:py-2.5 backdrop-blur-xs shadow-xs',
-        !compact && 'sm:flex-row sm:items-center sm:justify-between',
-      )}
-    >
-      <div
-        className={cn(
-          'flex w-full items-center justify-between gap-2 text-xs text-muted-foreground',
-          !compact && 'sm:w-auto sm:justify-start',
-        )}
-      >
-        <span className="font-semibold text-foreground">Page {page}</span>
-        <span className="text-muted-foreground/40 sm:inline">·</span>
-        <span>{hasNext ? 'More available' : 'End of results'}</span>
-      </div>
-      <div
-        className={cn(
-          'flex w-full items-center justify-between gap-2',
-          !compact && 'sm:w-auto sm:justify-end',
-        )}
-      >
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onPrev}
-          disabled={!hasPrev || loading}
-          className="gap-1 rounded-xl text-xs font-medium flex-1 sm:flex-initial"
-        >
-          <ChevronLeft className="size-3.5" />
-          <span>Previous</span>
-        </Button>
-        <span className="inline-flex min-w-[60px] items-center justify-center gap-1.5 text-center font-mono text-xs font-semibold text-foreground">
-          {page}
-          <span className="inline-flex size-3.5 items-center justify-center">
-            {loading && (
-              <Loader2
-                className="size-3 animate-spin text-muted-foreground"
-                aria-label="Loading page"
-              />
-            )}
-          </span>
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onNext}
-          disabled={!hasNext || loading}
-          className="gap-1 rounded-xl text-xs font-medium flex-1 sm:flex-initial"
-        >
-          <span>Next</span>
-          <ChevronRight className="size-3.5" />
-        </Button>
-      </div>
-    </div>
-  )
-}
-
 export function OpportunitiesList({
   compact = false,
   selectedJobId = null,
@@ -554,6 +477,7 @@ export function OpportunitiesList({
     isSearch,
     hasNext,
     nextCursor,
+    totalPages,
     refresh,
   } = useJobsPage({
     source: sourceFilter !== 'all' ? sourceFilter : undefined,
@@ -865,12 +789,12 @@ export function OpportunitiesList({
           />
         ) : (
           <div className="flex flex-col gap-4" aria-busy={loading}>
-            <PaginationBar
+            <SlidingPaginationBar
               page={page}
+              totalPages={totalPages}
               hasPrev={cursorStack.length > 0}
               hasNext={hasNext}
               loading={loading}
-              compact={compact}
               onPrev={goPrevPage}
               onNext={goNextPage}
             />
@@ -903,12 +827,12 @@ export function OpportunitiesList({
               ))}
             </motion.div>
 
-            <PaginationBar
+            <SlidingPaginationBar
               page={page}
+              totalPages={totalPages}
               hasPrev={cursorStack.length > 0}
               hasNext={hasNext}
               loading={loading}
-              compact={compact}
               onPrev={goPrevPage}
               onNext={goNextPage}
             />

@@ -32,7 +32,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { AdminSystemTabs } from '@/components/admin/AdminSystemTabs'
-import { CursorPaginationBar } from '@/components/CursorPaginationBar'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { useAdminAuditLogsPage } from '@/hooks/useAdminAuditLogsPage'
@@ -97,7 +97,7 @@ export function AdminAuditLogPage() {
     () => new Map(users.map((user) => [user.id, user])),
     [users],
   )
-  const { items, hasNext, nextCursor, loading, error, refresh } =
+  const { items, total, hasNext, nextCursor, loading, error, refresh } =
     useAdminAuditLogsPage({
       action,
       actorUid,
@@ -430,8 +430,9 @@ export function AdminAuditLogPage() {
                 </Table>
               </div>
 
-              <CursorPaginationBar
+                            <SlidingPaginationBar
                 page={page}
+                totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
                 loading={loading}
                 hasPrev={cursorStack.length > 0}
                 hasNext={hasNext}

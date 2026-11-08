@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import {
+  countAdminAuditLogs,
   loadAdminAuditLogsPage,
   type AdminAuditLogQuery,
 } from '@/services/adminAuditLogs'
@@ -9,6 +10,7 @@ import type { AdminAuditLog } from '@/types/admin'
 
 export interface UseAdminAuditLogsPageResult {
   items: AdminAuditLog[]
+  total: number
   hasNext: boolean
   nextCursor: CursorValue | null
   loading: boolean
@@ -22,6 +24,7 @@ export function useAdminAuditLogsPage(
   const { isAdmin, isAdminLoading } = useAuth()
   const { action, actorUid, targetUid, cursor, pageSize } = input
   const [items, setItems] = useState<AdminAuditLog[]>([])
+  const [total, setTotal] = useState(0)
   const [hasNext, setHasNext] = useState(false)
   const [nextCursor, setNextCursor] = useState<CursorValue | null>(null)
   const [loading, setLoading] = useState(true)
@@ -30,6 +33,7 @@ export function useAdminAuditLogsPage(
   const refresh = useCallback(async () => {
     if (isAdminLoading || !isAdmin) {
       setItems([])
+      setTotal(0)
       setHasNext(false)
       setNextCursor(null)
       setLoading(isAdminLoading)
@@ -39,14 +43,18 @@ export function useAdminAuditLogsPage(
 
     setLoading(true)
     try {
-      const data = await loadAdminAuditLogsPage({
-        action,
-        actorUid,
-        targetUid,
-        cursor,
-        pageSize,
-      })
+      const [data, count] = await Promise.all([
+        loadAdminAuditLogsPage({
+          action,
+          actorUid,
+          targetUid,
+          cursor,
+          pageSize,
+        }),
+        countAdminAuditLogs({ action, actorUid, targetUid }),
+      ])
       setItems(data.items)
+      setTotal(count)
       setHasNext(data.hasMore)
       setNextCursor(data.nextCursor)
       setError(null)
@@ -62,5 +70,5 @@ export function useAdminAuditLogsPage(
     void refresh()
   }, [refresh])
 
-  return { items, hasNext, nextCursor, loading, error, refresh }
+  return { items, total, hasNext, nextCursor, loading, error, refresh }
 }

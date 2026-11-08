@@ -36,7 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { CursorPaginationBar } from '@/components/CursorPaginationBar'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { AdminCompanyMetricsStrip } from '@/components/admin/AdminCompanyMetricsStrip'
@@ -125,7 +125,7 @@ export function AdminCompaniesPage() {
   const { metrics, loading: metricsLoading, refresh: refreshMetrics } =
     useAdminCompanyMetrics()
 
-  const { items, hasNext, nextCursor, loading, error, refresh } =
+  const { items, total, hasNext, nextCursor, loading, error, refresh } =
     useAdminCompaniesPage({
       search: query,
       research,
@@ -570,8 +570,9 @@ export function AdminCompaniesPage() {
               </div>
 
               <div className="p-4 border-t border-border/70">
-                <CursorPaginationBar
+                <SlidingPaginationBar
                   page={page}
+                  totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
                   loading={loading}
                   hasPrev={cursorStack.length > 0}
                   hasNext={hasNext}

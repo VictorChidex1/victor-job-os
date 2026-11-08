@@ -129,6 +129,18 @@ function buildConstraints(input: AdminApplicationQuery): QueryConstraint[] {
   return constraints
 }
 
+export async function countAdminApplications(
+  input: AdminApplicationQuery = {},
+): Promise<number> {
+  const restrictions = buildConstraints(input).filter(
+    (constraint) => constraint.type === 'where',
+  )
+  const snapshot = await getCountFromServer(
+    query(applications, ...restrictions),
+  )
+  return snapshot.data().count
+}
+
 export async function loadAdminApplicationsPage(
   input: AdminApplicationQuery = {},
 ): Promise<AdminApplicationPage> {

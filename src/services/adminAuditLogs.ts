@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   documentId,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -50,6 +51,17 @@ export interface AdminAuditLogPage {
 }
 
 const auditLogs = collection(db, collections.adminAuditLogs)
+
+export async function countAdminAuditLogs(
+  input: AdminAuditLogQuery = {},
+): Promise<number> {
+  const restrictions: QueryConstraint[] = []
+  if (input.action) restrictions.push(where('action', '==', input.action))
+  if (input.actorUid) restrictions.push(where('actorUid', '==', input.actorUid))
+  if (input.targetUid) restrictions.push(where('targetUid', '==', input.targetUid))
+  const snapshot = await getCountFromServer(query(auditLogs, ...restrictions))
+  return snapshot.data().count
+}
 
 export async function loadAdminAuditLogsPage(
   input: AdminAuditLogQuery = {},

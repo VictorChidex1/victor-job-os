@@ -125,6 +125,14 @@ export async function loadAdminOpportunitiesPage(
   }
 }
 
+export async function countAdminOpportunities(
+  input: AdminOpportunityQuery = {},
+): Promise<number> {
+  const constraints = buildConstraints(input)
+  const snapshot = await getCountFromServer(query(jobs, ...constraints))
+  return snapshot.data().count
+}
+
 export async function loadAdminOpportunityDetail(
   jobId: string,
 ): Promise<AdminOpportunityDetail> {

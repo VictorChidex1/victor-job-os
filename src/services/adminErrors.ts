@@ -77,6 +77,16 @@ export async function loadAdminErrorSummary(): Promise<AdminErrorSummary> {
   }
 }
 
+export async function countAdminErrorLogs(
+  input: AdminErrorLogQuery = {},
+): Promise<number> {
+  const restrictions: QueryConstraint[] = []
+  if (input.fn) restrictions.push(where('fn', '==', input.fn))
+  if (input.userId) restrictions.push(where('userId', '==', input.userId))
+  const snapshot = await getCountFromServer(query(errorLogs, ...restrictions))
+  return snapshot.data().count
+}
+
 export async function loadAdminErrorLogsPage(
   input: AdminErrorLogQuery = {},
 ): Promise<AdminErrorLogPage> {

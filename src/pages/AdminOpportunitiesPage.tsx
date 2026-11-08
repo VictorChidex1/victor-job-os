@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { CursorPaginationBar } from '@/components/CursorPaginationBar'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { AdminOpportunityDrawer } from '@/components/admin/AdminOpportunityDrawer'
@@ -108,7 +108,7 @@ export function AdminOpportunitiesPage() {
   const { metrics, loading: metricsLoading, refresh: refreshMetrics } =
     useAdminOpportunityMetrics()
 
-  const { items, hasNext, nextCursor, loading, error, refresh: refreshPage } =
+  const { items, total, hasNext, nextCursor, loading, error, refresh: refreshPage } =
     useAdminOpportunitiesPage({
       search: query,
       status,
@@ -583,8 +583,9 @@ export function AdminOpportunitiesPage() {
               </div>
 
               {/* Cursor Pagination */}
-              <CursorPaginationBar
+              <SlidingPaginationBar
                 page={page}
+                totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
                 loading={loading}
                 hasPrev={cursorStack.length > 0}
                 hasNext={hasNext}

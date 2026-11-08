@@ -26,7 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { AdminSystemTabs } from '@/components/admin/AdminSystemTabs'
-import { CursorPaginationBar } from '@/components/CursorPaginationBar'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { useAdminAiRunsPage } from '@/hooks/useAdminAiRunsPage'
@@ -95,7 +95,7 @@ export function AdminAiUsagePage() {
   )
   const { summary, loading: summaryLoading, refresh: refreshSummary } =
     useAdminAiSummary()
-  const { items, hasNext, nextCursor, loading, error, refresh } =
+  const { items, total, hasNext, nextCursor, loading, error, refresh } =
     useAdminAiRunsPage({
       status,
       operation,
@@ -377,8 +377,9 @@ export function AdminAiUsagePage() {
                 </Table>
               </div>
 
-              <CursorPaginationBar
+                            <SlidingPaginationBar
                 page={page}
+                totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
                 loading={loading}
                 hasPrev={cursorStack.length > 0}
                 hasNext={hasNext}

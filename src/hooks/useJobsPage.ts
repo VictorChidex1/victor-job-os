@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { listJobsPage, searchJobsPage } from '@/services/jobs'
+import {
+  countJobs,
+  countSearchJobs,
+  listJobsPage,
+  searchJobsPage,
+} from '@/services/jobs'
 import type { CursorValue } from '@/lib/cursorPagination'
 import type { Job } from '@/types/jobs'
 
@@ -20,6 +25,8 @@ export interface UseJobsPageResult {
   isSearch: boolean
   hasNext: boolean
   nextCursor: CursorValue | null
+  total: number
+  totalPages: number
   refresh: () => Promise<void>
 }
 
@@ -40,33 +47,41 @@ export function useJobsPage(options: UseJobsPageOptions = {}): UseJobsPageResult
   const [error, setError] = useState<string | null>(null)
   const [hasNext, setHasNext] = useState(false)
   const [nextCursor, setNextCursor] = useState<CursorValue | null>(null)
+  const [total, setTotal] = useState(0)
 
   const refresh = useCallback(async () => {
     if (!user) {
       setJobs([])
       setHasNext(false)
       setNextCursor(null)
+      setTotal(0)
       setLoading(false)
       return
     }
 
     setLoading(true)
     try {
-      const result = trimmedSearch
-        ? await searchJobsPage(user.uid, trimmedSearch, {
-            pageSize,
-            cursorValue: cursor,
-          })
-        : await listJobsPage(user.uid, {
-            pageSize,
-            cursorValue: cursor,
-            source,
-            status,
-            companyId,
-          })
+      const [result, count] = await Promise.all([
+        trimmedSearch
+          ? searchJobsPage(user.uid, trimmedSearch, {
+              pageSize,
+              cursorValue: cursor,
+            })
+          : listJobsPage(user.uid, {
+              pageSize,
+              cursorValue: cursor,
+              source,
+              status,
+              companyId,
+            }),
+        trimmedSearch
+          ? countSearchJobs(user.uid, trimmedSearch)
+          : countJobs(user.uid, { source, status, companyId }),
+      ])
       setJobs(result.jobs)
       setHasNext(result.hasMore)
       setNextCursor(result.nextCursor)
+      setTotal(count)
       setError(null)
     } catch {
       setError('Unable to load opportunities. Please try again.')
@@ -87,6 +102,8 @@ export function useJobsPage(options: UseJobsPageOptions = {}): UseJobsPageResult
     isSearch: Boolean(trimmedSearch),
     hasNext,
     nextCursor,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
     refresh,
   }
 }

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ResumeVariantForm } from '@/components/resumes/ResumeVariantForm'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -51,6 +52,7 @@ export function ResumeVariantsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<ResumeVariant | null>(null)
   const [settingDefault, setSettingDefault] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
   function openCreate() {
     setEditing(null)
@@ -96,6 +98,14 @@ export function ResumeVariantsPage() {
     }
   }
 
+  const pageSize = 30
+  const totalPages = Math.max(1, Math.ceil(variants.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pagedVariants = variants.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  )
+
   return (
     <PageContainer
       title="Resumes"
@@ -131,8 +141,18 @@ export function ResumeVariantsPage() {
           }
         />
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {variants.map((variant) => (
+        <div className="flex flex-col gap-4">
+          <SlidingPaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            loading={loading}
+            hasPrev={currentPage > 1}
+            hasNext={currentPage < totalPages}
+            onPrev={() => setPage((value) => Math.max(1, value - 1))}
+            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+          />
+          <div className="grid gap-3 lg:grid-cols-2">
+          {pagedVariants.map((variant) => (
             <Card key={variant.id}>
               <CardHeader>
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -221,6 +241,16 @@ export function ResumeVariantsPage() {
               </CardContent>
             </Card>
           ))}
+          </div>
+          <SlidingPaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            loading={loading}
+            hasPrev={currentPage > 1}
+            hasNext={currentPage < totalPages}
+            onPrev={() => setPage((value) => Math.max(1, value - 1))}
+            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+          />
         </div>
       )}
 

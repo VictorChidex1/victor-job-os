@@ -87,6 +87,17 @@ export async function loadAdminAiSummary(): Promise<AdminAiSummary> {
   }
 }
 
+export async function countAdminAiRuns(
+  input: AdminAiRunQuery = {},
+): Promise<number> {
+  const restrictions: QueryConstraint[] = []
+  if (input.status) restrictions.push(where('status', '==', input.status))
+  if (input.operation) restrictions.push(where('operation', '==', input.operation))
+  if (input.userId) restrictions.push(where('userId', '==', input.userId))
+  const snapshot = await getCountFromServer(query(aiRuns, ...restrictions))
+  return snapshot.data().count
+}
+
 export async function loadAdminAiRunsPage(
   input: AdminAiRunQuery = {},
 ): Promise<AdminAiRunPage> {

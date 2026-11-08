@@ -89,6 +89,18 @@ function buildConstraints(input: AdminResumeQuery): QueryConstraint[] {
   return constraints
 }
 
+export async function countAdminResumes(
+  input: AdminResumeQuery = {},
+): Promise<number> {
+  const restrictions = buildConstraints(input).filter(
+    (constraint) => constraint.type === 'where',
+  )
+  const snapshot = await getCountFromServer(
+    query(resumeVariants, ...restrictions),
+  )
+  return snapshot.data().count
+}
+
 export async function loadAdminResumesPage(
   input: AdminResumeQuery = {},
 ): Promise<AdminResumePage> {

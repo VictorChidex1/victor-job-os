@@ -101,6 +101,16 @@ function buildConstraints(input: AdminCompanyQuery): QueryConstraint[] {
   return constraints
 }
 
+export async function countAdminCompanies(
+  input: AdminCompanyQuery = {},
+): Promise<number> {
+  const restrictions = buildConstraints(input).filter(
+    (constraint) => constraint.type === 'where',
+  )
+  const snapshot = await getCountFromServer(query(companies, ...restrictions))
+  return snapshot.data().count
+}
+
 export async function loadAdminCompaniesPage(
   input: AdminCompanyQuery = {},
 ): Promise<AdminCompanyPage> {

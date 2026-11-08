@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import {
+  countAdminAiRuns,
   loadAdminAiRunsPage,
   type AdminAiRunQuery,
 } from '@/services/adminAiUsage'
@@ -9,6 +10,7 @@ import type { AdminAiRun } from '@/types/admin'
 
 export interface UseAdminAiRunsPageResult {
   items: AdminAiRun[]
+  total: number
   hasNext: boolean
   nextCursor: CursorValue | null
   loading: boolean
@@ -22,6 +24,7 @@ export function useAdminAiRunsPage(
   const { isAdmin, isAdminLoading } = useAuth()
   const { status, operation, userId, cursor, pageSize } = input
   const [items, setItems] = useState<AdminAiRun[]>([])
+  const [total, setTotal] = useState(0)
   const [hasNext, setHasNext] = useState(false)
   const [nextCursor, setNextCursor] = useState<CursorValue | null>(null)
   const [loading, setLoading] = useState(true)
@@ -30,6 +33,7 @@ export function useAdminAiRunsPage(
   const refresh = useCallback(async () => {
     if (isAdminLoading || !isAdmin) {
       setItems([])
+      setTotal(0)
       setHasNext(false)
       setNextCursor(null)
       setLoading(isAdminLoading)
@@ -39,14 +43,18 @@ export function useAdminAiRunsPage(
 
     setLoading(true)
     try {
-      const data = await loadAdminAiRunsPage({
-        status,
-        operation,
-        userId,
-        cursor,
-        pageSize,
-      })
+      const [data, count] = await Promise.all([
+        loadAdminAiRunsPage({
+          status,
+          operation,
+          userId,
+          cursor,
+          pageSize,
+        }),
+        countAdminAiRuns({ status, operation, userId }),
+      ])
       setItems(data.items)
+      setTotal(count)
       setHasNext(data.hasMore)
       setNextCursor(data.nextCursor)
       setError(null)
@@ -62,5 +70,5 @@ export function useAdminAiRunsPage(
     void refresh()
   }, [refresh])
 
-  return { items, hasNext, nextCursor, loading, error, refresh }
+  return { items, total, hasNext, nextCursor, loading, error, refresh }
 }

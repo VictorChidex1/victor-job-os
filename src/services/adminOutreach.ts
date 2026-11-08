@@ -104,6 +104,18 @@ function buildConstraints(input: AdminOutreachQuery): QueryConstraint[] {
   return constraints
 }
 
+export async function countAdminOutreach(
+  input: AdminOutreachQuery = {},
+): Promise<number> {
+  const restrictions = buildConstraints(input).filter(
+    (constraint) => constraint.type === 'where',
+  )
+  const snapshot = await getCountFromServer(
+    query(outreach, ...restrictions),
+  )
+  return snapshot.data().count
+}
+
 export async function loadAdminOutreachPage(
   input: AdminOutreachQuery = {},
 ): Promise<AdminOutreachPage> {

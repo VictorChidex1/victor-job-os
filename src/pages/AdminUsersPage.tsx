@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ChevronRight, Search, X } from 'lucide-react'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -51,6 +52,8 @@ export function AdminUsersPage() {
   const { users, loading, error, refresh } = useAdminUsers()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const pageSize = 25
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase()
@@ -61,6 +64,13 @@ export function AdminUsersPage() {
         .some((value) => value?.toLowerCase().includes(search)),
     )
   }, [users, query])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pagedUsers = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  )
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 sm:p-6">
@@ -83,7 +93,10 @@ export function AdminUsersPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <Input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                  setQuery(event.target.value)
+                  setPage(1)
+                }}
               placeholder="Search name, email, role, or UID…"
               className="h-9 bg-white pl-9 pr-8"
             />
@@ -122,7 +135,17 @@ export function AdminUsersPage() {
               }
             />
           ) : (
-            <Table>
+            <div className="flex flex-col gap-3">
+              <SlidingPaginationBar
+                page={currentPage}
+                totalPages={totalPages}
+                loading={loading}
+                hasPrev={currentPage > 1}
+                hasNext={currentPage < totalPages}
+                onPrev={() => setPage((value) => Math.max(1, value - 1))}
+                onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+              />
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
@@ -136,7 +159,7 @@ export function AdminUsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((user) => (
+                {pagedUsers.map((user) => (
                   <TableRow
                     key={user.id}
                     role="link"
@@ -177,7 +200,17 @@ export function AdminUsersPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+              <SlidingPaginationBar
+                page={currentPage}
+                totalPages={totalPages}
+                loading={loading}
+                hasPrev={currentPage > 1}
+                hasNext={currentPage < totalPages}
+                onPrev={() => setPage((value) => Math.max(1, value - 1))}
+                onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

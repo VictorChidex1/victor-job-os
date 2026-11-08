@@ -6,6 +6,7 @@ import { RefreshCw, Send } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
@@ -55,6 +56,7 @@ export function OutreachPage() {
 
   const { items, loading, error, refresh } = useOutreach()
   const [filter, setFilter] = useState('all')
+  const [page, setPage] = useState(1)
   const [checking, setChecking] = useState(false)
 
   const counts = useMemo(() => {
@@ -68,6 +70,13 @@ export function OutreachPage() {
   const filtered = useMemo(
     () => (filter === 'all' ? items : items.filter((item) => item.status === filter)),
     [items, filter],
+  )
+  const pageSize = 30
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pagedItems = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   )
 
   async function runFollowUps() {
@@ -108,7 +117,10 @@ export function OutreachPage() {
             key={status}
             size="sm"
             variant={filter === status ? 'default' : 'outline'}
-            onClick={() => setFilter(status)}
+            onClick={() => {
+              setFilter(status)
+              setPage(1)
+            }}
           >
             {status === 'all' ? 'All' : statusLabels[status]}
             <span className="ml-1 text-[0.65rem] opacity-70">{counts[status] ?? 0}</span>
@@ -130,8 +142,18 @@ export function OutreachPage() {
           }
         />
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {filtered.map((item) => (
+        <div className="flex flex-col gap-4">
+          <SlidingPaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            loading={loading}
+            hasPrev={currentPage > 1}
+            hasNext={currentPage < totalPages}
+            onPrev={() => setPage((value) => Math.max(1, value - 1))}
+            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+          />
+          <div className="grid gap-3 lg:grid-cols-2">
+          {pagedItems.map((item) => (
             <Card key={item.id}>
               <CardContent className="flex flex-col gap-3 pt-4">
                 <div className="flex items-start justify-between gap-3">
@@ -165,6 +187,16 @@ export function OutreachPage() {
               </CardContent>
             </Card>
           ))}
+          </div>
+          <SlidingPaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            loading={loading}
+            hasPrev={currentPage > 1}
+            hasNext={currentPage < totalPages}
+            onPrev={() => setPage((value) => Math.max(1, value - 1))}
+            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+          />
         </div>
       )}
     </PageContainer>

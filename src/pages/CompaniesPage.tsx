@@ -6,7 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/layout/PageContainer'
-import { PaginationBar } from '@/components/PaginationBar'
+import { SlidingPaginationBar } from '@/components/SlidingPaginationBar'
 import { EmptyState } from '@/components/states/EmptyState'
 import { LoadingState } from '@/components/states/LoadingState'
 import { useCompaniesPage } from '@/hooks/useCompaniesPage'
@@ -93,7 +93,6 @@ export function CompaniesPage() {
     error,
     page,
     totalPages,
-    total,
     hasNext,
     hasPrev,
     nextPage,
@@ -144,11 +143,9 @@ export function CompaniesPage() {
         />
       ) : (
         <div className="flex flex-col gap-4">
-          <PaginationBar
+          <SlidingPaginationBar
             page={page}
             totalPages={totalPages}
-            total={total}
-            itemLabel="companies"
             loading={loading}
             hasPrev={hasPrev}
             hasNext={hasNext}
@@ -160,11 +157,9 @@ export function CompaniesPage() {
               <CompanyCard key={company.id} company={company} />
             ))}
           </div>
-          <PaginationBar
+          <SlidingPaginationBar
             page={page}
             totalPages={totalPages}
-            total={total}
-            itemLabel="companies"
             loading={loading}
             hasPrev={hasPrev}
             hasNext={hasNext}

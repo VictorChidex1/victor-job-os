@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import {
+  countAdminOutreach,
   loadAdminOutreachPage,
   type AdminOutreachQuery,
 } from '@/services/adminOutreach'
@@ -9,6 +10,7 @@ import type { AdminOutreach } from '@/types/admin'
 
 export interface UseAdminOutreachPageResult {
   items: AdminOutreach[]
+  total: number
   hasNext: boolean
   nextCursor: CursorValue | null
   loading: boolean
@@ -22,6 +24,7 @@ export function useAdminOutreachPage(
   const { isAdmin, isAdminLoading } = useAuth()
   const { search, status, userId, cursor, pageSize } = input
   const [items, setItems] = useState<AdminOutreach[]>([])
+  const [total, setTotal] = useState(0)
   const [hasNext, setHasNext] = useState(false)
   const [nextCursor, setNextCursor] = useState<CursorValue | null>(null)
   const [loading, setLoading] = useState(true)
@@ -30,6 +33,7 @@ export function useAdminOutreachPage(
   const refresh = useCallback(async () => {
     if (isAdminLoading || !isAdmin) {
       setItems([])
+      setTotal(0)
       setHasNext(false)
       setNextCursor(null)
       setLoading(isAdminLoading)
@@ -39,14 +43,18 @@ export function useAdminOutreachPage(
 
     setLoading(true)
     try {
-      const data = await loadAdminOutreachPage({
-        search,
-        status,
-        userId,
-        cursor,
-        pageSize,
-      })
+      const [data, count] = await Promise.all([
+        loadAdminOutreachPage({
+          search,
+          status,
+          userId,
+          cursor,
+          pageSize,
+        }),
+        countAdminOutreach({ search, status, userId }),
+      ])
       setItems(data.items)
+      setTotal(count)
       setHasNext(data.hasMore)
       setNextCursor(data.nextCursor)
       setError(null)
@@ -62,5 +70,5 @@ export function useAdminOutreachPage(
     void refresh()
   }, [refresh])
 
-  return { items, hasNext, nextCursor, loading, error, refresh }
+  return { items, total, hasNext, nextCursor, loading, error, refresh }
 }

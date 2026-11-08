@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import {
+  countAdminErrorLogs,
   loadAdminErrorLogsPage,
   type AdminErrorLogQuery,
 } from '@/services/adminErrors'
@@ -9,6 +10,7 @@ import type { AdminErrorLog } from '@/types/admin'
 
 export interface UseAdminErrorLogsPageResult {
   items: AdminErrorLog[]
+  total: number
   hasNext: boolean
   nextCursor: CursorValue | null
   loading: boolean
@@ -22,6 +24,7 @@ export function useAdminErrorLogsPage(
   const { isAdmin, isAdminLoading } = useAuth()
   const { fn, userId, cursor, pageSize } = input
   const [items, setItems] = useState<AdminErrorLog[]>([])
+  const [total, setTotal] = useState(0)
   const [hasNext, setHasNext] = useState(false)
   const [nextCursor, setNextCursor] = useState<CursorValue | null>(null)
   const [loading, setLoading] = useState(true)
@@ -30,6 +33,7 @@ export function useAdminErrorLogsPage(
   const refresh = useCallback(async () => {
     if (isAdminLoading || !isAdmin) {
       setItems([])
+      setTotal(0)
       setHasNext(false)
       setNextCursor(null)
       setLoading(isAdminLoading)
@@ -39,13 +43,17 @@ export function useAdminErrorLogsPage(
 
     setLoading(true)
     try {
-      const data = await loadAdminErrorLogsPage({
-        fn,
-        userId,
-        cursor,
-        pageSize,
-      })
+      const [data, count] = await Promise.all([
+        loadAdminErrorLogsPage({
+          fn,
+          userId,
+          cursor,
+          pageSize,
+        }),
+        countAdminErrorLogs({ fn, userId }),
+      ])
       setItems(data.items)
+      setTotal(count)
       setHasNext(data.hasMore)
       setNextCursor(data.nextCursor)
       setError(null)
@@ -61,5 +69,5 @@ export function useAdminErrorLogsPage(
     void refresh()
   }, [refresh])
 
-  return { items, hasNext, nextCursor, loading, error, refresh }
+  return { items, total, hasNext, nextCursor, loading, error, refresh }
 }
