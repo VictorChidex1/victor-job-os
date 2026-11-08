@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appendCursor,
   currentPage,
+  cursorFromFieldValue,
   decodeCursorStack,
   encodeCursorStack,
   popCursor,
@@ -38,6 +39,37 @@ describe('cursor pagination', () => {
     ])
 
     expect(decodeCursorStack(encoded)).toEqual([{ value: 1, id: 'ok' }])
+  })
+
+  it('preserves string cursor metadata through the URL token', () => {
+    const stringStack: CursorStack = [
+      {
+        value: Date.parse('2026-11-08T01:17:28.904Z'),
+        id: 'legacy-doc',
+        kind: 'string',
+        stringValue: '2026-11-08T01:17:28.904Z',
+      },
+    ]
+
+    expect(decodeCursorStack(encodeCursorStack(stringStack))).toEqual(stringStack)
+  })
+
+  it('builds typed cursors from Timestamp-like and string values', () => {
+    expect(
+      cursorFromFieldValue('2026-11-08T01:17:28.904Z', 'doc-1'),
+    ).toMatchObject({
+      id: 'doc-1',
+      kind: 'string',
+      stringValue: '2026-11-08T01:17:28.904Z',
+    })
+    expect(
+      cursorFromFieldValue({ toMillis: () => 1794100648904 }, 'doc-2'),
+    ).toEqual({
+      value: 1794100648904,
+      id: 'doc-2',
+      kind: 'timestamp',
+    })
+    expect(cursorFromFieldValue('bad', 'doc-3')).toBeNull()
   })
 
   it('appends and pops pagination cursors', () => {

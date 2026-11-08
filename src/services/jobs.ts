@@ -13,18 +13,17 @@ import {
   Timestamp,
   type DocumentData,
   type QueryConstraint,
+  type Query,
   type QueryDocumentSnapshot,
+  type QuerySnapshot,
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
 import { stripHtml } from '@/lib/html'
 import { normalizeAtsMetadata } from '@/lib/atsApplicationMetadata'
-import {
-  timestampToMillis,
-  toFirestoreTimestamp,
-} from '@/lib/firestoreTimestamps'
+import { cursorFromFieldValue, type CursorValue } from '@/lib/cursorPagination'
+import { toFirestoreTimestamp } from '@/lib/firestoreTimestamps'
 import { searchTokensForQuery } from '@/lib/searchTokens'
-import type { CursorValue } from '@/lib/cursorPagination'
 import type { Job, JobSource, JobStatus } from '@/types/jobs'
 
 const jobsCollection = collection(db, collections.jobs)
@@ -96,17 +95,8 @@ export async function listJobsPage(uid: string, options: JobPageOptions = {}): P
 
   constraints.push(orderBy('discoveredAt', 'desc'))
   constraints.push(orderBy(documentId(), 'desc'))
-  if (options.cursorValue) {
-    constraints.push(
-      startAfter(
-        Timestamp.fromMillis(options.cursorValue.value),
-        options.cursorValue.id,
-      ),
-    )
-  }
-  constraints.push(limit(pageSize + 1))
 
-  const snapshot = await getDocs(query(jobsCollection, ...constraints))
+  const snapshot = await fetchJobsPage(constraints, pageSize, options.cursorValue ?? null)
   const hasMore = snapshot.docs.length > pageSize
   const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs
   const lastDoc = pageDocs[pageDocs.length - 1]
@@ -137,17 +127,8 @@ export async function searchJobsPage(
     orderBy('discoveredAt', 'desc'),
     orderBy(documentId(), 'desc'),
   ]
-  if (options.cursorValue) {
-    constraints.push(
-      startAfter(
-        Timestamp.fromMillis(options.cursorValue.value),
-        options.cursorValue.id,
-      ),
-    )
-  }
-  constraints.push(limit(pageSize + 1))
 
-  const snapshot = await getDocs(query(jobsCollection, ...constraints))
+  const snapshot = await fetchJobsPage(constraints, pageSize, options.cursorValue ?? null)
   const hasMore = snapshot.docs.length > pageSize
   const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs
   const lastDoc = pageDocs[pageDocs.length - 1]
@@ -211,9 +192,40 @@ export async function getJob(id: string): Promise<Job | null> {
 function cursorFromDocument(
   document: QueryDocumentSnapshot<DocumentData>,
 ): CursorValue | null {
-  const value = timestampToMillis(document.get('discoveredAt'))
-  if (value === null || value <= 0) return null
-  return { value, id: document.id }
+  return cursorFromFieldValue(document.get('discoveredAt'), document.id)
+}
+
+async function fetchJobsPage(
+  baseConstraints: QueryConstraint[],
+  pageSize: number,
+  cursor: CursorValue | null,
+): Promise<QuerySnapshot<DocumentData>> {
+  const build = (startValue?: string | Timestamp): Query<DocumentData> => {
+    const constraints = [...baseConstraints]
+    if (cursor && startValue !== undefined) {
+      constraints.push(startAfter(startValue, cursor.id))
+    }
+    constraints.push(limit(pageSize + 1))
+    return query(jobsCollection, ...constraints)
+  }
+
+  if (!cursor) {
+    return getDocs(build())
+  }
+
+  const primaryValue =
+    cursor.kind === 'string' && cursor.stringValue
+      ? cursor.stringValue
+      : Timestamp.fromMillis(cursor.value)
+  let snapshot = await getDocs(build(primaryValue))
+
+  // Backward compatibility for cursor URLs created before the field type was
+  // recorded. Legacy cursors were numbers; retry the equivalent ISO string.
+  if (snapshot.empty && !cursor.kind) {
+    const legacyString = new Date(cursor.value).toISOString()
+    snapshot = await getDocs(build(legacyString))
+  }
+  return snapshot
 }
 
 function toJob(id: string, data: DocumentData): Job {

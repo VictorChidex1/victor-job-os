@@ -13,14 +13,18 @@ import {
   where,
   type DocumentData,
   type QueryConstraint,
+  type Query,
   type QueryDocumentSnapshot,
-  type Timestamp as FirestoreTimestamp,
+  type QuerySnapshot,
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
 import { toAdminUser } from '@/services/admin'
 import { searchTokensForQuery } from '@/lib/searchTokens'
-import type { CursorValue } from '@/lib/cursorPagination'
+import {
+  cursorFromFieldValue,
+  type CursorValue,
+} from '@/lib/cursorPagination'
 import type {
   AdminOpportunity,
   AdminOpportunityAnalysis,
@@ -102,28 +106,22 @@ export async function loadAdminOpportunitiesPage(
 ): Promise<AdminOpportunityPage> {
   const pageSize = Math.max(1, input.pageSize ?? 25)
   const constraints = buildConstraints(input)
-
-  if (input.cursor) {
-    constraints.push(
-      startAfter(
-        Timestamp.fromMillis(input.cursor.value),
-        input.cursor.id,
-      ),
-    )
-  }
-  constraints.push(limit(pageSize + 1))
-
-  const snapshot = await getDocs(query(jobs, ...constraints))
+  const snapshot = await fetchAdminJobsPage(
+    constraints,
+    pageSize,
+    input.cursor ?? null,
+  )
   const hasMore = snapshot.docs.length > pageSize
   const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs
   const lastDoc = pageDocs[pageDocs.length - 1]
+  const nextCursor = lastDoc ? cursorFromDocument(lastDoc) : null
 
   return {
     items: pageDocs.map((document) =>
       toAdminOpportunity(document.id, document.data()),
     ),
-    nextCursor: lastDoc ? cursorFromDocument(lastDoc) : null,
-    hasMore,
+    nextCursor,
+    hasMore: hasMore && Boolean(nextCursor),
   }
 }
 
@@ -172,13 +170,34 @@ export async function loadAdminOpportunityDetail(
 
 function cursorFromDocument(
   document: QueryDocumentSnapshot<DocumentData>,
-): CursorValue {
-  const value = document.get('discoveredAt') as FirestoreTimestamp | undefined
-  return {
-    value:
-      value && typeof value.toMillis === 'function' ? value.toMillis() : 0,
-    id: document.id,
+): CursorValue | null {
+  return cursorFromFieldValue(document.get('discoveredAt'), document.id)
+}
+
+async function fetchAdminJobsPage(
+  baseConstraints: QueryConstraint[],
+  pageSize: number,
+  cursor: CursorValue | null,
+): Promise<QuerySnapshot<DocumentData>> {
+  const build = (startValue?: string | Timestamp): Query<DocumentData> => {
+    const constraints = [...baseConstraints]
+    if (cursor && startValue !== undefined) {
+      constraints.push(startAfter(startValue, cursor.id))
+    }
+    constraints.push(limit(pageSize + 1))
+    return query(jobs, ...constraints)
   }
+
+  if (!cursor) return getDocs(build())
+  const primaryValue =
+    cursor.kind === 'string' && cursor.stringValue
+      ? cursor.stringValue
+      : Timestamp.fromMillis(cursor.value)
+  let snapshot = await getDocs(build(primaryValue))
+  if (snapshot.empty && !cursor.kind) {
+    snapshot = await getDocs(build(new Date(cursor.value).toISOString()))
+  }
+  return snapshot
 }
 
 function toAdminOpportunity(
