@@ -15,6 +15,10 @@ import {
   adminSetUserDisabled,
   adminDeleteUser,
 } from './admin/userManagement.js'
+import {
+  startAutomationInspection,
+  cancelAutomationRun,
+} from './automation/automationFunctions.js'
 
 export {
   discoverJobs,
@@ -32,4 +36,6 @@ export {
   adminSetUserRole,
   adminSetUserDisabled,
   adminDeleteUser,
+  startAutomationInspection,
+  cancelAutomationRun,
 }

@@ -274,6 +274,35 @@ describe('Firestore security rules', () => {
     )
   })
 
+  it('keeps automation state read-only and owner-scoped', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore()
+      await setDoc(doc(firestore, 'automationSessions', 'session-1'), {
+        userId: owner,
+        applicationId: 'app-1',
+        status: 'active',
+      })
+      await setDoc(doc(firestore, 'automationRuns', 'run-1'), {
+        userId: owner,
+        applicationId: 'app-1',
+        sessionId: 'session-1',
+        status: 'completed',
+      })
+    })
+
+    const dbOwner = testEnv.authenticatedContext(owner).firestore()
+    await assertSucceeds(getDoc(doc(dbOwner, 'automationRuns', 'run-1')))
+    await assertFails(
+      setDoc(doc(dbOwner, 'automationRuns', 'run-2'), {
+        userId: owner,
+        applicationId: 'app-1',
+      }),
+    )
+
+    const dbOther = testEnv.authenticatedContext(other).firestore()
+    await assertFails(getDoc(doc(dbOther, 'automationSessions', 'session-1')))
+  })
+
   it('blocks disabled accounts immediately', async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const firestore = context.firestore()

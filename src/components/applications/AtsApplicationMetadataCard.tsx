@@ -1,4 +1,4 @@
-import { ExternalLink, ListChecks, ShieldQuestion } from 'lucide-react'
+import { Bot, ExternalLink, ListChecks, ShieldQuestion } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,9 +18,13 @@ import type { AtsApplicationMetadata } from '@/types/jobs'
 export function AtsApplicationMetadataCard({
   metadata,
   className,
+  onInspect,
+  inspectBusy = false,
 }: {
   metadata?: AtsApplicationMetadata
   className?: string
+  onInspect?: () => void | Promise<void>
+  inspectBusy?: boolean
 }) {
   if (!metadata) return null
 
@@ -76,6 +80,17 @@ export function AtsApplicationMetadataCard({
             <span className="max-w-full truncate text-xs text-muted-foreground">
               {metadata.applicationUrl}
             </span>
+            {onInspect && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void onInspect()}
+                disabled={inspectBusy}
+              >
+                <Bot />
+                {inspectBusy ? 'Starting…' : 'Inspect application form'}
+              </Button>
+            )}
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">

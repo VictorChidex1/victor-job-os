@@ -30,6 +30,7 @@ import {
 import { formatApplicationDate } from '@/lib/applicationPipeline'
 import { SOURCE_LABELS } from '@/lib/job-sources'
 import { updateApplicationStatus } from '@/services/applications'
+import { startAutomationInspection } from '@/services/automation'
 import type {
   Application,
   ApplicationOutcome,
@@ -89,6 +90,7 @@ export function ApplicationDetail({
   const [selectedOutcome, setSelectedOutcome] = useState<ApplicationOutcome | ''>('')
   const [note, setNote] = useState('')
   const [updating, setUpdating] = useState(false)
+  const [automationStarting, setAutomationStarting] = useState(false)
 
   const validNext = application ? APPLICATION_TRANSITIONS[application.status] : []
   const nextStatus =
@@ -131,6 +133,29 @@ export function ApplicationDetail({
       })
     } finally {
       setUpdating(false)
+    }
+  }
+
+  async function startInspection() {
+    if (!application) return
+    setAutomationStarting(true)
+    try {
+      const result = await startAutomationInspection(application.id)
+      toast(
+        result.status === 'awaiting-manual-action'
+          ? 'Inspection requires manual review'
+          : 'Automation inspection started',
+      )
+      navigate('/app/automation')
+    } catch (automationError) {
+      toast('Unable to start automation inspection', {
+        description:
+          automationError instanceof Error
+            ? automationError.message
+            : 'Please try again.',
+      })
+    } finally {
+      setAutomationStarting(false)
     }
   }
 
@@ -434,7 +459,11 @@ export function ApplicationDetail({
             </CardContent>
           </Card>
 
-          <AtsApplicationMetadataCard metadata={application.atsMetadata} />
+          <AtsApplicationMetadataCard
+            metadata={application.atsMetadata}
+            onInspect={startInspection}
+            inspectBusy={automationStarting}
+          />
         </div>
       </div>
     </PageContainer>

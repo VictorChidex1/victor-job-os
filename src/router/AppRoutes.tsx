@@ -196,6 +196,12 @@ export const ApplicationPreparationPage = lazy(() =>
   })),
 )
 
+export const AutomationPage = lazy(() =>
+  import('@/pages/AutomationPage').then((module) => ({
+    default: module.AutomationPage,
+  })),
+)
+
 export const DocumentationPage = lazy(() =>
   import('@/features/docs/DocsPage').then((module) => ({
     default: module.DocsPage,
@@ -512,6 +518,14 @@ export function ApplicationPreparationRoute() {
   return (
     <Suspense fallback={<LoadingState rows={5} />}>
       <ApplicationPreparationPage />
+    </Suspense>
+  )
+}
+
+export function AutomationRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={3} />}>
+      <AutomationPage />
     </Suspense>
   )
 }

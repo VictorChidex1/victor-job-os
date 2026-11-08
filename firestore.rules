@@ -186,6 +186,17 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Browser automation state is written only by trusted Functions/workers.
+    match /automationSessions/{documentId} {
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow write: if false;
+    }
+
+    match /automationRuns/{documentId} {
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow write: if false;
+    }
+
     // Admin audit records are written only by trusted Cloud Functions.
     match /adminAuditLogs/{documentId} {
       allow read: if isAdmin();
