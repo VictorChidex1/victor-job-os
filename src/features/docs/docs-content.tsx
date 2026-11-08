@@ -600,7 +600,7 @@ export const DOC_SECTIONS: DocsSection[] = [
             and understand what changed.
           </FeatureCard>
           <FeatureCard icon={TriangleAlert} title="Current limitations">
-            Browser automation and automatic submission are not available yet. ATS application metadata is captured where the source exposes it.
+            Playwright-based form inspection is available in local development. Production browser automation still requires a browser worker and Blaze deployment, and automatic submission is not available yet.
             Do not treat generated content as verified fact.
           </FeatureCard>
         </FeatureGrid>

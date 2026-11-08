@@ -1,9 +1,12 @@
 import { MockBrowserAutomationProvider } from './providers/mockProvider.js'
+import { PlaywrightBrowserAutomationProvider } from './providers/playwrightProvider.js'
 import type { AutomationProviderId, BrowserAutomationProvider } from './types.js'
 
 const mockProvider = new MockBrowserAutomationProvider()
+const playwrightProvider = new PlaywrightBrowserAutomationProvider()
 const providers: Partial<Record<AutomationProviderId, BrowserAutomationProvider>> = {
   mock: mockProvider,
+  playwright: playwrightProvider,
 }
 
 export function selectedAutomationProviderId(): AutomationProviderId {

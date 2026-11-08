@@ -3,7 +3,10 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "es2023",
-    "lib": ["es2023"],
+    "lib": [
+      "es2023",
+      "DOM"
+    ],
     "outDir": "lib",
     "rootDir": "src",
     "declaration": true,
@@ -18,6 +21,8 @@
     "verbatimModuleSyntax": true,
     "sourceMap": true
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "compileOnSave": true
 }

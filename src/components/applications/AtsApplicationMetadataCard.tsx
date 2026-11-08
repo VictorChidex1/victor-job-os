@@ -133,8 +133,8 @@ export function AtsApplicationMetadataCard({
         )}
 
         <p className="text-xs text-muted-foreground">
-          Full field and question discovery will be added by the browser-automation
-          workflow.
+          Use browser automation to inspect the live application form for field and question
+          discovery. Missing information is never guessed.
         </p>
       </CardContent>
     </Card>

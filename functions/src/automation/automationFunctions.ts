@@ -71,7 +71,7 @@ async function setStep(
 }
 
 export const startAutomationInspection = onCall(
-  { memory: '256MiB', timeoutSeconds: 60, maxInstances: 2 },
+  { memory: '1GiB', timeoutSeconds: 120, maxInstances: 2 },
   async (request) => {
     const userId = request.auth?.uid
     if (!userId) {
