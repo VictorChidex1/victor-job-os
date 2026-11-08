@@ -1,12 +1,19 @@
 import type { Page } from 'playwright'
-import type { AtsApplicationField } from '../adapters/ats/types.js'
+import type { AtsApplicationFieldType } from '../adapters/ats/types.js'
 import type { ApplicationInspection } from './types.js'
 
 const CAPTCHA_PATTERN = /captcha|verify you are human|are you a robot|access denied|cloudflare/i
 
 interface RawField {
+  key: string
   name: string
-  type?: AtsApplicationField['type']
+  type?: AtsApplicationFieldType
+  inputType?: string
+  tagName?: string
+  id?: string
+  htmlName?: string
+  placeholder?: string
+  ariaLabel?: string
   required?: boolean
   options?: string[]
 }
@@ -93,6 +100,30 @@ export async function inspectCurrentPage(page: Page): Promise<ApplicationInspect
       return 'unknown'
     }
 
+    const slug = (value: string): string =>
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 48)
+
+    const usedKeys = new Map<string, number>()
+    const keyFor = (element: Element, label: string): string => {
+      const tag = element.tagName.toLowerCase()
+      const raw =
+        element.getAttribute('name') ||
+        element.getAttribute('id') ||
+        label ||
+        element.getAttribute('placeholder') ||
+        tag
+      const base = slug(raw) || 'field'
+      const occurrence = usedKeys.get(base) ?? 0
+      usedKeys.set(base, occurrence + 1)
+      const key = `job-os-${base}-${occurrence}`
+      element.setAttribute('data-job-os-field', key)
+      return key
+    }
+
     const forms = Array.from(document.querySelectorAll('form'))
     const score = (form: HTMLFormElement) =>
       form.querySelectorAll('input:not([type="hidden"]), textarea, select').length
@@ -110,6 +141,13 @@ export async function inspectCurrentPage(page: Page): Promise<ApplicationInspect
       .slice(0, 200)
       .map((element) => {
         const name = labelFor(element)
+        const key = keyFor(element, name)
+        const input = element as HTMLInputElement
+        const inputType = input.type?.toLowerCase()
+        const id = element.getAttribute('id')?.trim()
+        const htmlName = element.getAttribute('name')?.trim()
+        const placeholder = input.placeholder?.trim()
+        const ariaLabel = element.getAttribute('aria-label')?.trim()
         const required =
           element.hasAttribute('required') ||
           element.getAttribute('aria-required') === 'true'
@@ -119,19 +157,26 @@ export async function inspectCurrentPage(page: Page): Promise<ApplicationInspect
                 .map((option) => option.text.trim())
                 .filter(Boolean)
                 .slice(0, 50)
-            : undefined
+            : []
         return {
+          key,
           name,
           type: typeFor(element),
-          required: required ? true : undefined,
-          options,
+          ...(inputType ? { inputType } : {}),
+          tagName: element.tagName.toLowerCase(),
+          ...(id ? { id } : {}),
+          ...(htmlName ? { htmlName } : {}),
+          ...(placeholder ? { placeholder } : {}),
+          ...(ariaLabel ? { ariaLabel } : {}),
+          ...(required ? { required: true } : {}),
+          ...(options.length ? { options } : {}),
         }
       })
       .filter((field) => Boolean(field.name))
   })
 
   const uniqueFields = Array.from(
-    new Map(rawFields.map((field) => [field.name.toLowerCase(), field])).values(),
+    new Map(rawFields.map((field) => [field.key, field])).values(),
   )
 
   const questionCandidates = uniqueFields
@@ -150,9 +195,9 @@ export async function inspectCurrentPage(page: Page): Promise<ApplicationInspect
   }
 
   return {
-    title: title || undefined,
+    ...(title ? { title } : {}),
     fields: uniqueFields,
     questions,
-    manualActionReason,
+    ...(manualActionReason ? { manualActionReason } : {}),
   }
 }

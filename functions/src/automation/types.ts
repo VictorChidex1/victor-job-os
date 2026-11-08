@@ -15,6 +15,7 @@ export type AutomationStepName =
   | 'validate'
   | 'open-session'
   | 'inspect'
+  | 'populate'
   | 'close-session'
 
 export type AutomationStepStatus =
@@ -44,9 +45,72 @@ export interface AutomationSessionInput {
   allowedDomains: string[]
 }
 
+/**
+ * A discovered form field plus server-side locator metadata.
+ *
+ * `key` is stable for a given form shape. It is the only field identifier the
+ * client is allowed to send back to the fill function.
+ */
+export interface AutomationFieldDescriptor extends AtsApplicationField {
+  key: string
+  inputType?: string
+  tagName?: string
+  id?: string
+  htmlName?: string
+  placeholder?: string
+  ariaLabel?: string
+}
+
+export type AutomationFieldSource =
+  | 'application'
+  | 'profile'
+  | 'preparation'
+  | 'none'
+
+export type AutomationFieldConfidence = 'high' | 'medium' | 'manual'
+
+export interface AutomationFieldProposal {
+  fieldKey: string
+  label: string
+  type?: AtsApplicationField['type']
+  inputType?: string
+  required?: boolean
+  options?: string[]
+  proposedValue?: string | boolean
+  proposedSource: AutomationFieldSource
+  confidence: AutomationFieldConfidence
+  note?: string
+}
+
+export interface ApprovedFieldValue {
+  fieldKey: string
+  value: string | boolean
+}
+
+export type FieldPopulationStatus =
+  | 'filled'
+  | 'skipped'
+  | 'failed'
+  | 'manual-required'
+
+export interface FieldPopulationResult {
+  fieldKey: string
+  label: string
+  status: FieldPopulationStatus
+  valuePreview?: string
+  reason?: string
+}
+
+export interface AutomationPopulation {
+  approvedFields: ApprovedFieldValue[]
+  results: FieldPopulationResult[]
+  startedAt?: string
+  endedAt?: string
+}
+
 export interface ApplicationInspection {
   title?: string
-  fields: AtsApplicationField[]
+  fields: AutomationFieldDescriptor[]
   questions: string[]
   manualActionReason?: string
 }
@@ -59,5 +123,11 @@ export interface BrowserAutomationProvider {
     handle: AutomationSessionHandle,
     input: AutomationSessionInput,
   ): Promise<ApplicationInspection>
+  populateApprovedFields(
+    handle: AutomationSessionHandle,
+    input: AutomationSessionInput,
+    approvedFields: ApprovedFieldValue[],
+    fields: AutomationFieldDescriptor[],
+  ): Promise<FieldPopulationResult[]>
   closeSession(handle: AutomationSessionHandle): Promise<void>
 }

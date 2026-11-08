@@ -115,7 +115,7 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - **Phase 6 (Outreach):** Cold-email prompt architecture, pitch generation, outreach editor, approval workflow, pipeline, manual sending, reply tracking, and follow-up queue.
 - **Phase 7 (V1 Hardening):** Structured logging, error monitoring, retry boundaries, AI usage tracking, duplicate protections, discovery locks, and unit/integration security tests.
 
-### V2 — items 56–62 complete
+### V2 — items 56–63 complete
 
 - **56 — Application entity:** One application per opportunity, validated lifecycle states, append-only timeline, and application detail view.
 - **57 — Application pipeline:** Board and list views, stage filtering, search, and combined closed-stage handling.
@@ -124,6 +124,7 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - **60 — ATS application metadata:** Normalized ATS metadata attached to applications and rendered in review/preparation flows.
 - **61 — Browser automation abstraction:** Provider interface, domain policy, page inspection, execution types, and bounded automation runs.
 - **62 — Playwright provider:** Real browser provider that follows apply links, detects email-only applications, and inspects Workable forms.
+- **63 — Approved-field population:** Server-generated field proposals from profile, application, and approved preparation content; per-field review and approval; Playwright population of approved text, textarea, select, and checkbox fields; per-field results. File uploads and submission remain manual.
 
 ### Admin console — AC1–AC9 complete
 
@@ -156,7 +157,7 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 
 ### Next
 
-- V2 items 63–69: approved-field population, browser execution logs, screenshot/error capture, manual verification pauses, application submission workflow, interview tracking, and V2 deployment.
+- V2 items 64–69: browser execution logs, screenshot/error capture, manual verification pauses, application submission workflow, interview tracking, and V2 deployment.
 
 ## What’s Built
 
@@ -213,7 +214,11 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - Playwright-backed provider.
 - Apply-link following and email-only application detection.
 - Workable form inspection.
-- Explicit human verification boundaries; automated submission is not enabled.
+- Server-generated field proposals from profile, application, and approved preparation content.
+- Per-field review and approval before population.
+- Playwright population of approved text, textarea, select, and checkbox fields.
+- Per-field filled, skipped, failed, and manual-required results.
+- Manual file uploads and explicit human verification boundaries; automated submission is not enabled.
 
 ### Admin console
 
@@ -265,7 +270,7 @@ npm run test                 # typecheck + unit tests
 npm run test:integration     # Firestore/Auth emulator integration tests
 ```
 
-Current coverage includes 93 unit tests and 54 integration tests across normalization, deduplication, cursor pagination, sliding-window pagination, application lifecycle, preparation prompts, resume variants, ATS metadata, automation policy, search tokens, discovery locks, and Firestore rules.
+Current coverage includes 103 unit tests and 54 integration tests across normalization, deduplication, cursor pagination, sliding-window pagination, application lifecycle, preparation prompts, resume variants, ATS metadata, automation policy, field proposals, approved-field validation, Firestore write serialization, search tokens, discovery locks, and Firestore rules.
 
 ## Deployment
 

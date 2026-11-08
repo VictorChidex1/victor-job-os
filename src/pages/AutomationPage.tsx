@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { Bot, ExternalLink, RefreshCw, Square } from 'lucide-react'
 import { toast } from 'sonner'
+import { AutomationFieldPopulationCard } from '@/components/automation/AutomationFieldPopulationCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -62,7 +63,7 @@ export function AutomationPage() {
   return (
     <PageContainer
       title="Automation"
-      description="Controlled browser inspection sessions. Field filling and submission are not enabled yet."
+      description="Controlled browser inspections and approved field population. Submission is not enabled."
       actions={
         <Button variant="outline" size="sm" onClick={() => void refresh()}>
           <RefreshCw />
@@ -77,13 +78,14 @@ export function AutomationPage() {
             Browser automation
           </CardTitle>
           <CardDescription>
-            The current provider is the mock inspection provider. Playwright becomes available
-            in item 62. Sessions are bounded, auditable, and read-only from the client.
+            Playwright inspects live application forms and can populate fields you explicitly
+            approve. Sessions are bounded, auditable, and read-only from the client.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Start an inspection from an application’s ATS metadata card. Automation never fills
-          fields or submits an application in this phase.
+          Start an inspection from an application’s ATS metadata card, then review proposed
+          values below. Automation never submits an application and never guesses missing
+          information.
         </CardContent>
       </Card>
 
@@ -154,6 +156,14 @@ export function AutomationPage() {
                   </div>
                 )}
 
+                {run.fieldProposals && run.fieldProposals.length > 0 && (
+                  <AutomationFieldPopulationCard
+                    key={run.id}
+                    run={run}
+                    onRefresh={refresh}
+                  />
+                )}
+
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
@@ -167,7 +177,8 @@ export function AutomationPage() {
                     <ExternalLink />
                     Open application
                   </Button>
-                  {['queued', 'running', 'awaiting-manual-action'].includes(run.status) && (
+                  {(['queued', 'running'].includes(run.status) ||
+                    (run.status === 'awaiting-manual-action' && !run.population)) && (
                     <Button
                       variant="ghost"
                       size="sm"

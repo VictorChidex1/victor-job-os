@@ -17,6 +17,7 @@ import {
 } from './admin/userManagement.js'
 import {
   startAutomationInspection,
+  populateAutomationFields,
   cancelAutomationRun,
 } from './automation/automationFunctions.js'
 
@@ -37,5 +38,6 @@ export {
   adminSetUserDisabled,
   adminDeleteUser,
   startAutomationInspection,
+  populateAutomationFields,
   cancelAutomationRun,
 }

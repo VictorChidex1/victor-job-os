@@ -4,9 +4,12 @@ import { isAllowedHost, validateAutomationUrl } from '../domainPolicy.js'
 import { inspectCurrentPage } from '../pageInspector.js'
 import type {
   ApplicationInspection,
+  ApprovedFieldValue,
+  AutomationFieldDescriptor,
   AutomationSessionHandle,
   AutomationSessionInput,
   BrowserAutomationProvider,
+  FieldPopulationResult,
 } from '../types.js'
 
 interface LiveSession {
@@ -20,7 +23,7 @@ export class PlaywrightBrowserAutomationProvider
   implements BrowserAutomationProvider
 {
   id = 'playwright' as const
-  capabilities = new Set(['inspect'] as const)
+  capabilities = new Set(['inspect', 'fill'] as const)
   private sessions = new Map<string, LiveSession>()
 
   async createSession(input: AutomationSessionInput): Promise<AutomationSessionHandle> {
@@ -113,6 +116,194 @@ export class PlaywrightBrowserAutomationProvider
     return applied ?? firstInspection
   }
 
+  async populateApprovedFields(
+    handle: AutomationSessionHandle,
+    input: AutomationSessionInput,
+    approvedFields: ApprovedFieldValue[],
+    storedFields: AutomationFieldDescriptor[],
+  ): Promise<FieldPopulationResult[]> {
+    const session = this.sessions.get(handle.providerSessionId)
+    if (!session) {
+      throw new Error('Browser automation session is no longer active.')
+    }
+
+    const inspection = await this.inspectApplication(handle, input)
+    const storedByKey = new Map(storedFields.map((field) => [field.key, field]))
+
+    if (inspection.manualActionReason) {
+      return approvedFields.map((approved) => ({
+        fieldKey: approved.fieldKey,
+        label: storedByKey.get(approved.fieldKey)?.name ?? approved.fieldKey,
+        status: 'failed',
+        reason: inspection.manualActionReason,
+      }))
+    }
+
+    const page = await this.findPopulatedFieldPage(session)
+    if (!page) {
+      return approvedFields.map((approved) => ({
+        fieldKey: approved.fieldKey,
+        label: storedByKey.get(approved.fieldKey)?.name ?? approved.fieldKey,
+        status: 'failed',
+        reason: 'The application form could not be located for population.',
+      }))
+    }
+
+    const currentByKey = new Map(
+      inspection.fields.map((field) => [field.key, field]),
+    )
+    const results: FieldPopulationResult[] = []
+
+    for (const approved of approvedFields) {
+      const stored = storedByKey.get(approved.fieldKey)
+      const field = currentByKey.get(approved.fieldKey)
+      const label = field?.name ?? stored?.name ?? approved.fieldKey
+
+      if (!field) {
+        results.push({
+          fieldKey: approved.fieldKey,
+          label,
+          status: 'skipped',
+          reason:
+            'The field is no longer present in the same position on the live form.',
+        })
+        continue
+      }
+
+      if (field.inputType === 'radio') {
+        results.push({
+          fieldKey: approved.fieldKey,
+          label,
+          status: 'manual-required',
+          reason: 'Radio groups require a manual choice.',
+        })
+        continue
+      }
+
+      if (field.type === 'file' || field.type === 'unknown') {
+        results.push({
+          fieldKey: approved.fieldKey,
+          label,
+          status: 'manual-required',
+          reason: 'This field type requires manual input.',
+        })
+        continue
+      }
+
+      const locator = page
+        .locator(`[data-job-os-field="${field.key}"]`)
+        .first()
+
+      try {
+        if (!(await locator.count())) {
+          results.push({
+            fieldKey: approved.fieldKey,
+            label,
+            status: 'skipped',
+            reason: 'The field could not be located on the live form.',
+          })
+          continue
+        }
+
+        if (!(await locator.isVisible().catch(() => false))) {
+          results.push({
+            fieldKey: approved.fieldKey,
+            label,
+            status: 'skipped',
+            reason: 'The field is not visible on the live form.',
+          })
+          continue
+        }
+
+        if (field.type === 'select') {
+          const value = String(approved.value)
+          const option = field.options?.find(
+            (candidate) => candidate.toLowerCase() === value.toLowerCase(),
+          )
+          if (!option) {
+            results.push({
+              fieldKey: approved.fieldKey,
+              label,
+              status: 'failed',
+              reason: 'The approved option is no longer available.',
+            })
+            continue
+          }
+          await locator.selectOption({ label: option })
+          results.push({
+            fieldKey: approved.fieldKey,
+            label,
+            status: 'filled',
+            valuePreview: option,
+          })
+          continue
+        }
+
+        if (field.type === 'checkbox') {
+          if (typeof approved.value !== 'boolean') {
+            results.push({
+              fieldKey: approved.fieldKey,
+              label,
+              status: 'failed',
+              reason: 'The approved checkbox value is invalid.',
+            })
+            continue
+          }
+          if (approved.value) {
+            await locator.check()
+          } else {
+            await locator.uncheck()
+          }
+          results.push({
+            fieldKey: approved.fieldKey,
+            label,
+            status: 'filled',
+            valuePreview: String(approved.value),
+          })
+          continue
+        }
+
+        await locator.fill(String(approved.value))
+        results.push({
+          fieldKey: approved.fieldKey,
+          label,
+          status: 'filled',
+          valuePreview: String(approved.value).slice(0, 120),
+        })
+      } catch (error) {
+        results.push({
+          fieldKey: approved.fieldKey,
+          label,
+          status: 'failed',
+          reason:
+            error instanceof Error
+              ? error.message.slice(0, 300)
+              : 'The field could not be populated.',
+        })
+      }
+    }
+
+    return results
+  }
+
+  async closeSession(handle: AutomationSessionHandle): Promise<void> {
+    await this.closeProviderSession(handle.providerSessionId)
+  }
+
+  private async findPopulatedFieldPage(
+    session: LiveSession,
+  ): Promise<Page | null> {
+    const pages = [...session.context.pages()].reverse()
+    for (const page of pages) {
+      const count = await page
+        .locator('[data-job-os-field]')
+        .count()
+        .catch(() => 0)
+      if (count > 0) return page
+    }
+    return null
+  }
+
   private async tryApplyControl(
     page: Page,
     allowedDomains: string[],
@@ -168,10 +359,6 @@ export class PlaywrightBrowserAutomationProvider
     }
 
     return null
-  }
-
-  async closeSession(handle: AutomationSessionHandle): Promise<void> {
-    await this.closeProviderSession(handle.providerSessionId)
   }
 
   private async closeProviderSession(providerSessionId: string): Promise<void> {

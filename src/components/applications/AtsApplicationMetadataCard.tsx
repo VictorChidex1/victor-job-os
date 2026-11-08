@@ -133,8 +133,9 @@ export function AtsApplicationMetadataCard({
         )}
 
         <p className="text-xs text-muted-foreground">
-          Use browser automation to inspect the live application form for field and question
-          discovery. Missing information is never guessed.
+          Use browser automation to inspect the live application form. After inspection,
+          review and approve proposed field values on the Automation page. Missing
+          information is never guessed.
         </p>
       </CardContent>
     </Card>
