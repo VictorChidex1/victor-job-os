@@ -52,6 +52,7 @@ export function decodeCursorStack(value: string | null | undefined): CursorStack
         typeof entry === 'object' &&
         typeof (entry as CursorValue).value === 'number' &&
         Number.isFinite((entry as CursorValue).value) &&
+        (entry as CursorValue).value > 0 &&
         typeof (entry as CursorValue).id === 'string' &&
         (entry as CursorValue).id.length > 0
       ) {

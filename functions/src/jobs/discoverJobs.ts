@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase-admin/app'
-import { getFirestore, FieldValue } from 'firebase-admin/firestore'
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getAdapter, isSearchSource, type JobSource, type NormalizedJob } from '../adapters/ats/index.js'
@@ -61,6 +61,12 @@ async function existingJobKeys(uid: string): Promise<ExistingJobKeys> {
   return { fingerprints, urls, companyTitles, descriptionFingerprints }
 }
 
+function parseTimestamp(value: string | undefined): Timestamp | undefined {
+  if (!value) return undefined
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? undefined : Timestamp.fromDate(date)
+}
+
 async function storeJobs(
   jobs: NormalizedJob[],
   searchTerms: string[],
@@ -74,8 +80,12 @@ async function storeJobs(
     const companyName = job.companyName ?? ''
     const companyId = companyName ? companyDocId(uid, companyName) : ''
     const ref = db.collection('jobs').doc()
+    const { discoveredAt, postedAt, ...jobFields } = stripUndefined(job)
+    const parsedPostedAt = parseTimestamp(postedAt)
     batch.set(ref, {
-      ...stripUndefined(job),
+      ...jobFields,
+      discoveredAt: parseTimestamp(discoveredAt) ?? Timestamp.now(),
+      ...(parsedPostedAt ? { postedAt: parsedPostedAt } : {}),
       userId: uid,
       companyId,
       searchTokens: buildSearchTokens(job.title, job.companyName, job.location, job.skills),

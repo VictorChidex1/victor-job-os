@@ -33,6 +33,7 @@ describe('cursor pagination', () => {
     const encoded = encodeCursorStack([
       { value: 1, id: 'ok' },
       { value: 'bad', id: 'bad' } as never,
+      { value: 0, id: 'zero' },
       { value: 2, id: '' },
     ])
 

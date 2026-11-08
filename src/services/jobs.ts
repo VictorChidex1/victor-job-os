@@ -14,12 +14,15 @@ import {
   type DocumentData,
   type QueryConstraint,
   type QueryDocumentSnapshot,
-  type Timestamp as FirestoreTimestamp,
 } from 'firebase/firestore'
 import { db } from '@/services/firestore'
 import { collections } from '@/services/collections'
 import { stripHtml } from '@/lib/html'
 import { normalizeAtsMetadata } from '@/lib/atsApplicationMetadata'
+import {
+  timestampToMillis,
+  toFirestoreTimestamp,
+} from '@/lib/firestoreTimestamps'
 import { searchTokensForQuery } from '@/lib/searchTokens'
 import type { CursorValue } from '@/lib/cursorPagination'
 import type { Job, JobSource, JobStatus } from '@/types/jobs'
@@ -107,11 +110,12 @@ export async function listJobsPage(uid: string, options: JobPageOptions = {}): P
   const hasMore = snapshot.docs.length > pageSize
   const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs
   const lastDoc = pageDocs[pageDocs.length - 1]
+  const nextCursor = lastDoc ? cursorFromDocument(lastDoc) : null
 
   return {
     jobs: pageDocs.map((document) => toJob(document.id, document.data())),
-    nextCursor: lastDoc ? cursorFromDocument(lastDoc) : null,
-    hasMore,
+    nextCursor,
+    hasMore: hasMore && Boolean(nextCursor),
   }
 }
 
@@ -147,11 +151,12 @@ export async function searchJobsPage(
   const hasMore = snapshot.docs.length > pageSize
   const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs
   const lastDoc = pageDocs[pageDocs.length - 1]
+  const nextCursor = lastDoc ? cursorFromDocument(lastDoc) : null
 
   return {
     jobs: pageDocs.map((document) => toJob(document.id, document.data())),
-    nextCursor: lastDoc ? cursorFromDocument(lastDoc) : null,
-    hasMore,
+    nextCursor,
+    hasMore: hasMore && Boolean(nextCursor),
   }
 }
 
@@ -205,13 +210,10 @@ export async function getJob(id: string): Promise<Job | null> {
 
 function cursorFromDocument(
   document: QueryDocumentSnapshot<DocumentData>,
-): CursorValue {
-  const value = document.get('discoveredAt') as FirestoreTimestamp | undefined
-  return {
-    value:
-      value && typeof value.toMillis === 'function' ? value.toMillis() : 0,
-    id: document.id,
-  }
+): CursorValue | null {
+  const value = timestampToMillis(document.get('discoveredAt'))
+  if (value === null || value <= 0) return null
+  return { value, id: document.id }
 }
 
 function toJob(id: string, data: DocumentData): Job {
@@ -234,17 +236,13 @@ function toJob(id: string, data: DocumentData): Job {
       sourceJobId: data.sourceJobId,
       applicationUrl: data.applicationUrl ?? '',
     }),
-    postedAt: data.postedAt ? toTimestamp(data.postedAt) : undefined,
-    discoveredAt: toTimestamp(data.discoveredAt),
+    postedAt: data.postedAt ? toFirestoreTimestamp(data.postedAt) : undefined,
+    discoveredAt: toFirestoreTimestamp(data.discoveredAt),
     skills: data.skills ?? [],
     searchTerms: data.searchTerms ?? [],
     status: (data.status as JobStatus) ?? 'new',
     fingerprint: data.fingerprint,
-    createdAt: toTimestamp(data.createdAt),
-    updatedAt: toTimestamp(data.updatedAt),
+    createdAt: toFirestoreTimestamp(data.createdAt),
+    updatedAt: toFirestoreTimestamp(data.updatedAt),
   }
-}
-
-function toTimestamp(value: unknown): Timestamp {
-  return value as Timestamp
 }

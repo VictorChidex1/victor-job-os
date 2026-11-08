@@ -36,7 +36,10 @@
     "verify:admin": "node scripts/verify-admin-deployment.mjs",
     "backfill:ats-metadata": "npm --prefix functions run build && node scripts/backfill-application-metadata.mjs --emulator",
     "backfill:ats-metadata:emulator": "npm --prefix functions run build && node scripts/backfill-application-metadata.mjs --emulator",
-    "backfill:ats-metadata:production": "npm --prefix functions run build && node scripts/backfill-application-metadata.mjs --production"
+    "backfill:ats-metadata:production": "npm --prefix functions run build && node scripts/backfill-application-metadata.mjs --production",
+    "backfill:job-timestamps": "npm --prefix functions run build && node scripts/backfill-job-timestamps.mjs --emulator",
+    "backfill:job-timestamps:emulator": "npm --prefix functions run build && node scripts/backfill-job-timestamps.mjs --emulator",
+    "backfill:job-timestamps:production": "npm --prefix functions run build && node scripts/backfill-job-timestamps.mjs --production"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
