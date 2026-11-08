@@ -98,7 +98,76 @@ export class PlaywrightBrowserAutomationProvider
       }
     }
 
-    return inspectCurrentPage(session.page)
+    const firstInspection = await inspectCurrentPage(session.page)
+    if (
+      firstInspection.fields.length > 0 ||
+      (firstInspection.manualActionReason &&
+        !firstInspection.manualActionReason.startsWith(
+          'No visible application fields were found',
+        ))
+    ) {
+      return firstInspection
+    }
+
+    const applied = await this.tryApplyControl(session.page, session.allowedDomains)
+    return applied ?? firstInspection
+  }
+
+  private async tryApplyControl(
+    page: Page,
+    allowedDomains: string[],
+  ): Promise<ApplicationInspection | null> {
+    const controls = page.locator('a,button')
+    const count = await controls.count().catch(() => 0)
+
+    for (let index = 0; index < Math.min(count, 40); index += 1) {
+      const control = controls.nth(index)
+      const text = (await control.innerText().catch(() => '')).trim()
+      if (!/\bapply\b/i.test(text)) continue
+      if (/unlock|join|unrelated|similar|view more|save job|hide job/i.test(text)) {
+        continue
+      }
+      if (!(await control.isVisible().catch(() => false))) continue
+
+      const href = await control.getAttribute('href').catch(() => null)
+      if (href) {
+        const target = new URL(href, page.url()).toString()
+        const decision = validateAutomationUrl(target)
+        if (
+          !decision.ok ||
+          !decision.host ||
+          !isAllowedHost(decision.host, allowedDomains)
+        ) {
+          continue
+        }
+        await page.goto(target, {
+          waitUntil: 'domcontentloaded',
+          timeout: 30_000,
+        })
+        await page
+          .waitForLoadState('networkidle', { timeout: 5_000 })
+          .catch(() => undefined)
+        return inspectCurrentPage(page)
+      }
+
+      const popupPromise = page
+        .context()
+        .waitForEvent('page', { timeout: 3_000 })
+        .catch(() => null)
+      await control.click({ timeout: 5_000 }).catch(() => undefined)
+      const popup = await popupPromise
+      if (popup) {
+        await popup.waitForLoadState('domcontentloaded', { timeout: 10_000 }).catch(
+          () => undefined,
+        )
+        return inspectCurrentPage(popup)
+      }
+
+      await page.waitForTimeout(800)
+      return inspectCurrentPage(page)
+    }
+
+    return null
   }
 
   async closeSession(handle: AutomationSessionHandle): Promise<void> {

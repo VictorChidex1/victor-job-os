@@ -49,11 +49,20 @@ export async function inspectCurrentPage(page: Page): Promise<ApplicationInspect
     const labelText = (label: HTMLLabelElement): string => {
       const clone = label.cloneNode(true) as HTMLElement
       clone.querySelectorAll('input, select, textarea, option, button').forEach((entry) => entry.remove())
-      return clone.textContent?.trim() ?? ''
+      return (clone.textContent?.trim() ?? '').replace(/\s*(choose file|no file chosen)\s*$/i, '').trim()
     }
 
     const labelFor = (element: Element): string => {
       const html = element as HTMLInputElement
+      const labelledBy = element.getAttribute('aria-labelledby')
+      if (labelledBy) {
+        const text = labelledBy
+          .split(/\s+/)
+          .map((id) => document.getElementById(id)?.textContent?.trim() ?? '')
+          .filter(Boolean)
+          .join(' ')
+        if (text) return text
+      }
       const labels = html.labels ? Array.from(html.labels) : []
       const label = labels
         .map((entry) => labelText(entry))
@@ -132,8 +141,12 @@ export async function inspectCurrentPage(page: Page): Promise<ApplicationInspect
   const questions = Array.from(new Set(questionCandidates)).slice(0, 50)
 
   if (!manualActionReason && uniqueFields.length === 0) {
-    manualActionReason =
-      'No visible application fields were found. The page may be dynamic, require manual navigation, or not expose its form yet.'
+    const mailto = page.locator('a[href^="mailto:"]').first()
+    const mailtoHref = await mailto.getAttribute('href').catch(() => null)
+    const email = mailtoHref?.replace(/^mailto:/i, '').split('?')[0]
+    manualActionReason = email
+      ? `This employer accepts applications by email (${email}); no web application form was found.`
+      : 'No visible application fields were found. The page may be dynamic, require manual navigation, or not expose its form yet.'
   }
 
   return {
