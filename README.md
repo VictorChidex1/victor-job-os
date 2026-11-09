@@ -103,7 +103,7 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 | `npm run deploy:hosting` | Deploy the frontend build |
 | `npm run deploy:functions` | Deploy Cloud Functions (requires Blaze) |
 | `npm run deploy:admin` | Build and deploy rules, indexes, storage rules, and hosting |
-| `npm run retention:automation` | Apply Firestore TTL and Storage lifecycle retention |
+| `npm run retention:automation` | Apply Firestore TTL and Storage lifecycle retention (requires Blaze) |
 | `npm run verify:admin` | Run read-only production admin verification |
 
 ## Status
@@ -316,6 +316,8 @@ npm run retention:automation -- --confirm
 ```
 
 This enables Firestore TTL for automation artifacts and logs, and applies the Storage lifecycle rule that removes screenshot objects under `automation/` after one day. The script defaults to project `victor-job-os`; pass `--project=` or `--bucket=` to override.
+
+Retention configuration requires the Firebase project to have billing enabled (Blaze). Without Blaze, `gcloud` rejects the Firestore TTL commands and the script exits after the first failure. Run the dry run first, then apply after upgrading to Blaze.
 
 ### Cloud Functions
 
