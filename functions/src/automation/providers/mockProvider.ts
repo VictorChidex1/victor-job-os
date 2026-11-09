@@ -50,6 +50,12 @@ export class MockBrowserAutomationProvider implements BrowserAutomationProvider 
     }))
   }
 
+  async captureScreenshot(
+    _handle: AutomationSessionHandle,
+  ): Promise<null> {
+    return null
+  }
+
   async closeSession(_handle: AutomationSessionHandle): Promise<void> {
     return undefined
   }

@@ -17,6 +17,8 @@ import { functions } from '@/services/functions'
 import type {
   ApplicationInspection,
   ApprovedFieldValue,
+  AutomationArtifact,
+  AutomationArtifactKind,
   AutomationFieldConfidence,
   AutomationFieldDescriptor,
   AutomationFieldProposal,
@@ -25,10 +27,13 @@ import type {
   AutomationLogLevel,
   AutomationPopulation,
   AutomationRun,
+  AutomationRunArtifacts,
   AutomationRunLog,
   AutomationRunStatus,
   AutomationStep,
   AutomationStepStatus,
+  AutomationVerification,
+  AutomationVerificationChecklist,
   FieldPopulationResult,
   FieldPopulationStatus,
 } from '@/types/automation'
@@ -64,6 +69,35 @@ export async function populateAutomationFields(
   return response.data
 }
 
+export async function verifyAutomationRun(
+  runId: string,
+  checklist: AutomationVerificationChecklist,
+  notes?: string,
+): Promise<{
+  runId: string
+  status: AutomationRunStatus
+  verification: AutomationVerification
+}> {
+  const callable = httpsCallable<
+    {
+      runId: string
+      checklist: AutomationVerificationChecklist
+      notes?: string
+    },
+    {
+      runId: string
+      status: AutomationRunStatus
+      verification: AutomationVerification
+    }
+  >(functions, 'verifyAutomationRun')
+  const response = await callable({
+    runId,
+    checklist,
+    ...(notes?.trim() ? { notes: notes.trim() } : {}),
+  })
+  return response.data
+}
+
 export async function cancelAutomationRun(runId: string): Promise<void> {
   const callable = httpsCallable<{ runId: string }, { runId: string; status: string }>(
     functions,
@@ -88,6 +122,15 @@ export async function getAutomationLog(runId: string): Promise<AutomationRunLog 
   const snapshot = await getDoc(doc(db, collections.automationLogs, runId))
   return snapshot.exists()
     ? toAutomationRunLog(snapshot.id, snapshot.data())
+    : null
+}
+
+export async function getAutomationArtifacts(
+  runId: string,
+): Promise<AutomationRunArtifacts | null> {
+  const snapshot = await getDoc(doc(db, collections.automationArtifacts, runId))
+  return snapshot.exists()
+    ? toAutomationRunArtifacts(snapshot.id, snapshot.data())
     : null
 }
 
@@ -301,6 +344,64 @@ function logEntries(value: unknown): AutomationLogEntry[] {
     )
 }
 
+function artifactKind(value: unknown): AutomationArtifactKind {
+  return value === 'error' ? 'error' : 'screenshot'
+}
+
+function artifacts(value: unknown): AutomationArtifact[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return []
+    const record = entry as Record<string, unknown>
+    if (
+      typeof record.id !== 'string' ||
+      typeof record.label !== 'string' ||
+      typeof record.storagePath !== 'string' ||
+      typeof record.size !== 'number'
+    ) {
+      return []
+    }
+    return [
+      {
+        id: record.id,
+        kind: artifactKind(record.kind),
+        label: record.label,
+        storagePath: record.storagePath,
+        contentType: 'image/webp',
+        size: record.size,
+        width: typeof record.width === 'number' ? record.width : undefined,
+        height: typeof record.height === 'number' ? record.height : undefined,
+        pageUrl:
+          typeof record.pageUrl === 'string' ? record.pageUrl : undefined,
+        pageTitle:
+          typeof record.pageTitle === 'string' ? record.pageTitle : undefined,
+        createdAt:
+          typeof record.createdAt === 'string'
+            ? record.createdAt
+            : new Date(0).toISOString(),
+      },
+    ]
+  })
+}
+
+function toAutomationRunArtifacts(
+  id: string,
+  data: DocumentData,
+): AutomationRunArtifacts {
+  return {
+    id,
+    userId: typeof data.userId === 'string' ? data.userId : '',
+    applicationId:
+      typeof data.applicationId === 'string' ? data.applicationId : '',
+    runId: typeof data.runId === 'string' ? data.runId : id,
+    sessionId: typeof data.sessionId === 'string' ? data.sessionId : undefined,
+    artifacts: artifacts(data.artifacts),
+    expiresAt: data.expiresAt as Timestamp | undefined,
+    createdAt: data.createdAt as Timestamp | undefined,
+    updatedAt: data.updatedAt as Timestamp | undefined,
+  }
+}
+
 function toAutomationRunLog(id: string, data: DocumentData): AutomationRunLog {
   return {
     id,
@@ -312,8 +413,50 @@ function toAutomationRunLog(id: string, data: DocumentData): AutomationRunLog {
     provider: data.provider === 'playwright' ? 'playwright' : 'mock',
     entries: logEntries(data.entries),
     truncated: data.truncated === true,
+    expiresAt: data.expiresAt as Timestamp | undefined,
     createdAt: data.createdAt as Timestamp | undefined,
     updatedAt: data.updatedAt as Timestamp | undefined,
+  }
+}
+
+function verificationChecklist(
+  value: unknown,
+): AutomationVerificationChecklist | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const record = value as Record<string, unknown>
+  return {
+    openedApplication: record.openedApplication === true,
+    reviewedPopulatedFields: record.reviewedPopulatedFields === true,
+    handledManualFields: record.handledManualFields === true,
+    confirmsInformationIsAccurate:
+      record.confirmsInformationIsAccurate === true,
+  }
+}
+
+function verification(value: unknown): AutomationVerification | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const record = value as Record<string, unknown>
+  if (record.status !== 'pending' && record.status !== 'verified') {
+    return undefined
+  }
+  return {
+    status: record.status,
+    requestedAt:
+      typeof record.requestedAt === 'string' ? record.requestedAt : '',
+    verifiedAt:
+      typeof record.verifiedAt === 'string' ? record.verifiedAt : undefined,
+    verifiedBy:
+      typeof record.verifiedBy === 'string' ? record.verifiedBy : undefined,
+    notes: typeof record.notes === 'string' ? record.notes : undefined,
+    checklist: verificationChecklist(record.checklist),
+    applicationStatus:
+      typeof record.applicationStatus === 'string'
+        ? record.applicationStatus
+        : undefined,
+    applicationUpdatedAt:
+      typeof record.applicationUpdatedAt === 'string'
+        ? record.applicationUpdatedAt
+        : undefined,
   }
 }
 
@@ -333,6 +476,7 @@ function toAutomationRun(id: string, data: DocumentData): AutomationRun {
     inspection: inspection(data.inspection),
     fieldProposals: proposals(data.fieldProposals),
     population: population(data.population),
+    verification: verification(data.verification),
     manualActionReason:
       typeof data.manualActionReason === 'string' ? data.manualActionReason : undefined,
     error: typeof data.error === 'string' ? data.error : undefined,

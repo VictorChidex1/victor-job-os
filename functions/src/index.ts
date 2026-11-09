@@ -18,6 +18,7 @@ import {
 import {
   startAutomationInspection,
   populateAutomationFields,
+  verifyAutomationRun,
   cancelAutomationRun,
 } from './automation/automationFunctions.js'
 
@@ -39,5 +40,6 @@ export {
   adminDeleteUser,
   startAutomationInspection,
   populateAutomationFields,
+  verifyAutomationRun,
   cancelAutomationRun,
 }

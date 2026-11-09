@@ -20,11 +20,17 @@ beforeAll(async () => {
       port: 8081,
       rules: readFileSync('firestore.rules', 'utf8'),
     },
+    storage: {
+      host: '127.0.0.1',
+      port: 9197,
+      rules: readFileSync('storage.rules', 'utf8'),
+    },
   })
 })
 
 beforeEach(async () => {
   await testEnv.clearFirestore()
+  await testEnv.clearStorage()
 })
 
 afterAll(async () => {
@@ -296,11 +302,18 @@ describe('Firestore security rules', () => {
         entries: [],
         truncated: false,
       })
+      await setDoc(doc(firestore, 'automationArtifacts', 'run-1'), {
+        userId: owner,
+        applicationId: 'app-1',
+        runId: 'run-1',
+        artifacts: [],
+      })
     })
 
     const dbOwner = testEnv.authenticatedContext(owner).firestore()
     await assertSucceeds(getDoc(doc(dbOwner, 'automationRuns', 'run-1')))
     await assertSucceeds(getDoc(doc(dbOwner, 'automationLogs', 'run-1')))
+    await assertSucceeds(getDoc(doc(dbOwner, 'automationArtifacts', 'run-1')))
     await assertFails(
       setDoc(doc(dbOwner, 'automationRuns', 'run-2'), {
         userId: owner,
@@ -316,10 +329,45 @@ describe('Firestore security rules', () => {
         truncated: false,
       }),
     )
+    await assertFails(
+      setDoc(doc(dbOwner, 'automationArtifacts', 'run-2'), {
+        userId: owner,
+        applicationId: 'app-1',
+        runId: 'run-2',
+        artifacts: [],
+      }),
+    )
 
     const dbOther = testEnv.authenticatedContext(other).firestore()
     await assertFails(getDoc(doc(dbOther, 'automationSessions', 'session-1')))
     await assertFails(getDoc(doc(dbOther, 'automationLogs', 'run-1')))
+    await assertFails(getDoc(doc(dbOther, 'automationArtifacts', 'run-1')))
+  })
+
+  it('keeps automation screenshots owner-readable and client-write-denied', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context
+        .storage()
+        .ref('automation/user-owner/run-1/screenshot.webp')
+        .put(new Uint8Array([1, 2, 3]), { contentType: 'image/webp' })
+        .then(() => undefined)
+    })
+
+    const ownerStorage = testEnv.authenticatedContext(owner).storage()
+    await assertSucceeds(
+      ownerStorage.ref('automation/user-owner/run-1/screenshot.webp').getDownloadURL(),
+    )
+    await assertFails(
+      ownerStorage
+        .ref('automation/user-owner/run-1/other.webp')
+        .put(new Uint8Array([4, 5, 6]), { contentType: 'image/webp' })
+        .then(() => undefined),
+    )
+
+    const otherStorage = testEnv.authenticatedContext(other).storage()
+    await assertFails(
+      otherStorage.ref('automation/user-owner/run-1/screenshot.webp').getDownloadURL(),
+    )
   })
 
   it('blocks disabled accounts immediately', async () => {

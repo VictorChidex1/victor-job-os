@@ -7,6 +7,8 @@ export type AutomationRunStatus =
   | 'queued'
   | 'running'
   | 'awaiting-manual-action'
+  | 'awaiting-verification'
+  | 'verified'
   | 'completed'
   | 'failed'
   | 'cancelled'
@@ -108,6 +110,52 @@ export interface AutomationPopulation {
   endedAt?: string
 }
 
+export type AutomationVerificationStatus = 'pending' | 'verified'
+
+export interface AutomationVerificationChecklist {
+  openedApplication: boolean
+  reviewedPopulatedFields: boolean
+  handledManualFields: boolean
+  confirmsInformationIsAccurate: boolean
+}
+
+export interface AutomationVerification {
+  status: AutomationVerificationStatus
+  requestedAt: string
+  verifiedAt?: string
+  verifiedBy?: string
+  notes?: string
+  checklist?: AutomationVerificationChecklist
+  applicationStatus?: string
+  applicationUpdatedAt?: string
+}
+
+export type AutomationArtifactKind = 'screenshot' | 'error'
+
+export interface AutomationArtifact {
+  id: string
+  kind: AutomationArtifactKind
+  label: string
+  storagePath: string
+  contentType: 'image/webp'
+  size: number
+  width?: number
+  height?: number
+  pageUrl?: string
+  pageTitle?: string
+  createdAt: string
+}
+
+export interface AutomationScreenshot {
+  buffer: Buffer
+  contentType: 'image/webp'
+  size: number
+  width?: number
+  height?: number
+  pageUrl?: string
+  pageTitle?: string
+}
+
 export type AutomationLogLevel = 'info' | 'warn' | 'error'
 
 export interface AutomationLogEntry {
@@ -140,5 +188,8 @@ export interface BrowserAutomationProvider {
     approvedFields: ApprovedFieldValue[],
     fields: AutomationFieldDescriptor[],
   ): Promise<FieldPopulationResult[]>
+  captureScreenshot(
+    handle: AutomationSessionHandle,
+  ): Promise<AutomationScreenshot | null>
   closeSession(handle: AutomationSessionHandle): Promise<void>
 }

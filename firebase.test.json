@@ -3,12 +3,18 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "emulators": {
     "firestore": {
       "port": 8081
     },
     "auth": {
       "port": 9098
+    },
+    "storage": {
+      "port": 9197
     },
     "singleProjectMode": true
   }

@@ -9,6 +9,7 @@ import type {
 } from './types.js'
 
 export const DEFAULT_AUTOMATION_LOG_LIMIT = 200
+const AUTOMATION_LOG_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 export interface AutomationLogContext {
   userId: string
@@ -143,6 +144,7 @@ export class RunLogCollector {
         incoming,
         this.limit,
       )
+      const now = Timestamp.now()
       transaction.set(
         ref,
         {
@@ -155,8 +157,9 @@ export class RunLogCollector {
             : {}),
           entries: merged.entries,
           truncated: merged.truncated,
-          createdAt: existing.createdAt ?? Timestamp.now(),
-          updatedAt: Timestamp.now(),
+          expiresAt: Timestamp.fromMillis(now.toMillis() + AUTOMATION_LOG_TTL_MS),
+          createdAt: existing.createdAt ?? now,
+          updatedAt: now,
         },
         { merge: true },
       )

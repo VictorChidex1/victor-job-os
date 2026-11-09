@@ -17,7 +17,7 @@ The system is built to optimize for qualified opportunities and useful actions, 
 
 ```bash
 npm install
-npm run emulators   # auth 9099, Firestore 8080, Functions 5001, Emulator UI 4000
+npm run emulators   # auth 9099, Firestore 8080, Functions 5001, Storage 9199, UI 4000
 npm run dev         # dev server on http://localhost:5173
 ```
 
@@ -40,6 +40,7 @@ Emulator ports default to:
 | Auth | `9099` |
 | Firestore | `8080` |
 | Functions | `5001` |
+| Storage | `9199` |
 | Emulator UI | `4000` |
 
 ## Scripts
@@ -98,9 +99,11 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 | `npm run admin:audit-owner` | Audit owner claims without writing |
 | `npm run deploy:rules` | Deploy Firestore rules |
 | `npm run deploy:indexes` | Deploy Firestore indexes |
+| `npm run deploy:storage` | Deploy Storage rules |
 | `npm run deploy:hosting` | Deploy the frontend build |
 | `npm run deploy:functions` | Deploy Cloud Functions (requires Blaze) |
-| `npm run deploy:admin` | Build and deploy rules, indexes, and hosting |
+| `npm run deploy:admin` | Build and deploy rules, indexes, storage rules, and hosting |
+| `npm run retention:automation` | Apply Firestore TTL and Storage lifecycle retention |
 | `npm run verify:admin` | Run read-only production admin verification |
 
 ## Status
@@ -115,7 +118,7 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - **Phase 6 (Outreach):** Cold-email prompt architecture, pitch generation, outreach editor, approval workflow, pipeline, manual sending, reply tracking, and follow-up queue.
 - **Phase 7 (V1 Hardening):** Structured logging, error monitoring, retry boundaries, AI usage tracking, duplicate protections, discovery locks, and unit/integration security tests.
 
-### V2 — items 56–64 complete
+### V2 — items 56–66 complete
 
 - **56 — Application entity:** One application per opportunity, validated lifecycle states, append-only timeline, and application detail view.
 - **57 — Application pipeline:** Board and list views, stage filtering, search, and combined closed-stage handling.
@@ -126,6 +129,8 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - **62 — Playwright provider:** Real browser provider that follows apply links, detects email-only applications, and inspects Workable forms.
 - **63 — Approved-field population:** Server-generated field proposals from profile, application, and approved preparation content; per-field review and approval; Playwright population of approved text, textarea, select, and checkbox fields; per-field results. File uploads and submission remain manual.
 - **64 — Browser execution logs:** A bounded per-run execution timeline covering validation, session lifecycle, inspection, population results, warnings, errors, and cancellation. Logs are stored separately from runs and loaded only when the execution-log panel is opened.
+- **65 — Screenshot/error capture:** Failure and manual-action screenshots are captured as WebP, capped at 300 KB, stored privately in Firebase Storage, and exposed through a lazy-loaded artifact gallery. Artifact metadata expires after 24 hours.
+- **66 — Manual verification pauses:** Population runs pause in `awaiting-verification` or `awaiting-manual-action`. The user opens the real application, completes a four-item verification checklist, and records the result. Verified runs become `verified` and are gated for the future submission workflow.
 
 ### Admin console — AC1–AC9 complete
 
@@ -152,13 +157,14 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 ### Current deployment state
 
 - Production hosting, Firestore rules, and indexes were deployed during the admin console rollout.
+- Storage rules and automation retention policies still need to be applied to production.
 - Owner provisioning is complete for production and the emulator.
 - Cloud Functions — including AI, automation, and admin Auth operations — remain emulator-only until the Firebase project is upgraded to Blaze.
 - The latest automation-related rules/indexes, browser automation assets, and newest frontend build still need a final production deployment.
 
 ### Next
 
-- V2 items 65–69: screenshot/error capture, manual verification pauses, application submission workflow, interview tracking, and V2 deployment.
+- V2 items 67–69: application submission workflow, interview tracking, and V2 deployment.
 
 ## What’s Built
 
@@ -220,6 +226,9 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - Playwright population of approved text, textarea, select, and checkbox fields.
 - Per-field filled, skipped, failed, and manual-required results.
 - Bounded per-run browser execution logs with lazy loading in the Automation page.
+- Failure/manual-action screenshots captured as WebP under 300 KB.
+- Private screenshot storage with a 24-hour artifact retention policy.
+- Persisted manual verification checklist and `verified` run gate before future submission.
 - Manual file uploads and explicit human verification boundaries; automated submission is not enabled.
 
 ### Admin console
@@ -272,7 +281,7 @@ npm run test                 # typecheck + unit tests
 npm run test:integration     # Firestore/Auth emulator integration tests
 ```
 
-Current coverage includes 106 unit tests and 54 integration tests across normalization, deduplication, cursor pagination, sliding-window pagination, application lifecycle, preparation prompts, resume variants, ATS metadata, automation policy, field proposals, approved-field validation, execution-log merging, Firestore write serialization, search tokens, discovery locks, and Firestore rules.
+Current coverage includes 109 unit tests and 55 integration tests across normalization, deduplication, cursor pagination, sliding-window pagination, application lifecycle, preparation prompts, resume variants, ATS metadata, automation policy, field proposals, approved-field validation, manual verification, execution-log merging, Firestore write serialization, Storage rules, search tokens, discovery locks, and Firestore rules.
 
 ## Deployment
 
@@ -288,6 +297,7 @@ npm run test:all
 ```bash
 npm run deploy:rules
 npm run deploy:indexes
+npm run deploy:storage
 npm run deploy:hosting
 ```
 
@@ -297,6 +307,15 @@ npm run deploy:hosting
 npm run deploy:admin
 npm run verify:admin
 ```
+
+### Automation retention
+
+```bash
+npm run retention:automation            # dry run
+npm run retention:automation -- --confirm
+```
+
+This enables Firestore TTL for automation artifacts and logs, and applies the Storage lifecycle rule that removes screenshot objects under `automation/` after one day. The script defaults to project `victor-job-os`; pass `--project=` or `--bucket=` to override.
 
 ### Cloud Functions
 

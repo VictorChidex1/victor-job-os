@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { Bot, ExternalLink, RefreshCw, Square } from 'lucide-react'
 import { toast } from 'sonner'
+import { AutomationArtifactGallery } from '@/components/automation/AutomationArtifactGallery'
 import { AutomationExecutionLog } from '@/components/automation/AutomationExecutionLog'
 import { AutomationFieldPopulationCard } from '@/components/automation/AutomationFieldPopulationCard'
+import { AutomationVerificationCard } from '@/components/automation/AutomationVerificationCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,7 +36,11 @@ function formatDate(value?: { toDate?: () => Date }): string {
 }
 
 function statusVariant(status: AutomationRun['status']): 'secondary' | 'outline' {
-  return status === 'completed' || status === 'running' ? 'secondary' : 'outline'
+  return status === 'completed' ||
+    status === 'running' ||
+    status === 'verified'
+    ? 'secondary'
+    : 'outline'
 }
 
 export function AutomationPage() {
@@ -64,7 +70,7 @@ export function AutomationPage() {
   return (
     <PageContainer
       title="Automation"
-      description="Controlled browser inspections and approved field population. Submission is not enabled."
+      description="Controlled browser inspections, approved field population, and manual verification. Submission is not enabled."
       actions={
         <Button variant="outline" size="sm" onClick={() => void refresh()}>
           <RefreshCw />
@@ -85,8 +91,9 @@ export function AutomationPage() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           Start an inspection from an application’s ATS metadata card, then review proposed
-          values below. Automation never submits an application and never guesses missing
-          information.
+          values below. After population, open the application yourself and complete the
+          manual verification checklist. Automation never submits an application and never
+          guesses missing information.
         </CardContent>
       </Card>
 
@@ -165,11 +172,27 @@ export function AutomationPage() {
                   />
                 )}
 
+                {run.population && (
+                  <AutomationVerificationCard
+                    key={`${run.id}-verification`}
+                    run={run}
+                    onRefresh={refresh}
+                  />
+                )}
+
                 <AutomationExecutionLog
                   key={`${run.id}-log`}
                   runId={run.id}
                   defaultOpen={run.status === 'failed'}
                 />
+
+                {(run.population || run.status === 'failed') && (
+                  <AutomationArtifactGallery
+                    key={`${run.id}-artifacts`}
+                    runId={run.id}
+                    defaultOpen={run.status === 'failed'}
+                  />
+                )}
 
                 <div className="flex flex-wrap gap-2">
                   <Button

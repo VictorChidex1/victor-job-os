@@ -3,16 +3,20 @@ import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import { recordError } from '../utils/errorLog.js'
 import { logInfo } from '../utils/logger.js'
+import { saveAutomationScreenshot } from './artifacts.js'
 import { isAllowedHost, validateAutomationUrl } from './domainPolicy.js'
 import { buildFieldProposals, validateApprovedFields } from './fieldProposals.js'
 import { RunLogCollector } from './logCollector.js'
 import { getAutomationProvider, selectedAutomationProviderId } from './providerRegistry.js'
 import { stripUndefined } from './serialize.js'
+import { validateVerificationChecklist } from './verification.js'
 import type {
+  AutomationArtifactKind,
   AutomationFieldDescriptor,
   AutomationSessionHandle,
   AutomationStep,
   AutomationStepName,
+  BrowserAutomationProvider,
 } from './types.js'
 
 initializeApp()
@@ -39,6 +43,12 @@ interface PopulateFieldsRequest {
   approvedFields?: unknown
 }
 
+interface VerifyAutomationRunRequest {
+  runId?: string
+  checklist?: unknown
+  notes?: unknown
+}
+
 function validId(value: unknown): string {
   if (typeof value !== 'string' || !value.trim()) {
     throw new HttpsError('invalid-argument', 'A valid id is required.')
@@ -48,6 +58,18 @@ function validId(value: unknown): string {
 
 function readString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function timestampToIso(value: unknown): string | undefined {
+  if (
+    value &&
+    typeof value === 'object' &&
+    'toDate' in value &&
+    typeof (value as { toDate?: unknown }).toDate === 'function'
+  ) {
+    return (value as Timestamp).toDate().toISOString()
+  }
+  return undefined
 }
 
 function readStringArray(value: unknown): string[] {
@@ -159,6 +181,56 @@ async function flushRunLogs(
     await logger.flush()
   } catch (error) {
     await recordError('automationLogs.flush', error, context).catch(() => undefined)
+  }
+}
+
+async function captureFailureArtifact({
+  provider,
+  handle,
+  userId,
+  applicationId,
+  runId,
+  sessionId,
+  kind,
+  label,
+  logger,
+}: {
+  provider: BrowserAutomationProvider
+  handle: AutomationSessionHandle | null
+  userId: string
+  applicationId: string
+  runId: string
+  sessionId?: string
+  kind: AutomationArtifactKind
+  label: string
+  logger: RunLogCollector
+}): Promise<void> {
+  if (!handle || !provider.capabilities.has('screenshot')) return
+
+  try {
+    const screenshot = await provider.captureScreenshot(handle)
+    if (!screenshot) return
+    const artifact = await saveAutomationScreenshot({
+      db,
+      screenshot,
+      userId,
+      applicationId,
+      runId,
+      sessionId,
+      kind,
+      label,
+    })
+    logger.info(
+      'artifact',
+      `Screenshot captured: ${label}`,
+      `${Math.round(artifact.size / 1024)} KB WebP`,
+    )
+  } catch (error) {
+    logger.warn(
+      'artifact',
+      `Screenshot capture failed: ${label}`,
+      error instanceof Error ? error.message.slice(0, 1000) : String(error),
+    )
   }
 }
 
@@ -284,6 +356,17 @@ export const startAutomationInspection = onCall(
       )
       if (inspection.manualActionReason) {
         logger.warn('inspect', 'Manual action required', inspection.manualActionReason)
+        await captureFailureArtifact({
+          provider,
+          handle,
+          userId,
+          applicationId,
+          runId: runRef.id,
+          sessionId: sessionRef.id,
+          kind: 'screenshot',
+          label: 'Inspection manual action',
+          logger,
+        })
       }
       await setStep(runRef, steps, 'inspect', 'completed')
 
@@ -409,6 +492,17 @@ export const startAutomationInspection = onCall(
       return { runId: runRef.id, sessionId: sessionRef.id, status: finalStatus }
     } catch (error) {
       if (handle) {
+        await captureFailureArtifact({
+          provider,
+          handle,
+          userId,
+          applicationId,
+          runId: runRef.id,
+          sessionId: sessionRef.id,
+          kind: 'error',
+          label: 'Inspection error',
+          logger,
+        })
         await provider.closeSession(handle).catch(() => undefined)
       }
       await Promise.all([
@@ -638,6 +732,19 @@ export const populateAutomationFields = onCall(
           result.reason,
         )
       }
+      if (results.some((result) => result.status !== 'filled')) {
+        await captureFailureArtifact({
+          provider,
+          handle,
+          userId,
+          applicationId,
+          runId,
+          sessionId: sessionRef.id,
+          kind: 'screenshot',
+          label: 'Population manual action',
+          logger,
+        })
+      }
       await provider.closeSession(handle)
       handle = null
       logger.info('close-session', 'Browser session closed')
@@ -645,21 +752,31 @@ export const populateAutomationFields = onCall(
 
       const filledCount = results.filter((result) => result.status === 'filled').length
       const followUpCount = results.length - filledCount
+      const finalStatus =
+        followUpCount > 0 ? 'awaiting-manual-action' : 'awaiting-verification'
       const manualActionReason =
         followUpCount > 0
-          ? `Populated ${filledCount} approved field(s). ${followUpCount} field(s) need manual follow-up. Submission is not enabled.`
-          : `Populated ${filledCount} approved field(s). Submission is not enabled.`
+          ? `Populated ${filledCount} approved field(s). ${followUpCount} field(s) need manual follow-up. Verify the application manually before submission.`
+          : `Populated ${filledCount} approved field(s). Manual verification is required before submission.`
       const endedAt = new Date().toISOString()
+      const verification = {
+        status: 'pending' as const,
+        requestedAt: endedAt,
+        ...(application.status
+          ? { applicationStatus: String(application.status) }
+          : {}),
+      }
 
       await Promise.all([
         runRef.update({
-          status: 'awaiting-manual-action',
+          status: finalStatus,
           population: stripUndefined({
             approvedFields: validation.values,
             results,
             startedAt: now.toDate().toISOString(),
             endedAt,
           }),
+          verification,
           manualActionReason,
           endedAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
@@ -676,6 +793,7 @@ export const populateAutomationFields = onCall(
         'Population completed',
         `${filledCount} filled, ${followUpCount} follow-up field(s)`,
       )
+      logger.info('verification', 'Manual verification required', manualActionReason)
       await flushRunLogs(logger, {
         userId,
         applicationId,
@@ -689,14 +807,26 @@ export const populateAutomationFields = onCall(
         provider: providerId,
         filledCount,
         followUpCount,
+        status: finalStatus,
       })
       return {
         runId,
-        status: 'awaiting-manual-action',
+        status: finalStatus,
         results,
       }
     } catch (error) {
       if (handle) {
+        await captureFailureArtifact({
+          provider,
+          handle,
+          userId,
+          applicationId,
+          runId,
+          sessionId: sessionRef.id,
+          kind: 'error',
+          label: 'Population error',
+          logger,
+        })
         await provider.closeSession(handle).catch(() => undefined)
       }
       await Promise.all([
@@ -741,6 +871,123 @@ export const populateAutomationFields = onCall(
   },
 )
 
+export const verifyAutomationRun = onCall(
+  { memory: '256MiB', timeoutSeconds: 30, maxInstances: 2 },
+  async (request) => {
+    const userId = request.auth?.uid
+    if (!userId) {
+      throw new HttpsError('unauthenticated', 'Sign in required.')
+    }
+
+    const data = (request.data ?? {}) as VerifyAutomationRunRequest
+    const runId = validId(data.runId)
+    const runRef = db.collection('automationRuns').doc(runId)
+    const runSnapshot = await runRef.get()
+    if (!runSnapshot.exists) {
+      throw new HttpsError('not-found', 'Automation run not found.')
+    }
+
+    const run = runSnapshot.data() ?? {}
+    if (run.userId !== userId) {
+      throw new HttpsError('permission-denied', 'This automation run does not belong to you.')
+    }
+
+    const existingVerification =
+      run.verification && typeof run.verification === 'object'
+        ? (run.verification as Record<string, unknown>)
+        : {}
+    if (existingVerification.status === 'verified') {
+      return {
+        runId,
+        status: 'verified',
+        verification: run.verification,
+      }
+    }
+
+    if (
+      !['awaiting-verification', 'awaiting-manual-action'].includes(
+        String(run.status),
+      )
+    ) {
+      throw new HttpsError(
+        'failed-precondition',
+        'This run is not waiting for manual verification.',
+      )
+    }
+    if (!run.population || typeof run.population !== 'object') {
+      throw new HttpsError(
+        'failed-precondition',
+        'This run has no populated fields to verify.',
+      )
+    }
+
+    const validation = validateVerificationChecklist(
+      data.checklist,
+      data.notes,
+    )
+    if (!validation.ok) {
+      throw new HttpsError('invalid-argument', validation.error)
+    }
+
+    const applicationId = readString(run.applicationId)
+    if (!applicationId) {
+      throw new HttpsError('failed-precondition', 'This run has no application.')
+    }
+    const applicationSnapshot = await db
+      .collection('applications')
+      .doc(applicationId)
+      .get()
+    if (!applicationSnapshot.exists) {
+      throw new HttpsError('not-found', 'Application not found.')
+    }
+    const application = applicationSnapshot.data() ?? {}
+    if (application.userId !== userId) {
+      throw new HttpsError('permission-denied', 'This application does not belong to you.')
+    }
+    if (!ALLOWED_APPLICATION_STATUSES.has(String(application.status ?? 'not-started'))) {
+      throw new HttpsError(
+        'failed-precondition',
+        'This application is no longer eligible for submission verification.',
+      )
+    }
+
+    const verifiedAt = new Date().toISOString()
+    const applicationUpdatedAt = timestampToIso(application.updatedAt)
+    const verification = stripUndefined({
+      status: 'verified' as const,
+      requestedAt:
+        typeof existingVerification.requestedAt === 'string'
+          ? existingVerification.requestedAt
+          : verifiedAt,
+      verifiedAt,
+      verifiedBy: userId,
+      checklist: validation.checklist,
+      ...(validation.notes ? { notes: validation.notes } : {}),
+      applicationStatus: String(application.status ?? ''),
+      ...(applicationUpdatedAt ? { applicationUpdatedAt } : {}),
+    })
+
+    await runRef.update({
+      status: 'verified',
+      verification,
+      manualActionReason: null,
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+
+    const logger = new RunLogCollector(db, {
+      userId,
+      applicationId,
+      runId,
+      sessionId: readString(run.sessionId) || undefined,
+      provider: run.provider === 'playwright' ? 'playwright' : 'mock',
+    })
+    logger.info('verification', 'Manual verification approved')
+    await flushRunLogs(logger, { userId, applicationId, runId })
+
+    return { runId, status: 'verified', verification }
+  },
+)
+
 export const cancelAutomationRun = onCall(
   { memory: '256MiB', timeoutSeconds: 30, maxInstances: 2 },
   async (request) => {
@@ -758,7 +1005,14 @@ export const cancelAutomationRun = onCall(
     if (run.userId !== userId) {
       throw new HttpsError('permission-denied', 'This automation run does not belong to you.')
     }
-    if (!['queued', 'running', 'awaiting-manual-action'].includes(String(run.status))) {
+    if (
+      ![
+        'queued',
+        'running',
+        'awaiting-manual-action',
+        'awaiting-verification',
+      ].includes(String(run.status))
+    ) {
       return { runId, status: run.status }
     }
 

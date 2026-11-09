@@ -7,6 +7,8 @@ export type AutomationRunStatus =
   | 'queued'
   | 'running'
   | 'awaiting-manual-action'
+  | 'awaiting-verification'
+  | 'verified'
   | 'completed'
   | 'failed'
   | 'cancelled'
@@ -107,6 +109,55 @@ export interface AutomationRunLog {
   provider: AutomationProviderId
   entries: AutomationLogEntry[]
   truncated: boolean
+  expiresAt?: Timestamp
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
+}
+
+export type AutomationVerificationStatus = 'pending' | 'verified'
+
+export interface AutomationVerificationChecklist {
+  openedApplication: boolean
+  reviewedPopulatedFields: boolean
+  handledManualFields: boolean
+  confirmsInformationIsAccurate: boolean
+}
+
+export interface AutomationVerification {
+  status: AutomationVerificationStatus
+  requestedAt: string
+  verifiedAt?: string
+  verifiedBy?: string
+  notes?: string
+  checklist?: AutomationVerificationChecklist
+  applicationStatus?: string
+  applicationUpdatedAt?: string
+}
+
+export type AutomationArtifactKind = 'screenshot' | 'error'
+
+export interface AutomationArtifact {
+  id: string
+  kind: AutomationArtifactKind
+  label: string
+  storagePath: string
+  contentType: 'image/webp'
+  size: number
+  width?: number
+  height?: number
+  pageUrl?: string
+  pageTitle?: string
+  createdAt: string
+}
+
+export interface AutomationRunArtifacts {
+  id: string
+  userId: string
+  applicationId: string
+  runId: string
+  sessionId?: string
+  artifacts: AutomationArtifact[]
+  expiresAt?: Timestamp
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
@@ -145,6 +196,7 @@ export interface AutomationRun {
   inspection?: ApplicationInspection
   fieldProposals?: AutomationFieldProposal[]
   population?: AutomationPopulation
+  verification?: AutomationVerification
   manualActionReason?: string
   error?: string
   startedAt?: Timestamp
@@ -157,6 +209,8 @@ export const AUTOMATION_RUN_LABELS: Record<AutomationRunStatus, string> = {
   queued: 'Queued',
   running: 'Running',
   'awaiting-manual-action': 'Manual action required',
+  'awaiting-verification': 'Verification required',
+  verified: 'Verified — submission pending',
   completed: 'Completed',
   failed: 'Failed',
   cancelled: 'Cancelled',

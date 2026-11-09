@@ -6,6 +6,7 @@ import type {
   ApplicationInspection,
   ApprovedFieldValue,
   AutomationFieldDescriptor,
+  AutomationScreenshot,
   AutomationSessionHandle,
   AutomationSessionInput,
   BrowserAutomationProvider,
@@ -19,11 +20,13 @@ interface LiveSession {
   allowedDomains: string[]
 }
 
+const MAX_SCREENSHOT_BYTES = 300 * 1024
+
 export class PlaywrightBrowserAutomationProvider
   implements BrowserAutomationProvider
 {
   id = 'playwright' as const
-  capabilities = new Set(['inspect', 'fill'] as const)
+  capabilities = new Set(['inspect', 'fill', 'screenshot'] as const)
   private sessions = new Map<string, LiveSession>()
 
   async createSession(input: AutomationSessionInput): Promise<AutomationSessionHandle> {
@@ -286,8 +289,71 @@ export class PlaywrightBrowserAutomationProvider
     return results
   }
 
+  async captureScreenshot(
+    handle: AutomationSessionHandle,
+  ): Promise<AutomationScreenshot | null> {
+    const session = this.sessions.get(handle.providerSessionId)
+    if (!session) {
+      throw new Error('Browser automation session is no longer active.')
+    }
+
+    const page = this.screenshotPage(session)
+    if (!page) return null
+
+    const originalViewport = page.viewportSize()
+    let width = originalViewport?.width
+    let height = originalViewport?.height
+    const capture = (quality: number) =>
+      page.screenshot({
+        type: 'webp',
+        quality,
+        fullPage: false,
+        animations: 'disabled',
+      })
+
+    let buffer = await capture(60)
+    if (buffer.length > MAX_SCREENSHOT_BYTES) {
+      buffer = await capture(40)
+    }
+
+    if (buffer.length > MAX_SCREENSHOT_BYTES) {
+      await page.setViewportSize({ width: 1024, height: 768 })
+      width = 1024
+      height = 768
+      await page.waitForTimeout(150)
+      try {
+        buffer = await capture(40)
+      } finally {
+        if (originalViewport) {
+          await page.setViewportSize(originalViewport).catch(() => undefined)
+        }
+      }
+    }
+
+    if (buffer.length > MAX_SCREENSHOT_BYTES) {
+      throw new Error(
+        'Screenshot exceeded the 300 KB limit after compression.',
+      )
+    }
+
+    return {
+      buffer,
+      contentType: 'image/webp',
+      size: buffer.length,
+      ...(width ? { width } : {}),
+      ...(height ? { height } : {}),
+      pageUrl: page.url(),
+      pageTitle: await page.title().catch(() => undefined),
+    }
+  }
+
   async closeSession(handle: AutomationSessionHandle): Promise<void> {
     await this.closeProviderSession(handle.providerSessionId)
+  }
+
+  private screenshotPage(session: LiveSession): Page | null {
+    const pages = session.context.pages().filter((page) => !page.isClosed())
+    return pages[pages.length - 1] ?? (session.page.isClosed() ? null : session.page)
   }
 
   private async findPopulatedFieldPage(
