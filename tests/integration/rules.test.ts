@@ -288,19 +288,38 @@ describe('Firestore security rules', () => {
         sessionId: 'session-1',
         status: 'completed',
       })
+      await setDoc(doc(firestore, 'automationLogs', 'run-1'), {
+        userId: owner,
+        applicationId: 'app-1',
+        runId: 'run-1',
+        provider: 'mock',
+        entries: [],
+        truncated: false,
+      })
     })
 
     const dbOwner = testEnv.authenticatedContext(owner).firestore()
     await assertSucceeds(getDoc(doc(dbOwner, 'automationRuns', 'run-1')))
+    await assertSucceeds(getDoc(doc(dbOwner, 'automationLogs', 'run-1')))
     await assertFails(
       setDoc(doc(dbOwner, 'automationRuns', 'run-2'), {
         userId: owner,
         applicationId: 'app-1',
       }),
     )
+    await assertFails(
+      setDoc(doc(dbOwner, 'automationLogs', 'run-2'), {
+        userId: owner,
+        applicationId: 'app-1',
+        runId: 'run-2',
+        entries: [],
+        truncated: false,
+      }),
+    )
 
     const dbOther = testEnv.authenticatedContext(other).firestore()
     await assertFails(getDoc(doc(dbOther, 'automationSessions', 'session-1')))
+    await assertFails(getDoc(doc(dbOther, 'automationLogs', 'run-1')))
   })
 
   it('blocks disabled accounts immediately', async () => {

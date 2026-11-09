@@ -1,5 +1,7 @@
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -19,8 +21,11 @@ import type {
   AutomationFieldDescriptor,
   AutomationFieldProposal,
   AutomationFieldSource,
+  AutomationLogEntry,
+  AutomationLogLevel,
   AutomationPopulation,
   AutomationRun,
+  AutomationRunLog,
   AutomationRunStatus,
   AutomationStep,
   AutomationStepStatus,
@@ -77,6 +82,13 @@ export async function listAutomationRuns(uid: string, limitCount = 25): Promise<
     ),
   )
   return snapshot.docs.map((document) => toAutomationRun(document.id, document.data()))
+}
+
+export async function getAutomationLog(runId: string): Promise<AutomationRunLog | null> {
+  const snapshot = await getDoc(doc(db, collections.automationLogs, runId))
+  return snapshot.exists()
+    ? toAutomationRunLog(snapshot.id, snapshot.data())
+    : null
 }
 
 function stringArray(value: unknown): string[] {
@@ -251,6 +263,58 @@ function steps(value: unknown): AutomationStep[] {
       },
     ]
   })
+}
+
+function logLevel(value: unknown): AutomationLogLevel {
+  return value === 'warn' || value === 'error' ? value : 'info'
+}
+
+function logEntries(value: unknown): AutomationLogEntry[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .flatMap((entry) => {
+      if (!entry || typeof entry !== 'object') return []
+      const record = entry as Record<string, unknown>
+      if (
+        typeof record.step !== 'string' ||
+        typeof record.message !== 'string' ||
+        typeof record.createdAt !== 'string'
+      ) {
+        return []
+      }
+      return [
+        {
+          sequence:
+            typeof record.sequence === 'number' ? record.sequence : 0,
+          level: logLevel(record.level),
+          step: record.step,
+          message: record.message,
+          detail: typeof record.detail === 'string' ? record.detail : undefined,
+          createdAt: record.createdAt,
+        },
+      ]
+    })
+    .sort(
+      (a, b) =>
+        a.createdAt.localeCompare(b.createdAt) ||
+        a.sequence - b.sequence,
+    )
+}
+
+function toAutomationRunLog(id: string, data: DocumentData): AutomationRunLog {
+  return {
+    id,
+    userId: typeof data.userId === 'string' ? data.userId : '',
+    applicationId:
+      typeof data.applicationId === 'string' ? data.applicationId : '',
+    runId: typeof data.runId === 'string' ? data.runId : id,
+    sessionId: typeof data.sessionId === 'string' ? data.sessionId : undefined,
+    provider: data.provider === 'playwright' ? 'playwright' : 'mock',
+    entries: logEntries(data.entries),
+    truncated: data.truncated === true,
+    createdAt: data.createdAt as Timestamp | undefined,
+    updatedAt: data.updatedAt as Timestamp | undefined,
+  }
 }
 
 function toAutomationRun(id: string, data: DocumentData): AutomationRun {

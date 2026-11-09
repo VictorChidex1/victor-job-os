@@ -87,6 +87,30 @@ export interface AutomationPopulation {
   endedAt?: string
 }
 
+export type AutomationLogLevel = 'info' | 'warn' | 'error'
+
+export interface AutomationLogEntry {
+  sequence: number
+  level: AutomationLogLevel
+  step: string
+  message: string
+  detail?: string
+  createdAt: string
+}
+
+export interface AutomationRunLog {
+  id: string
+  userId: string
+  applicationId: string
+  runId: string
+  sessionId?: string
+  provider: AutomationProviderId
+  entries: AutomationLogEntry[]
+  truncated: boolean
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
+}
+
 export interface ApplicationInspection {
   title?: string
   fields: AutomationFieldDescriptor[]

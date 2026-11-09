@@ -5,6 +5,7 @@ import { recordError } from '../utils/errorLog.js'
 import { logInfo } from '../utils/logger.js'
 import { isAllowedHost, validateAutomationUrl } from './domainPolicy.js'
 import { buildFieldProposals, validateApprovedFields } from './fieldProposals.js'
+import { RunLogCollector } from './logCollector.js'
 import { getAutomationProvider, selectedAutomationProviderId } from './providerRegistry.js'
 import { stripUndefined } from './serialize.js'
 import type {
@@ -150,6 +151,17 @@ async function setStep(
   await runRef.update({ steps: next, currentStep: name, updatedAt: FieldValue.serverTimestamp() })
 }
 
+async function flushRunLogs(
+  logger: RunLogCollector,
+  context: { userId: string; applicationId: string; runId: string },
+): Promise<void> {
+  try {
+    await logger.flush()
+  } catch (error) {
+    await recordError('automationLogs.flush', error, context).catch(() => undefined)
+  }
+}
+
 export const startAutomationInspection = onCall(
   { memory: '1GiB', timeoutSeconds: 120, maxInstances: 2 },
   async (request) => {
@@ -228,6 +240,16 @@ export const startAutomationInspection = onCall(
       }),
     ])
 
+    const logger = new RunLogCollector(db, {
+      userId,
+      applicationId,
+      runId: runRef.id,
+      sessionId: sessionRef.id,
+      provider: providerId,
+    })
+    logger.info('run', 'Inspection run created')
+    logger.info('validate', 'Application and URL validated', `Host: ${urlDecision.host}`)
+
     let handle: AutomationSessionHandle | null = null
     try {
       await setStep(runRef, steps, 'validate', 'completed')
@@ -237,26 +259,39 @@ export const startAutomationInspection = onCall(
         updatedAt: FieldValue.serverTimestamp(),
       })
       await setStep(runRef, steps, 'open-session', 'running')
+      logger.info('open-session', 'Opening browser session', providerId)
       handle = await provider.createSession({
         userId,
         applicationId,
         applicationUrl: urlDecision.url,
         allowedDomains,
       })
+      logger.info('open-session', 'Browser session opened')
       await setStep(runRef, steps, 'open-session', 'completed')
 
       await setStep(runRef, steps, 'inspect', 'running')
+      logger.info('inspect', 'Inspecting application form')
       const inspection = await provider.inspectApplication(handle, {
         userId,
         applicationId,
         applicationUrl: urlDecision.url,
         allowedDomains,
       })
+      logger.info(
+        'inspect',
+        'Inspection completed',
+        `${inspection.fields.length} fields and ${inspection.questions.length} questions discovered`,
+      )
+      if (inspection.manualActionReason) {
+        logger.warn('inspect', 'Manual action required', inspection.manualActionReason)
+      }
       await setStep(runRef, steps, 'inspect', 'completed')
 
       await setStep(runRef, steps, 'close-session', 'running')
+      logger.info('close-session', 'Closing browser session')
       await provider.closeSession(handle)
       handle = null
+      logger.info('close-session', 'Browser session closed')
       await setStep(runRef, steps, 'close-session', 'completed')
 
       const [profileSnapshot, preparationSnapshot] = await Promise.all([
@@ -351,6 +386,19 @@ export const startAutomationInspection = onCall(
         }),
       ])
 
+      logger.info(
+        'run',
+        finalStatus === 'completed'
+          ? 'Inspection completed'
+          : 'Inspection requires manual action',
+        inspection.manualActionReason,
+      )
+      await flushRunLogs(logger, {
+        userId,
+        applicationId,
+        runId: runRef.id,
+      })
+
       logInfo('automation.inspection.completed', {
         userId,
         runId: runRef.id,
@@ -378,6 +426,16 @@ export const startAutomationInspection = onCall(
           updatedAt: FieldValue.serverTimestamp(),
         }),
       ])
+      logger.error(
+        'run',
+        'Inspection failed',
+        error instanceof Error ? error.message.slice(0, 1000) : String(error),
+      )
+      await flushRunLogs(logger, {
+        userId,
+        applicationId,
+        runId: runRef.id,
+      })
       await recordError('startAutomationInspection', error, {
         userId,
         applicationId,
@@ -516,8 +574,22 @@ export const populateAutomationFields = onCall(
       })
     })
 
+    const logger = new RunLogCollector(db, {
+      userId,
+      applicationId,
+      runId,
+      sessionId: sessionRef.id,
+      provider: providerId,
+    })
+    logger.info(
+      'populate',
+      'Population requested',
+      `${validation.values.length} approved field(s)`,
+    )
+
     let handle: AutomationSessionHandle | null = null
     try {
+      logger.info('open-session', 'Opening browser session', providerId)
       await sessionRef.set({
         userId,
         applicationId,
@@ -529,6 +601,7 @@ export const populateAutomationFields = onCall(
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       })
+      logger.info('open-session', 'Browser session opened')
       await setStep(runRef, steps, 'populate', 'running')
       handle = await provider.createSession({
         userId,
@@ -536,6 +609,10 @@ export const populateAutomationFields = onCall(
         applicationUrl: urlDecision.url,
         allowedDomains,
       })
+      logger.info(
+        'populate',
+        'Re-inspecting the live form and applying approved fields',
+      )
       const results = await provider.populateApprovedFields(
         handle,
         {
@@ -547,8 +624,23 @@ export const populateAutomationFields = onCall(
         validation.values,
         fields,
       )
+      for (const result of results) {
+        const level =
+          result.status === 'filled'
+            ? 'info'
+            : result.status === 'failed'
+              ? 'error'
+              : 'warn'
+        logger.log(
+          level,
+          'field',
+          `${result.status}: ${result.label}`,
+          result.reason,
+        )
+      }
       await provider.closeSession(handle)
       handle = null
+      logger.info('close-session', 'Browser session closed')
       await setStep(runRef, steps, 'populate', 'completed')
 
       const filledCount = results.filter((result) => result.status === 'filled').length
@@ -578,6 +670,17 @@ export const populateAutomationFields = onCall(
           updatedAt: FieldValue.serverTimestamp(),
         }),
       ])
+
+      logger.info(
+        'populate',
+        'Population completed',
+        `${filledCount} filled, ${followUpCount} follow-up field(s)`,
+      )
+      await flushRunLogs(logger, {
+        userId,
+        applicationId,
+        runId,
+      })
 
       logInfo('automation.population.completed', {
         userId,
@@ -618,6 +721,16 @@ export const populateAutomationFields = onCall(
           { merge: true },
         ),
       ])
+      logger.error(
+        'populate',
+        'Population failed',
+        error instanceof Error ? error.message.slice(0, 1000) : String(error),
+      )
+      await flushRunLogs(logger, {
+        userId,
+        applicationId,
+        runId,
+      })
       await recordError('populateAutomationFields', error, {
         userId,
         applicationId,
@@ -661,6 +774,17 @@ export const cancelAutomationRun = onCall(
         updatedAt: FieldValue.serverTimestamp(),
       })
     }
+
+    const applicationId = readString(run.applicationId)
+    const logger = new RunLogCollector(db, {
+      userId,
+      applicationId,
+      runId,
+      sessionId: readString(run.sessionId) || undefined,
+      provider: run.provider === 'playwright' ? 'playwright' : 'mock',
+    })
+    logger.warn('run', 'Run cancelled by user')
+    await flushRunLogs(logger, { userId, applicationId, runId })
     return { runId, status: 'cancelled' }
   },
 )

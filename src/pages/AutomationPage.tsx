@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { Bot, ExternalLink, RefreshCw, Square } from 'lucide-react'
 import { toast } from 'sonner'
+import { AutomationExecutionLog } from '@/components/automation/AutomationExecutionLog'
 import { AutomationFieldPopulationCard } from '@/components/automation/AutomationFieldPopulationCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -163,6 +164,12 @@ export function AutomationPage() {
                     onRefresh={refresh}
                   />
                 )}
+
+                <AutomationExecutionLog
+                  key={`${run.id}-log`}
+                  runId={run.id}
+                  defaultOpen={run.status === 'failed'}
+                />
 
                 <div className="flex flex-wrap gap-2">
                   <Button

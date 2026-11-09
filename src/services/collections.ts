@@ -22,6 +22,7 @@ export const collections = {
   adminControl: 'adminControl',
   automationSessions: 'automationSessions',
   automationRuns: 'automationRuns',
+  automationLogs: 'automationLogs',
 } as const
 
 export type CollectionName = (typeof collections)[keyof typeof collections]

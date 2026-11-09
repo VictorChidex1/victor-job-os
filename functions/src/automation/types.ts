@@ -108,6 +108,17 @@ export interface AutomationPopulation {
   endedAt?: string
 }
 
+export type AutomationLogLevel = 'info' | 'warn' | 'error'
+
+export interface AutomationLogEntry {
+  sequence: number
+  level: AutomationLogLevel
+  step: string
+  message: string
+  detail?: string
+  createdAt: string
+}
+
 export interface ApplicationInspection {
   title?: string
   fields: AutomationFieldDescriptor[]
