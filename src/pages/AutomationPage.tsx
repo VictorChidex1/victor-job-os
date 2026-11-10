@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { AutomationArtifactGallery } from '@/components/automation/AutomationArtifactGallery'
 import { AutomationExecutionLog } from '@/components/automation/AutomationExecutionLog'
 import { AutomationFieldPopulationCard } from '@/components/automation/AutomationFieldPopulationCard'
+import { AutomationSubmissionCard } from '@/components/automation/AutomationSubmissionCard'
 import { AutomationVerificationCard } from '@/components/automation/AutomationVerificationCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,7 +39,9 @@ function formatDate(value?: { toDate?: () => Date }): string {
 function statusVariant(status: AutomationRun['status']): 'secondary' | 'outline' {
   return status === 'completed' ||
     status === 'running' ||
-    status === 'verified'
+    status === 'verified' ||
+    status === 'submitting' ||
+    status === 'submitted'
     ? 'secondary'
     : 'outline'
 }
@@ -70,7 +73,7 @@ export function AutomationPage() {
   return (
     <PageContainer
       title="Automation"
-      description="Controlled browser inspections, approved field population, and manual verification. Submission is not enabled."
+      description="Controlled browser inspections, approved field population, manual verification, and gated application submission."
       actions={
         <Button variant="outline" size="sm" onClick={() => void refresh()}>
           <RefreshCw />
@@ -85,15 +88,16 @@ export function AutomationPage() {
             Browser automation
           </CardTitle>
           <CardDescription>
-            Playwright inspects live application forms and can populate fields you explicitly
-            approve. Sessions are bounded, auditable, and read-only from the client.
+            Playwright inspects live application forms, populates approved fields, and submits
+            only after manual verification and a final typed confirmation. Sessions are
+            bounded and auditable.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Start an inspection from an application’s ATS metadata card, then review proposed
-          values below. After population, open the application yourself and complete the
-          manual verification checklist. Automation never submits an application and never
-          guesses missing information.
+          Start an inspection from an application’s ATS metadata card, review proposed values,
+          populate approved fields, then verify the application manually. Submission remains
+          blocked until the application is approved and you type SUBMIT. Automation never
+          guesses missing information or bypasses security challenges.
         </CardContent>
       </Card>
 
@@ -175,6 +179,14 @@ export function AutomationPage() {
                 {run.population && (
                   <AutomationVerificationCard
                     key={`${run.id}-verification`}
+                    run={run}
+                    onRefresh={refresh}
+                  />
+                )}
+
+                {(run.verification?.status === 'verified' || run.submission) && (
+                  <AutomationSubmissionCard
+                    key={`${run.id}-submission`}
                     run={run}
                     onRefresh={refresh}
                   />

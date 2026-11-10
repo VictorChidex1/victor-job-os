@@ -19,6 +19,7 @@ import {
   startAutomationInspection,
   populateAutomationFields,
   verifyAutomationRun,
+  submitAutomationApplication,
   cancelAutomationRun,
 } from './automation/automationFunctions.js'
 
@@ -41,5 +42,6 @@ export {
   startAutomationInspection,
   populateAutomationFields,
   verifyAutomationRun,
+  submitAutomationApplication,
   cancelAutomationRun,
 }

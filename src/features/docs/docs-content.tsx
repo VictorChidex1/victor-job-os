@@ -583,7 +583,7 @@ export const DOC_SECTIONS: DocsSection[] = [
     label: 'AI & human control',
     title: 'Automation with a human review gate',
     description:
-      'AI reduces the blank-page problem. It does not replace judgment, and it does not submit anything on your behalf.',
+      'AI reduces the blank-page problem. It does not replace judgment, and external actions remain explicit and approval-gated.',
     content: (
       <>
         <FeatureGrid>
@@ -593,14 +593,15 @@ export const DOC_SECTIONS: DocsSection[] = [
           </FeatureCard>
           <FeatureCard icon={ShieldCheck} title="What requires you">
             Deciding whether to pursue a role, editing the message, approving outreach, approving
-            application materials, and submitting the application.
+            application materials, verifying the live application, and typing SUBMIT before any
+            automated submission.
           </FeatureCard>
           <FeatureCard icon={Sparkles} title="Keeping the source">
             Outreach keeps the original AI draft alongside your edits so you can compare, restore,
             and understand what changed.
           </FeatureCard>
           <FeatureCard icon={TriangleAlert} title="Current limitations">
-            Playwright-based form inspection is available in local development. Production browser automation still requires a browser worker and Blaze deployment, and automatic submission is not available yet.
+            Playwright-based inspection, approved field population, and gated application submission are available in local development. Production browser automation still requires a browser worker and Blaze deployment.
             Do not treat generated content as verified fact.
           </FeatureCard>
         </FeatureGrid>
@@ -717,9 +718,9 @@ Rules:
             description="Capture application fields, screening questions, and ATS requirements where the source makes them available."
           />
           <RoadmapItem
-            status="planned"
+            status="available"
             title="Submission and browser automation"
-            description="Approval-gated assistance for filling and submitting applications, with explicit confirmation before any external action."
+            description="Playwright inspection, approved field population, manual verification, and gated submission with required application approval and a typed SUBMIT confirmation."
           />
           <RoadmapItem
             status="planned"
@@ -758,7 +759,7 @@ Rules:
             {
               question: 'Does the system apply for me?',
               answer:
-                'Not yet. You open the employer application from the application record, submit it yourself, and then move the status to Submitted. Automatic submission is planned later and will remain approval-gated.',
+                'Not silently. The system can inspect the form, populate approved fields, and submit only when the application is Approved, manual verification is complete, required fields and resume are ready, and you type SUBMIT. If submission confirmation cannot be verified, it stops and asks you to finish manually.',
             },
             {
               question: 'Why can I not jump straight to Offer?',

@@ -3,8 +3,10 @@ import type {
   ApplicationInspection,
   ApprovedFieldValue,
   AutomationFieldDescriptor,
+  AutomationResumeFile,
   AutomationSessionHandle,
   AutomationSessionInput,
+  AutomationSubmissionResult,
   BrowserAutomationProvider,
   FieldPopulationResult,
 } from '../types.js'
@@ -54,6 +56,22 @@ export class MockBrowserAutomationProvider implements BrowserAutomationProvider 
     _handle: AutomationSessionHandle,
   ): Promise<null> {
     return null
+  }
+
+  async uploadResume(
+    _handle: AutomationSessionHandle,
+    _file: AutomationResumeFile | null,
+  ): Promise<FieldPopulationResult[]> {
+    return []
+  }
+
+  async submitApplication(
+    _handle: AutomationSessionHandle,
+  ): Promise<AutomationSubmissionResult> {
+    return {
+      status: 'manual-required',
+      reason: 'Mock provider cannot submit a live application.',
+    }
   }
 
   async closeSession(_handle: AutomationSessionHandle): Promise<void> {

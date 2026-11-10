@@ -140,8 +140,8 @@ export function AutomationVerificationCard({
             Manually verified
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Verified {formatVerificationTime(run.verification?.verifiedAt)}. This run is
-            ready for the future submission step.
+            Verified {formatVerificationTime(run.verification?.verifiedAt)}. The submission
+            card is now available.
           </p>
           {run.verification?.notes && (
             <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">

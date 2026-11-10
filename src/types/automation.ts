@@ -9,6 +9,8 @@ export type AutomationRunStatus =
   | 'awaiting-manual-action'
   | 'awaiting-verification'
   | 'verified'
+  | 'submitting'
+  | 'submitted'
   | 'completed'
   | 'failed'
   | 'cancelled'
@@ -114,6 +116,23 @@ export interface AutomationRunLog {
   updatedAt?: Timestamp
 }
 
+export type AutomationSubmissionStatus =
+  | 'submitting'
+  | 'submitted'
+  | 'manual-required'
+  | 'failed'
+
+export interface AutomationSubmission {
+  status: AutomationSubmissionStatus
+  requestedAt: string
+  submittedAt?: string
+  confirmationUrl?: string
+  confirmationText?: string
+  error?: string
+  reason?: string
+  resumeUrl?: string
+}
+
 export type AutomationVerificationStatus = 'pending' | 'verified'
 
 export interface AutomationVerificationChecklist {
@@ -197,6 +216,7 @@ export interface AutomationRun {
   fieldProposals?: AutomationFieldProposal[]
   population?: AutomationPopulation
   verification?: AutomationVerification
+  submission?: AutomationSubmission
   manualActionReason?: string
   error?: string
   startedAt?: Timestamp
@@ -211,6 +231,8 @@ export const AUTOMATION_RUN_LABELS: Record<AutomationRunStatus, string> = {
   'awaiting-manual-action': 'Manual action required',
   'awaiting-verification': 'Verification required',
   verified: 'Verified — submission pending',
+  submitting: 'Submitting',
+  submitted: 'Submitted',
   completed: 'Completed',
   failed: 'Failed',
   cancelled: 'Cancelled',

@@ -124,7 +124,7 @@ export function RoadmapItem({
 }: {
   title: string
   description: ReactNode
-  status: 'next' | 'planned'
+  status: 'available' | 'next' | 'planned'
 }) {
   return (
     <div className="rounded-2xl border border-border/70 bg-card/60 p-4 sm:p-5 shadow-xs transition-all hover:border-border min-w-0 max-w-full overflow-hidden">

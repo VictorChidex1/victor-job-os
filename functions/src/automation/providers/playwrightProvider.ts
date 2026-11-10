@@ -6,12 +6,15 @@ import type {
   ApplicationInspection,
   ApprovedFieldValue,
   AutomationFieldDescriptor,
+  AutomationResumeFile,
   AutomationScreenshot,
   AutomationSessionHandle,
   AutomationSessionInput,
+  AutomationSubmissionResult,
   BrowserAutomationProvider,
   FieldPopulationResult,
 } from '../types.js'
+import { detectSubmissionConfirmation } from '../submission.js'
 
 interface LiveSession {
   browser: Browser
@@ -26,7 +29,7 @@ export class PlaywrightBrowserAutomationProvider
   implements BrowserAutomationProvider
 {
   id = 'playwright' as const
-  capabilities = new Set(['inspect', 'fill', 'screenshot'] as const)
+  capabilities = new Set(['inspect', 'fill', 'screenshot', 'submit'] as const)
   private sessions = new Map<string, LiveSession>()
 
   async createSession(input: AutomationSessionInput): Promise<AutomationSessionHandle> {
@@ -344,6 +347,240 @@ export class PlaywrightBrowserAutomationProvider
       ...(height ? { height } : {}),
       pageUrl: page.url(),
       pageTitle: await page.title().catch(() => undefined),
+    }
+  }
+
+  async uploadResume(
+    handle: AutomationSessionHandle,
+    file: AutomationResumeFile | null,
+  ): Promise<FieldPopulationResult[]> {
+    const session = this.sessions.get(handle.providerSessionId)
+    if (!session) {
+      throw new Error('Browser automation session is no longer active.')
+    }
+    const page = this.screenshotPage(session)
+    if (!page) {
+      return [
+        {
+          fieldKey: 'resume',
+          label: 'Resume upload',
+          status: 'failed',
+          reason: 'The application page is no longer available.',
+        },
+      ]
+    }
+
+    const inspection = await inspectCurrentPage(page)
+    const fileFields = inspection.fields.filter((field) => field.type === 'file')
+    if (fileFields.length === 0) return []
+
+    const preferred = fileFields.filter((field) =>
+      /resume|cv|curriculum/i.test(field.name),
+    )
+    const targets = preferred.length > 0 ? preferred : fileFields.slice(0, 1)
+    const results: FieldPopulationResult[] = []
+
+    for (const field of targets) {
+      if (!file) {
+        results.push({
+          fieldKey: field.key,
+          label: field.name,
+          status: 'manual-required',
+          reason: 'No approved resume file is available.',
+        })
+        continue
+      }
+
+      try {
+        const locator = page
+          .locator(`[data-job-os-field="${field.key}"]`)
+          .first()
+        await locator.setInputFiles({
+          name: file.fileName,
+          mimeType: file.mimeType,
+          buffer: file.buffer,
+        })
+        results.push({
+          fieldKey: field.key,
+          label: field.name,
+          status: 'filled',
+          valuePreview: file.fileName,
+        })
+      } catch (error) {
+        results.push({
+          fieldKey: field.key,
+          label: field.name,
+          status: 'failed',
+          reason:
+            error instanceof Error
+              ? error.message.slice(0, 300)
+              : 'The resume file could not be uploaded.',
+        })
+      }
+    }
+
+    for (const extra of fileFields.filter((field) => !targets.includes(field))) {
+      results.push({
+        fieldKey: extra.key,
+        label: extra.name,
+        status: 'manual-required',
+        reason: 'This additional file field must be completed manually.',
+      })
+    }
+
+    return results
+  }
+
+  async submitApplication(
+    handle: AutomationSessionHandle,
+  ): Promise<AutomationSubmissionResult> {
+    const session = this.sessions.get(handle.providerSessionId)
+    if (!session) {
+      throw new Error('Browser automation session is no longer active.')
+    }
+    const page = this.screenshotPage(session)
+    if (!page) {
+      return {
+        status: 'manual-required',
+        reason: 'The application page is no longer available.',
+      }
+    }
+
+    const title = await page.title().catch(() => '')
+    const bodyText = await page
+      .locator('body')
+      .innerText()
+      .catch(() => '')
+    const currentUrl = page.url()
+    if (
+      /captcha|verify you are human|are you a robot|access denied|cloudflare/i.test(
+        `${title}\n${bodyText}`,
+      ) ||
+      /\/login|\/signin|\/sign-in/i.test(currentUrl)
+    ) {
+      return {
+        status: 'manual-required',
+        reason:
+          'The submission page requires human verification or sign-in. Automation stopped.',
+      }
+    }
+    const passwordFields = await page
+      .locator('input[type="password"]')
+      .count()
+      .catch(() => 0)
+    if (passwordFields > 0) {
+      return {
+        status: 'manual-required',
+        reason:
+          'The submission page contains a password field. A human must complete this application.',
+      }
+    }
+
+    const controls = page.locator(
+      'button, input[type="submit"], input[type="button"]',
+    )
+    const count = await controls.count().catch(() => 0)
+    const candidates: Array<{
+      index: number
+      text: string
+      score: number
+    }> = []
+
+    for (let index = 0; index < Math.min(count, 100); index += 1) {
+      const control = controls.nth(index)
+      if (!(await control.isVisible().catch(() => false))) continue
+      if (!(await control.isEnabled().catch(() => true))) continue
+      const tagName = await control.evaluate((element) =>
+        element.tagName.toLowerCase(),
+      )
+      const text =
+        tagName === 'input'
+          ? await control.inputValue().catch(() => '')
+          : await control.innerText().catch(() => '')
+      const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim()
+      if (
+        !/submit|send application|complete application|apply now/.test(
+          normalized,
+        )
+      ) {
+        continue
+      }
+      if (
+        /save|back|previous|next|review|upload|remove|cancel|delete|withdraw/.test(
+          normalized,
+        )
+      ) {
+        continue
+      }
+      const score = /submit application/.test(normalized)
+        ? 3
+        : /submit/.test(normalized)
+          ? 2
+          : 1
+      candidates.push({ index, text: normalized, score })
+    }
+
+    if (candidates.length === 0) {
+      return {
+        status: 'manual-required',
+        reason: 'No unambiguous Submit control was found on the application page.',
+      }
+    }
+
+    const highest = Math.max(...candidates.map((candidate) => candidate.score))
+    const best = candidates.filter((candidate) => candidate.score === highest)
+    if (best.length !== 1) {
+      return {
+        status: 'manual-required',
+        reason:
+          'Multiple possible Submit controls were found. A human must choose the correct one.',
+      }
+    }
+
+    const submitControl = controls.nth(best[0].index)
+    try {
+      const navigation = page
+        .waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30_000 })
+        .catch(() => null)
+      await submitControl.click({ timeout: 10_000 })
+      await navigation
+      await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(
+        () => undefined,
+      )
+      await page.waitForTimeout(800)
+
+      const result = detectSubmissionConfirmation({
+        url: page.url(),
+        title: await page.title().catch(() => ''),
+        bodyText: await page
+          .locator('body')
+          .innerText()
+          .catch(() => ''),
+      })
+      if (!result.confirmed) {
+        return {
+          status: 'manual-required',
+          reason: result.reason,
+        }
+      }
+      return {
+        status: 'submitted',
+        submittedAt: new Date().toISOString(),
+        ...(result.confirmationUrl
+          ? { confirmationUrl: result.confirmationUrl }
+          : {}),
+        ...(result.confirmationText
+          ? { confirmationText: result.confirmationText }
+          : {}),
+      }
+    } catch (error) {
+      return {
+        status: 'failed',
+        reason:
+          error instanceof Error
+            ? error.message.slice(0, 500)
+            : 'The Submit control could not be activated.',
+      }
     }
   }
 

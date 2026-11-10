@@ -9,6 +9,8 @@ export type AutomationRunStatus =
   | 'awaiting-manual-action'
   | 'awaiting-verification'
   | 'verified'
+  | 'submitting'
+  | 'submitted'
   | 'completed'
   | 'failed'
   | 'cancelled'
@@ -18,6 +20,7 @@ export type AutomationStepName =
   | 'open-session'
   | 'inspect'
   | 'populate'
+  | 'submit'
   | 'close-session'
 
 export type AutomationStepStatus =
@@ -110,6 +113,37 @@ export interface AutomationPopulation {
   endedAt?: string
 }
 
+export type AutomationSubmissionStatus =
+  | 'submitting'
+  | 'submitted'
+  | 'manual-required'
+  | 'failed'
+
+export interface AutomationSubmission {
+  status: AutomationSubmissionStatus
+  requestedAt: string
+  submittedAt?: string
+  confirmationUrl?: string
+  confirmationText?: string
+  error?: string
+  reason?: string
+  resumeUrl?: string
+}
+
+export interface AutomationResumeFile {
+  buffer: Buffer
+  fileName: string
+  mimeType: string
+}
+
+export interface AutomationSubmissionResult {
+  status: 'submitted' | 'manual-required' | 'failed'
+  submittedAt?: string
+  confirmationUrl?: string
+  confirmationText?: string
+  reason?: string
+}
+
 export type AutomationVerificationStatus = 'pending' | 'verified'
 
 export interface AutomationVerificationChecklist {
@@ -191,5 +225,12 @@ export interface BrowserAutomationProvider {
   captureScreenshot(
     handle: AutomationSessionHandle,
   ): Promise<AutomationScreenshot | null>
+  uploadResume(
+    handle: AutomationSessionHandle,
+    file: AutomationResumeFile | null,
+  ): Promise<FieldPopulationResult[]>
+  submitApplication(
+    handle: AutomationSessionHandle,
+  ): Promise<AutomationSubmissionResult>
   closeSession(handle: AutomationSessionHandle): Promise<void>
 }

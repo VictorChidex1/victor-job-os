@@ -8,14 +8,20 @@ import { isAllowedHost, validateAutomationUrl } from './domainPolicy.js'
 import { buildFieldProposals, validateApprovedFields } from './fieldProposals.js'
 import { RunLogCollector } from './logCollector.js'
 import { getAutomationProvider, selectedAutomationProviderId } from './providerRegistry.js'
+import { downloadApprovedResume } from './resume.js'
 import { stripUndefined } from './serialize.js'
+import { validateSubmissionAuthorization } from './submission.js'
 import { validateVerificationChecklist } from './verification.js'
 import type {
+  ApprovedFieldValue,
   AutomationArtifactKind,
   AutomationFieldDescriptor,
+  AutomationFieldProposal,
   AutomationSessionHandle,
   AutomationStep,
   AutomationStepName,
+  AutomationSubmission,
+  AutomationVerification,
   BrowserAutomationProvider,
 } from './types.js'
 
@@ -47,6 +53,12 @@ interface VerifyAutomationRunRequest {
   runId?: string
   checklist?: unknown
   notes?: unknown
+}
+
+interface SubmitAutomationApplicationRequest {
+  runId?: string
+  authorize?: unknown
+  confirmation?: unknown
 }
 
 function validId(value: unknown): string {
@@ -985,6 +997,608 @@ export const verifyAutomationRun = onCall(
     await flushRunLogs(logger, { userId, applicationId, runId })
 
     return { runId, status: 'verified', verification }
+  },
+)
+
+export const submitAutomationApplication = onCall(
+  { memory: '1GiB', timeoutSeconds: 180, maxInstances: 1 },
+  async (request) => {
+    const userId = request.auth?.uid
+    if (!userId) {
+      throw new HttpsError('unauthenticated', 'Sign in required.')
+    }
+
+    const data = (request.data ?? {}) as SubmitAutomationApplicationRequest
+    const runId = validId(data.runId)
+    const authorization = validateSubmissionAuthorization(data)
+    if (!authorization.ok) {
+      throw new HttpsError('invalid-argument', authorization.error)
+    }
+
+    const runRef = db.collection('automationRuns').doc(runId)
+    const runSnapshot = await runRef.get()
+    if (!runSnapshot.exists) {
+      throw new HttpsError('not-found', 'Automation run not found.')
+    }
+    const run = runSnapshot.data() ?? {}
+    if (run.userId !== userId) {
+      throw new HttpsError('permission-denied', 'This automation run does not belong to you.')
+    }
+    if (String(run.status) !== 'verified') {
+      throw new HttpsError(
+        'failed-precondition',
+        'This run must be manually verified before submission.',
+      )
+    }
+
+    const verification =
+      run.verification && typeof run.verification === 'object'
+        ? (run.verification as AutomationVerification)
+        : null
+    if (verification?.status !== 'verified') {
+      throw new HttpsError(
+        'failed-precondition',
+        'This run does not have a completed manual verification.',
+      )
+    }
+
+    const existingSubmission =
+      run.submission && typeof run.submission === 'object'
+        ? (run.submission as Record<string, unknown>)
+        : {}
+    if (
+      existingSubmission.status === 'submitting' ||
+      existingSubmission.status === 'submitted'
+    ) {
+      throw new HttpsError(
+        'failed-precondition',
+        'This application has already been submitted or is being submitted.',
+      )
+    }
+
+    const applicationId = readString(run.applicationId)
+    if (!applicationId) {
+      throw new HttpsError('failed-precondition', 'This run has no application.')
+    }
+    const applicationRef = db.collection('applications').doc(applicationId)
+    const applicationSnapshot = await applicationRef.get()
+    if (!applicationSnapshot.exists) {
+      throw new HttpsError('not-found', 'Application not found.')
+    }
+    const application = applicationSnapshot.data() ?? {}
+    if (application.userId !== userId) {
+      throw new HttpsError('permission-denied', 'This application does not belong to you.')
+    }
+    if (String(application.status) !== 'approved') {
+      throw new HttpsError(
+        'failed-precondition',
+        'Move the application to Approved in the preparation review before submitting.',
+      )
+    }
+    if (application.submittedAt) {
+      throw new HttpsError(
+        'failed-precondition',
+        'This application has already been submitted.',
+      )
+    }
+
+    const applicationUrl = readString(application.applicationUrl)
+    const urlDecision = validateAutomationUrl(applicationUrl)
+    if (!urlDecision.ok || !urlDecision.host || !urlDecision.url) {
+      throw new HttpsError(
+        'failed-precondition',
+        urlDecision.reason ?? 'This application has no safe submission URL.',
+      )
+    }
+    if (!isAllowedHost(urlDecision.host, [urlDecision.host])) {
+      throw new HttpsError('permission-denied', 'Application domain is not allowed.')
+    }
+
+    const provider = getAutomationProvider()
+    const providerId = selectedAutomationProviderId()
+    if (!provider.capabilities.has('submit')) {
+      throw new HttpsError(
+        'failed-precondition',
+        'The selected automation provider cannot submit applications.',
+      )
+    }
+
+    const inspection =
+      run.inspection && typeof run.inspection === 'object'
+        ? (run.inspection as Record<string, unknown>)
+        : {}
+    const fields = parseAutomationFields(inspection.fields)
+    const proposals = Array.isArray(run.fieldProposals)
+      ? (run.fieldProposals as AutomationFieldProposal[])
+      : []
+    if (fields.length === 0 || proposals.length === 0) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Re-inspect the application before submitting.',
+      )
+    }
+
+    const population =
+      run.population && typeof run.population === 'object'
+        ? (run.population as Record<string, unknown>)
+        : {}
+    const approvedFields = Array.isArray(population.approvedFields)
+      ? (population.approvedFields as ApprovedFieldValue[])
+      : []
+    const validation = validateApprovedFields(fields, approvedFields)
+    if (!validation.ok) {
+      throw new HttpsError(
+        'failed-precondition',
+        `The approved field values are no longer valid: ${validation.error}`,
+      )
+    }
+
+    const approvedKeys = new Set(validation.values.map((field) => field.fieldKey))
+    const approvedMap = new Map(
+      validation.values.map((field) => [field.fieldKey, field.value]),
+    )
+    const requiredProposals = proposals.filter((proposal) => proposal.required)
+    const missingRequired = requiredProposals.filter(
+      (proposal) =>
+        proposal.type !== 'file' && !approvedKeys.has(proposal.fieldKey),
+    )
+    const uncheckedRequired = requiredProposals.filter(
+      (proposal) =>
+        proposal.type === 'checkbox' &&
+        approvedMap.get(proposal.fieldKey) !== true,
+    )
+    const requiredFileField = proposals.some(
+      (proposal) => proposal.required && proposal.type === 'file',
+    )
+    const hasFileField = proposals.some((proposal) => proposal.type === 'file')
+
+    const [preparationSnapshot, profileSnapshot] = await Promise.all([
+      db
+        .collection('applicationPreparations')
+        .doc(preparationDocId(userId, applicationId))
+        .get()
+        .catch(() => null),
+      db.collection('profiles').doc(userId).get().catch(() => null),
+    ])
+    const preparation = preparationSnapshot?.data() ?? {}
+    const profile = profileSnapshot?.data() ?? {}
+    const resumeUrl =
+      readString(application.resumeUrl) ||
+      readString(preparation.resumeUrl) ||
+      readString(profile.resumeUrl)
+
+    if (missingRequired.length > 0) {
+      throw new HttpsError(
+        'failed-precondition',
+        `Complete required fields before submitting: ${missingRequired
+          .slice(0, 5)
+          .map((proposal) => proposal.label)
+          .join(', ')}`,
+      )
+    }
+    if (uncheckedRequired.length > 0) {
+      throw new HttpsError(
+        'failed-precondition',
+        `Required checkboxes must be accepted: ${uncheckedRequired
+          .slice(0, 5)
+          .map((proposal) => proposal.label)
+          .join(', ')}`,
+      )
+    }
+    if (requiredFileField && !resumeUrl) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Attach an approved resume before submitting this application.',
+      )
+    }
+
+    const now = Timestamp.now()
+    const requestedAt = now.toDate().toISOString()
+    const sessionRef = db.collection('automationSessions').doc()
+    const expiresAt = Timestamp.fromMillis(now.toMillis() + SESSION_TTL_MS)
+    const existingSteps: AutomationStep[] = Array.isArray(run.steps)
+      ? (run.steps as AutomationStep[])
+      : []
+    const steps: AutomationStep[] = [
+      ...existingSteps,
+      { name: 'submit', status: 'pending' },
+    ]
+
+    await db.runTransaction(async (transaction) => {
+      const currentSnapshot = await transaction.get(runRef)
+      if (!currentSnapshot.exists) {
+        throw new HttpsError('not-found', 'Automation run not found.')
+      }
+      const current = currentSnapshot.data() ?? {}
+      if (current.userId !== userId || String(current.status) !== 'verified') {
+        throw new HttpsError(
+          'failed-precondition',
+          'This run is no longer eligible for submission.',
+        )
+      }
+      const currentSubmission = current.submission
+      if (
+        currentSubmission &&
+        typeof currentSubmission === 'object' &&
+        ['submitting', 'submitted'].includes(
+          String((currentSubmission as Record<string, unknown>).status),
+        )
+      ) {
+        throw new HttpsError(
+          'failed-precondition',
+          'This application has already been submitted or is being submitted.',
+        )
+      }
+      transaction.update(runRef, {
+        status: 'submitting',
+        currentStep: 'submit',
+        steps,
+        sessionId: sessionRef.id,
+        submission: stripUndefined({
+          status: 'submitting',
+          requestedAt,
+          ...(resumeUrl ? { resumeUrl } : {}),
+        }),
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+    })
+
+    const logger = new RunLogCollector(db, {
+      userId,
+      applicationId,
+      runId,
+      sessionId: sessionRef.id,
+      provider: providerId,
+    })
+    logger.info('submit', 'Application submission requested')
+    let handle: AutomationSessionHandle | null = null
+    let confirmedSubmission: AutomationSubmission | null = null
+    let recordedSubmission: AutomationSubmission | null = null
+    let submissionRecorded = false
+
+    const markManual = async (reason: string) => {
+      if (handle) {
+        await captureFailureArtifact({
+          provider,
+          handle,
+          userId,
+          applicationId,
+          runId,
+          sessionId: sessionRef.id,
+          kind: 'screenshot',
+          label: 'Submission manual action',
+          logger,
+        })
+        await provider.closeSession(handle).catch(() => undefined)
+        handle = null
+      }
+      await setStep(runRef, steps, 'submit', 'failed', 'Manual action required')
+      const submission: AutomationSubmission = stripUndefined({
+        status: 'manual-required',
+        requestedAt,
+        reason,
+        ...(resumeUrl ? { resumeUrl } : {}),
+      })
+      await runRef.update({
+        status: 'awaiting-manual-action',
+        submission,
+        manualActionReason: reason,
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+      await sessionRef.update({
+        status: 'ended',
+        endedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+      logger.warn('submit', 'Submission requires manual action', reason)
+      await flushRunLogs(logger, { userId, applicationId, runId })
+      return { runId, status: 'awaiting-manual-action', submission }
+    }
+
+    const markFailed = async (reason: string) => {
+      if (handle) {
+        await captureFailureArtifact({
+          provider,
+          handle,
+          userId,
+          applicationId,
+          runId,
+          sessionId: sessionRef.id,
+          kind: 'error',
+          label: 'Submission error',
+          logger,
+        })
+        await provider.closeSession(handle).catch(() => undefined)
+        handle = null
+      }
+      await setStep(runRef, steps, 'submit', 'failed', 'Submission failed')
+      const submission: AutomationSubmission = stripUndefined({
+        status: 'failed',
+        requestedAt,
+        error: reason,
+        ...(resumeUrl ? { resumeUrl } : {}),
+      })
+      await runRef.update({
+        status: 'failed',
+        submission,
+        error: reason,
+        manualActionReason: reason,
+        endedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+      await sessionRef.set(
+        {
+          userId,
+          applicationId,
+          provider: providerId,
+          status: 'failed',
+          failureReason: reason.slice(0, 500),
+          endedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      )
+      logger.error('submit', 'Submission failed', reason)
+      await flushRunLogs(logger, { userId, applicationId, runId })
+      return { runId, status: 'failed', submission }
+    }
+
+    try {
+      logger.info('open-session', 'Opening browser session', providerId)
+      await sessionRef.set({
+        userId,
+        applicationId,
+        provider: providerId,
+        status: 'active',
+        allowedDomains: [urlDecision.host],
+        startedAt: FieldValue.serverTimestamp(),
+        expiresAt,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+      logger.info('open-session', 'Browser session opened')
+      await setStep(runRef, steps, 'submit', 'running')
+      handle = await provider.createSession({
+        userId,
+        applicationId,
+        applicationUrl: urlDecision.url,
+        allowedDomains: [urlDecision.host],
+      })
+
+      logger.info('submit', 'Re-populating approved fields before submission')
+      const populationResults = await provider.populateApprovedFields(
+        handle,
+        {
+          userId,
+          applicationId,
+          applicationUrl: urlDecision.url,
+          allowedDomains: [urlDecision.host],
+        },
+        validation.values,
+        fields,
+      )
+      const populationFailure = populationResults.find(
+        (result) => result.status !== 'filled',
+      )
+      if (populationFailure) {
+        return await markManual(
+          `Field population did not complete: ${populationFailure.label}. ${populationFailure.reason ?? ''}`.trim(),
+        )
+      }
+
+      if (hasFileField && resumeUrl) {
+        logger.info('submit', 'Uploading the approved resume')
+        const resumeFile = await downloadApprovedResume(resumeUrl)
+        const uploadResults = await provider.uploadResume(handle, resumeFile)
+        const uploadFailure = uploadResults.find(
+          (result) =>
+            result.status === 'failed' || result.status === 'manual-required',
+        )
+        if (uploadFailure) {
+          return await markManual(
+            `Resume upload did not complete: ${uploadFailure.reason ?? uploadFailure.label}`,
+          )
+        }
+      }
+
+      logger.info('submit', 'Clicking the application Submit control')
+      const result = await provider.submitApplication(handle)
+      if (result.status === 'manual-required') {
+        return await markManual(
+          result.reason ?? 'Submission confirmation could not be verified.',
+        )
+      }
+      if (result.status === 'failed') {
+        return await markFailed(
+          result.reason ?? 'The Submit control could not be activated.',
+        )
+      }
+
+      const submittedAt = result.submittedAt ?? new Date().toISOString()
+      const submission: AutomationSubmission = stripUndefined({
+        status: 'submitted',
+        requestedAt,
+        submittedAt,
+        ...(result.confirmationUrl
+          ? { confirmationUrl: result.confirmationUrl }
+          : {}),
+        ...(result.confirmationText
+          ? { confirmationText: result.confirmationText }
+          : {}),
+        ...(resumeUrl ? { resumeUrl } : {}),
+      })
+      confirmedSubmission = submission
+
+      await provider.closeSession(handle).catch(() => undefined)
+      handle = null
+      logger.info('close-session', 'Browser session closed')
+      await setStep(runRef, steps, 'submit', 'completed')
+      const eventRef = db.collection('applicationEvents').doc()
+      await db.runTransaction(async (transaction) => {
+        const applicationCurrentSnapshot = await transaction.get(applicationRef)
+        if (!applicationCurrentSnapshot.exists) {
+          throw new Error('Application disappeared before submission was recorded.')
+        }
+        const applicationCurrent = applicationCurrentSnapshot.data() ?? {}
+        if (
+          applicationCurrent.userId !== userId ||
+          String(applicationCurrent.status) !== 'approved'
+        ) {
+          throw new Error(
+            'The application changed before submission could be recorded.',
+          )
+        }
+        transaction.update(applicationRef, {
+          status: 'submitted',
+          submittedAt: FieldValue.serverTimestamp(),
+          submittedManually: false,
+          updatedAt: FieldValue.serverTimestamp(),
+        })
+        transaction.set(eventRef, {
+          userId,
+          applicationId,
+          type: 'status-changed',
+          fromStatus: 'approved',
+          toStatus: 'submitted',
+          note: 'Submitted through browser automation',
+          createdAt: FieldValue.serverTimestamp(),
+        })
+        transaction.update(runRef, {
+          status: 'submitted',
+          submission,
+          manualActionReason: null,
+          endedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        })
+      })
+
+      recordedSubmission = submission
+      submissionRecorded = true
+      confirmedSubmission = null
+      logger.info('submit', 'Application submission confirmed', result.confirmationText)
+      await flushRunLogs(logger, { userId, applicationId, runId })
+      logInfo('automation.submission.completed', {
+        userId,
+        runId,
+        applicationId,
+        provider: providerId,
+      })
+      return { runId, status: 'submitted', submission }
+    } catch (error) {
+      if (submissionRecorded && recordedSubmission) {
+        if (handle) {
+          await provider.closeSession(handle).catch(() => undefined)
+          handle = null
+        }
+        await flushRunLogs(logger, { userId, applicationId, runId })
+        return { runId, status: 'submitted', submission: recordedSubmission }
+      }
+
+      if (confirmedSubmission) {
+        if (handle) {
+          await provider.closeSession(handle).catch(() => undefined)
+          handle = null
+        }
+        const reason =
+          'The browser confirmed submission, but the application record could not be updated. Verify the application and mark it submitted manually.'
+        const manualSubmission: AutomationSubmission = stripUndefined({
+          status: 'manual-required',
+          requestedAt,
+          ...(confirmedSubmission.submittedAt
+            ? { submittedAt: confirmedSubmission.submittedAt }
+            : {}),
+          ...(confirmedSubmission.confirmationUrl
+            ? { confirmationUrl: confirmedSubmission.confirmationUrl }
+            : {}),
+          ...(confirmedSubmission.confirmationText
+            ? { confirmationText: confirmedSubmission.confirmationText }
+            : {}),
+          ...(resumeUrl ? { resumeUrl } : {}),
+          reason,
+        })
+        await setStep(runRef, steps, 'submit', 'failed', 'Manual follow-up required')
+        await runRef.update({
+          status: 'awaiting-manual-action',
+          submission: manualSubmission,
+          manualActionReason: reason,
+          endedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        })
+        await sessionRef.set(
+          {
+            userId,
+            applicationId,
+            provider: providerId,
+            status: 'ended',
+            endedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        )
+        logger.warn('submit', 'Submission confirmed but not recorded', reason)
+        await flushRunLogs(logger, { userId, applicationId, runId })
+        return {
+          runId,
+          status: 'awaiting-manual-action',
+          submission: manualSubmission,
+        }
+      }
+
+      if (handle) {
+        await captureFailureArtifact({
+          provider,
+          handle,
+          userId,
+          applicationId,
+          runId,
+          sessionId: sessionRef.id,
+          kind: 'error',
+          label: 'Submission error',
+          logger,
+        })
+        await provider.closeSession(handle).catch(() => undefined)
+        handle = null
+      }
+      const reason =
+        error instanceof Error ? error.message.slice(0, 1000) : String(error)
+      await setStep(runRef, steps, 'submit', 'failed', 'Submission failed')
+      await runRef.update({
+        status: 'failed',
+        submission: stripUndefined({
+          status: 'failed',
+          requestedAt,
+          error: reason,
+          ...(resumeUrl ? { resumeUrl } : {}),
+        }),
+        error: reason,
+        manualActionReason: reason,
+        endedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+      await sessionRef.set(
+        {
+          userId,
+          applicationId,
+          provider: providerId,
+          status: 'failed',
+          failureReason: reason.slice(0, 500),
+          endedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      )
+      logger.error('submit', 'Submission failed', reason)
+      await flushRunLogs(logger, { userId, applicationId, runId })
+      await recordError('submitAutomationApplication', error, {
+        userId,
+        applicationId,
+        runId,
+      })
+      throw new HttpsError(
+        'internal',
+        'Application submission failed. Review the application manually.',
+      )
+    }
   },
 )
 

@@ -32,6 +32,7 @@ import type {
   AutomationRunStatus,
   AutomationStep,
   AutomationStepStatus,
+  AutomationSubmission,
   AutomationVerification,
   AutomationVerificationChecklist,
   FieldPopulationResult,
@@ -94,6 +95,29 @@ export async function verifyAutomationRun(
     runId,
     checklist,
     ...(notes?.trim() ? { notes: notes.trim() } : {}),
+  })
+  return response.data
+}
+
+export async function submitAutomationApplication(
+  runId: string,
+): Promise<{
+  runId: string
+  status: AutomationRunStatus
+  submission: AutomationSubmission
+}> {
+  const callable = httpsCallable<
+    { runId: string; authorize: boolean; confirmation: string },
+    {
+      runId: string
+      status: AutomationRunStatus
+      submission: AutomationSubmission
+    }
+  >(functions, 'submitAutomationApplication')
+  const response = await callable({
+    runId,
+    authorize: true,
+    confirmation: 'SUBMIT',
   })
   return response.data
 }
@@ -419,6 +443,39 @@ function toAutomationRunLog(id: string, data: DocumentData): AutomationRunLog {
   }
 }
 
+function submissionStatus(value: unknown): AutomationSubmission['status'] {
+  return value === 'submitting' ||
+    value === 'submitted' ||
+    value === 'manual-required' ||
+    value === 'failed'
+    ? value
+    : 'manual-required'
+}
+
+function submission(value: unknown): AutomationSubmission | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const record = value as Record<string, unknown>
+  if (typeof record.requestedAt !== 'string') return undefined
+  return {
+    status: submissionStatus(record.status),
+    requestedAt: record.requestedAt,
+    submittedAt:
+      typeof record.submittedAt === 'string' ? record.submittedAt : undefined,
+    confirmationUrl:
+      typeof record.confirmationUrl === 'string'
+        ? record.confirmationUrl
+        : undefined,
+    confirmationText:
+      typeof record.confirmationText === 'string'
+        ? record.confirmationText
+        : undefined,
+    error: typeof record.error === 'string' ? record.error : undefined,
+    reason: typeof record.reason === 'string' ? record.reason : undefined,
+    resumeUrl:
+      typeof record.resumeUrl === 'string' ? record.resumeUrl : undefined,
+  }
+}
+
 function verificationChecklist(
   value: unknown,
 ): AutomationVerificationChecklist | undefined {
@@ -477,6 +534,7 @@ function toAutomationRun(id: string, data: DocumentData): AutomationRun {
     fieldProposals: proposals(data.fieldProposals),
     population: population(data.population),
     verification: verification(data.verification),
+    submission: submission(data.submission),
     manualActionReason:
       typeof data.manualActionReason === 'string' ? data.manualActionReason : undefined,
     error: typeof data.error === 'string' ? data.error : undefined,
