@@ -40,6 +40,11 @@ service cloud.firestore {
       return isActiveAccount() && data.userId == request.auth.uid;
     }
 
+    function ownsApplication(applicationId) {
+      return isActiveAccount() &&
+        get(/databases/$(database)/documents/applications/$(applicationId)).data.userId == request.auth.uid;
+    }
+
     // The custom claim grants admin intent, while the role mirror lets us
     // revoke demoted admins immediately. Both must agree.
     function isAdmin() {
@@ -136,8 +141,13 @@ service cloud.firestore {
     // Interview records are owner-managed and admin-readable.
     match /interviews/{documentId} {
       allow read: if ownsUserField(resource.data) || isAdmin();
-      allow create: if ownsUserField(request.resource.data);
-      allow update, delete: if ownsUserField(resource.data);
+      allow create: if ownsUserField(request.resource.data) &&
+        ownsApplication(request.resource.data.applicationId);
+      allow update: if ownsUserField(resource.data) &&
+        ownsUserField(request.resource.data) &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.applicationId == resource.data.applicationId;
+      allow delete: if ownsUserField(resource.data);
     }
 
     // Application timeline entries are immutable: no edits. Owners may delete

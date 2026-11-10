@@ -352,6 +352,14 @@ describe('Firestore security rules', () => {
         uid: admin,
         role: 'admin',
       })
+      await setDoc(doc(firestore, 'applications', 'app-1'), {
+        userId: owner,
+        status: 'submitted',
+      })
+      await setDoc(doc(firestore, 'applications', 'app-other'), {
+        userId: other,
+        status: 'submitted',
+      })
       await setDoc(doc(firestore, 'interviews', 'interview-1'), {
         userId: owner,
         applicationId: 'app-1',
@@ -369,6 +377,16 @@ describe('Firestore security rules', () => {
         status: 'completed',
       }),
     )
+    await assertFails(
+      updateDoc(doc(dbOwner, 'interviews', 'interview-1'), {
+        userId: other,
+      }),
+    )
+    await assertFails(
+      updateDoc(doc(dbOwner, 'interviews', 'interview-1'), {
+        applicationId: 'app-other',
+      }),
+    )
     await assertSucceeds(
       setDoc(doc(dbOwner, 'interviews', 'interview-2'), {
         userId: owner,
@@ -379,6 +397,12 @@ describe('Firestore security rules', () => {
     )
     await assertFails(
       setDoc(doc(dbOwner, 'interviews', 'interview-3'), {
+        userId: owner,
+        applicationId: 'app-other',
+      }),
+    )
+    await assertFails(
+      setDoc(doc(dbOwner, 'interviews', 'interview-4'), {
         userId: other,
         applicationId: 'app-1',
       }),
