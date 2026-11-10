@@ -1,6 +1,6 @@
 import type { AtsApplicationField } from '../adapters/ats/types.js'
 
-export type AutomationProviderId = 'mock' | 'playwright'
+export type AutomationProviderId = 'mock' | 'playwright' | 'cloud-run'
 export type AutomationCapability = 'inspect' | 'fill' | 'screenshot' | 'submit'
 export type AutomationSessionStatus = 'active' | 'ended' | 'expired' | 'failed'
 export type AutomationRunStatus =

@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase-admin/app'
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import { recordError } from '../utils/errorLog.js'
+import { assertAutomationBudgetAvailable } from '../utils/budgetControl.js'
 import { logInfo } from '../utils/logger.js'
 import { saveAutomationScreenshot } from './artifacts.js'
 import { isAllowedHost, validateAutomationUrl } from './domainPolicy.js'
@@ -253,6 +254,7 @@ export const startAutomationInspection = onCall(
     if (!userId) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
+    await assertAutomationBudgetAvailable()
     const authEmail =
       typeof request.auth?.token?.email === 'string'
         ? request.auth.token.email.trim()
@@ -559,6 +561,7 @@ export const populateAutomationFields = onCall(
     if (!userId) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
+    await assertAutomationBudgetAvailable()
     const data = (request.data ?? {}) as PopulateFieldsRequest
     const runId = validId(data.runId)
     const provider = getAutomationProvider()
@@ -1007,6 +1010,7 @@ export const submitAutomationApplication = onCall(
     if (!userId) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
+    await assertAutomationBudgetAvailable()
 
     const data = (request.data ?? {}) as SubmitAutomationApplicationRequest
     const runId = validId(data.runId)

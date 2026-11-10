@@ -9,6 +9,7 @@ import { toHttpsError } from '../utils/errors.js'
 import { recordAiRun, currentProvider } from '../utils/aiUsage.js'
 import { recordActivity } from '../utils/activity.js'
 import { recordError } from '../utils/errorLog.js'
+import { assertAiBudgetAvailable } from '../utils/budgetControl.js'
 import { logInfo } from '../utils/logger.js'
 
 initializeApp()
@@ -29,6 +30,7 @@ export const analyzeJob = onCall(
     if (!uid) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
+    await assertAiBudgetAvailable()
 
     try {
       const job = await getJob(data.jobId)
@@ -74,6 +76,7 @@ export const researchOpportunity = onCall(
     if (!uid) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
+    await assertAiBudgetAvailable()
 
     try {
       const job = await getJob(data.jobId)
@@ -160,6 +163,7 @@ export const qualifyNewJobs = onCall(
     if (!uid) {
       throw new HttpsError('unauthenticated', 'Sign in required.')
     }
+    await assertAiBudgetAvailable()
     const requested = Number((request.data as { limit?: number } | undefined)?.limit ?? 5)
     const limit = Math.min(Math.max(Number.isFinite(requested) ? requested : 5, 1), 25)
     try {

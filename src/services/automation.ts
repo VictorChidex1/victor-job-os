@@ -434,7 +434,12 @@ function toAutomationRunLog(id: string, data: DocumentData): AutomationRunLog {
       typeof data.applicationId === 'string' ? data.applicationId : '',
     runId: typeof data.runId === 'string' ? data.runId : id,
     sessionId: typeof data.sessionId === 'string' ? data.sessionId : undefined,
-    provider: data.provider === 'playwright' ? 'playwright' : 'mock',
+    provider:
+      data.provider === 'playwright'
+        ? 'playwright'
+        : data.provider === 'cloud-run'
+          ? 'cloud-run'
+          : 'mock',
     entries: logEntries(data.entries),
     truncated: data.truncated === true,
     expiresAt: data.expiresAt as Timestamp | undefined,
@@ -526,7 +531,12 @@ function toAutomationRun(id: string, data: DocumentData): AutomationRun {
       typeof data.applicationTitle === 'string' ? data.applicationTitle : '',
     companyName: typeof data.companyName === 'string' ? data.companyName : '',
     sessionId: typeof data.sessionId === 'string' ? data.sessionId : '',
-    provider: data.provider === 'playwright' ? 'playwright' : 'mock',
+    provider:
+      data.provider === 'playwright'
+        ? 'playwright'
+        : data.provider === 'cloud-run'
+          ? 'cloud-run'
+          : 'mock',
     status: (data.status as AutomationRunStatus) ?? 'queued',
     currentStep: typeof data.currentStep === 'string' ? data.currentStep : 'validate',
     steps: steps(data.steps),

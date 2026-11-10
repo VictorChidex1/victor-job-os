@@ -344,6 +344,37 @@ describe('Firestore security rules', () => {
     await assertFails(getDoc(doc(dbOther, 'automationArtifacts', 'run-1')))
   })
 
+  it('keeps system budget control admin-readable and client-write-denied', async () => {
+    const admin = 'user-admin-budget'
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore()
+      await setDoc(doc(firestore, 'users', admin), {
+        uid: admin,
+        role: 'admin',
+      })
+      await setDoc(doc(firestore, 'systemControl', 'budget'), {
+        aiPaused: true,
+        automationPaused: true,
+      })
+    })
+
+    const dbOwner = testEnv.authenticatedContext(owner).firestore()
+    await assertFails(getDoc(doc(dbOwner, 'systemControl', 'budget')))
+    await assertFails(
+      setDoc(doc(dbOwner, 'systemControl', 'budget'), {
+        aiPaused: false,
+      }),
+    )
+
+    const dbAdmin = testEnv.authenticatedContext(admin, { admin: true }).firestore()
+    await assertSucceeds(getDoc(doc(dbAdmin, 'systemControl', 'budget')))
+    await assertFails(
+      setDoc(doc(dbAdmin, 'systemControl', 'budget'), {
+        aiPaused: false,
+      }),
+    )
+  })
+
   it('keeps interviews owner-managed and admin-readable', async () => {
     const admin = 'user-admin-interviews'
     await testEnv.withSecurityRulesDisabled(async (context) => {

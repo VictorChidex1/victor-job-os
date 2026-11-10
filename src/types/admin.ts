@@ -11,6 +11,19 @@ export interface AdminUserSummary {
   createdAt?: Timestamp
 }
 
+export interface BudgetControlState {
+  aiPaused: boolean
+  automationPaused: boolean
+  reason?: string
+  costAmount?: number
+  budgetAmount?: number
+  currencyCode?: string
+  pausedAt?: Timestamp
+  pausedBy?: string
+  resumedAt?: Timestamp
+  resumedBy?: string
+}
+
 export interface AdminUserManagementState {
   uid: string
   role: UserRole

@@ -33,6 +33,8 @@
     "deploy:storage": "firebase deploy --only storage --project victor-job-os --non-interactive",
     "deploy:hosting": "firebase deploy --only hosting --project victor-job-os --non-interactive",
     "deploy:functions": "firebase deploy --only functions --project victor-job-os --non-interactive",
+    "worker:build": "npm --prefix browser-worker run build",
+    "worker:deploy": "node scripts/deploy-browser-worker.mjs",
     "retention:automation": "node scripts/apply-automation-retention.mjs",
     "deploy:admin": "npm run build && node scripts/deploy-firestore-rules.mjs --confirm --yes && firebase deploy --only firestore:indexes --project victor-job-os --non-interactive && firebase deploy --only storage --project victor-job-os --non-interactive && firebase deploy --only hosting --project victor-job-os --non-interactive",
     "verify:admin": "node scripts/verify-admin-deployment.mjs",

@@ -1,7 +1,7 @@
 import type { Timestamp } from 'firebase/firestore'
 import type { AtsApplicationField } from './jobs'
 
-export type AutomationProviderId = 'mock' | 'playwright'
+export type AutomationProviderId = 'mock' | 'playwright' | 'cloud-run'
 export type AutomationSessionStatus = 'active' | 'ended' | 'expired' | 'failed'
 export type AutomationRunStatus =
   | 'queued'

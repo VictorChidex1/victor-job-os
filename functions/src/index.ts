@@ -15,6 +15,8 @@ import {
   adminSetUserDisabled,
   adminDeleteUser,
 } from './admin/userManagement.js'
+import { adminSetBudgetPause } from './admin/budgetControl.js'
+import { onBillingBudgetAlert } from './billing/budgetAlerts.js'
 import {
   startAutomationInspection,
   populateAutomationFields,
@@ -39,6 +41,8 @@ export {
   adminSetUserRole,
   adminSetUserDisabled,
   adminDeleteUser,
+  adminSetBudgetPause,
+  onBillingBudgetAlert,
   startAutomationInspection,
   populateAutomationFields,
   verifyAutomationRun,

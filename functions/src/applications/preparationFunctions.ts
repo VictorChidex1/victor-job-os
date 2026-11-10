@@ -16,6 +16,7 @@ import { recordActivity } from '../utils/activity.js'
 import { currentProvider, recordAiRun } from '../utils/aiUsage.js'
 import { toHttpsError } from '../utils/errors.js'
 import { recordError } from '../utils/errorLog.js'
+import { assertAiBudgetAvailable } from '../utils/budgetControl.js'
 import { stripHtml } from '../utils/html.js'
 
 initializeApp()
@@ -260,6 +261,7 @@ export const generateCoverLetter = onCall(
     if (!applicationId) {
       throw new HttpsError('invalid-argument', 'applicationId is required.')
     }
+    await assertAiBudgetAvailable()
 
     try {
       const context = await loadContext(uid, applicationId)
@@ -345,6 +347,7 @@ export const generateApplicationAnswers = onCall(
     if (!applicationId) {
       throw new HttpsError('invalid-argument', 'applicationId is required.')
     }
+    await assertAiBudgetAvailable()
 
     const questions = parseQuestions(data.questions)
     if (questions.length === 0) {

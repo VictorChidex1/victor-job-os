@@ -34,6 +34,8 @@ export const AUDIT_ACTIONS = [
   'user-delete-failed',
   'admin-provisioned',
   'owner-provisioned',
+  'budget-paused',
+  'budget-resumed',
 ] as const
 
 export interface AdminAuditLogQuery {

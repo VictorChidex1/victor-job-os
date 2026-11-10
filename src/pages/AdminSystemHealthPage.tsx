@@ -30,6 +30,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { AdminBudgetControlCard } from '@/components/admin/AdminBudgetControlCard'
 import { AdminSystemTabs } from '@/components/admin/AdminSystemTabs'
 import { AdminAiRunDrawer } from '@/components/admin/AdminAiRunDrawer'
 import { AdminErrorDrawer } from '@/components/admin/AdminErrorDrawer'
@@ -139,6 +140,8 @@ export function AdminSystemHealthPage() {
 
       {/* Sub-Navigation Tabs */}
       <AdminSystemTabs />
+
+      <AdminBudgetControlCard />
 
       {loading ? (
         <LoadingState label="Polling cloud telemetry & infrastructure health…" rows={6} />

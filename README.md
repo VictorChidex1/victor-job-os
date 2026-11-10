@@ -12,6 +12,7 @@ The system is built to optimize for qualified opportunities and useful actions, 
 - **Motion** (Framer Motion's current form)
 - **React Router v7**
 - **Firebase** — Authentication, Cloud Firestore, Cloud Functions, Hosting
+- **Cloud Run** — production Playwright browser worker
 
 ## Getting Started
 
@@ -102,6 +103,8 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 | `npm run deploy:storage` | Deploy Storage rules |
 | `npm run deploy:hosting` | Deploy the frontend build |
 | `npm run deploy:functions` | Deploy Cloud Functions (requires Blaze) |
+| `npm run worker:build` | Build the Cloud Run browser worker |
+| `npm run worker:deploy` | Deploy the browser worker to Cloud Run |
 | `npm run deploy:admin` | Build and deploy rules, indexes, storage rules, and hosting |
 | `npm run retention:automation` | Apply Firestore TTL and Storage lifecycle retention (requires Blaze) |
 | `npm run verify:admin` | Run read-only production admin verification |
@@ -160,15 +163,21 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 
 ### Current deployment state
 
-- Production hosting, Firestore rules, and indexes were deployed during the admin console rollout.
-- Storage rules and automation retention policies still need to be applied to production.
-- Owner provisioning is complete for production and the emulator.
-- Cloud Functions — including AI, automation, and admin Auth operations — remain emulator-only until the Firebase project is upgraded to Blaze.
-- The latest automation-related rules/indexes, browser automation assets, and newest frontend build still need a final production deployment.
+- Production hosting, Firestore rules, and indexes are deployed.
+- All 21 Cloud Functions are deployed: 19 operational functions plus `adminSetBudgetPause` and `onBillingBudgetAlert`.
+- The Cloud Run Playwright browser worker is deployed with `min-instances=0`, `max-instances=1`, and concurrency `1`.
+- Owner provisioning and admin deployment verification pass.
+- Firebase Storage is initialized; Storage rules are deployed.
+- Firestore TTL for automation artifacts and logs is active, and the Storage lifecycle rule removes screenshots after one day.
+- A $2 Cloud Billing budget with 50%, 80%, and 100% alerts is connected to Pub/Sub.
+- The budget alert and admin control pause AI and browser automation through `systemControl/budget` at 80% of the $2 budget, leaving headroom for delayed billing data.
 
 ### Next
 
-- V2 item 69: V2 deployment.
+- V2 item 69 — deployment validation:
+  - Cloud Functions, Cloud Run browser worker, hosting, Firestore rules, Storage rules, and indexes are deployed.
+  - Firestore TTL and Storage lifecycle retention are active.
+  - Run final production smoke tests, including a controlled browser-worker submission and a budget kill-switch test.
 
 ## What’s Built
 
@@ -249,6 +258,7 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - Admin audit trail for sensitive actions.
 - AI usage and error monitoring.
 - System health and telemetry.
+- Budget soft kill switch with Pub/Sub alerts, AI/automation pause, and admin resume control.
 - Owner provisioning and deployment verification scripts.
 
 ## Project Structure
@@ -268,7 +278,11 @@ src/
 functions/
   src/          Cloud Functions for discovery, AI, outreach, applications, automation, and admin
 
-scripts/        Backfills, deployment, provisioning, and verification scripts
+browser-worker/
+  src/          Stateless Playwright browser worker for Cloud Run
+  Dockerfile    Chromium + Node 22 production image
+
+scripts/        Backfills, deployment, worker deployment, provisioning, and verification scripts
 
 tests/
   unit/         Pure domain, validation, pagination, and prompt tests
@@ -290,7 +304,7 @@ npm run test                 # typecheck + unit tests
 npm run test:integration     # Firestore/Auth emulator integration tests
 ```
 
-Current coverage includes 119 unit tests and 56 integration tests across normalization, deduplication, cursor pagination, sliding-window pagination, application lifecycle, preparation prompts, resume variants, ATS metadata, automation policy, field proposals, approved-field validation, manual verification, submission authorization and confirmation detection, interview tracking, execution-log merging, Firestore write serialization, Storage rules, search tokens, discovery locks, and Firestore rules.
+Current coverage includes 119 unit tests and 57 integration tests across normalization, deduplication, cursor pagination, sliding-window pagination, application lifecycle, preparation prompts, resume variants, ATS metadata, automation policy, field proposals, approved-field validation, manual verification, submission authorization and confirmation detection, interview tracking, budget control, execution-log merging, Firestore write serialization, Storage rules, search tokens, discovery locks, and Firestore rules.
 
 ## Deployment
 
@@ -334,7 +348,33 @@ Retention configuration requires the Firebase project to have billing enabled (B
 npm run deploy:functions
 ```
 
-Cloud Functions deployment requires the Firebase project to be on the Blaze plan. Until then, AI, automation, and admin Auth operations remain emulator-only.
+Cloud Functions deployment requires the Firebase project to be on the Blaze plan.
+
+### Browser worker
+
+```bash
+npm run worker:build
+npm run worker:deploy
+```
+
+The worker runs Playwright Chromium on Cloud Run with:
+
+```text
+min-instances=0
+max-instances=1
+concurrency=1
+memory=2 GiB
+CPU=1
+```
+
+Set these project-specific Functions variables after deployment:
+
+```env
+AUTOMATION_PROVIDER=cloud-run
+BROWSER_WORKER_URL=https://...
+```
+
+Keep those in `functions/.env.victor-job-os`, not in the shared local `.env`.
 
 All production deployment should be preceded by:
 

@@ -9,6 +9,7 @@ import { toHttpsError } from '../utils/errors.js'
 import { recordActivity } from '../utils/activity.js'
 import { recordAiRun, currentProvider } from '../utils/aiUsage.js'
 import { recordError } from '../utils/errorLog.js'
+import { assertAiBudgetAvailable } from '../utils/budgetControl.js'
 import { logInfo, logWarn, withTiming } from '../utils/logger.js'
 import { ACTION_STATUS, isAllowedTransition, type OutreachAction } from './stateMachine.js'
 
@@ -81,6 +82,7 @@ export const generatePitch = onCall(
     if (!data.jobId) {
       throw new HttpsError('invalid-argument', 'jobId is required.')
     }
+    await assertAiBudgetAvailable()
 
     try {
     const job = await getJob(data.jobId)
