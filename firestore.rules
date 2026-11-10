@@ -133,6 +133,13 @@ service cloud.firestore {
       allow update: if ownsUserField(resource.data) && ownsUserField(request.resource.data);
     }
 
+    // Interview records are owner-managed and admin-readable.
+    match /interviews/{documentId} {
+      allow read: if ownsUserField(resource.data) || isAdmin();
+      allow create: if ownsUserField(request.resource.data);
+      allow update, delete: if ownsUserField(resource.data);
+    }
+
     // Application timeline entries are immutable: no edits. Owners may delete
     // them only as part of deleting the parent application.
     match /applicationEvents/{documentId} {

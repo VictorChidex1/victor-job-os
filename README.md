@@ -118,7 +118,7 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - **Phase 6 (Outreach):** Cold-email prompt architecture, pitch generation, outreach editor, approval workflow, pipeline, manual sending, reply tracking, and follow-up queue.
 - **Phase 7 (V1 Hardening):** Structured logging, error monitoring, retry boundaries, AI usage tracking, duplicate protections, discovery locks, and unit/integration security tests.
 
-### V2 — items 56–67 complete
+### V2 — items 56–68 complete
 
 - **56 — Application entity:** One application per opportunity, validated lifecycle states, append-only timeline, and application detail view.
 - **57 — Application pipeline:** Board and list views, stage filtering, search, and combined closed-stage handling.
@@ -132,12 +132,15 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - **65 — Screenshot/error capture:** Failure and manual-action screenshots are captured as WebP, capped at 300 KB, stored privately in Firebase Storage, and exposed through a lazy-loaded artifact gallery. Artifact metadata expires after 24 hours.
 - **66 — Manual verification pauses:** Population runs pause in `awaiting-verification` or `awaiting-manual-action`. The user opens the real application, completes a four-item verification checklist, and records the result. Verified runs become `verified` and are gated for submission.
 - **67 — Application submission workflow:** Verified runs become eligible for automated submission only when the application is Approved, required fields are complete, an approved resume is available, and the final typed `SUBMIT` authorization is provided. Successful submissions update the application and timeline; ambiguous outcomes require manual completion rather than retrying.
+- **68 — Interview tracking:** Owner-managed interview scheduling and history with types, statuses, timezone-aware dates, interviewers, meeting links, preparation/outcome notes, optional application-to-Interviewing transition, dashboard upcoming interviews, and read-only cross-user admin monitoring with a dedicated `/admin/interviews` page.
 
 ### Admin console — AC1–AC9 complete
 
 - Admin shell, overview, and user directory.
 - Per-user detail and data inspection.
-- Cross-user opportunities, applications, outreach, companies, and resume variant browsers.
+- Cross-user opportunities, applications, interviews, outreach, companies, and resume variant browsers.
+- Dedicated `/admin/interviews` monitoring with read-only filters, metrics, pagination, and interview detail.
+- Read-only interview history on admin application detail pages.
 - System health, AI usage, and error monitoring.
 - Secure user management: role changes, disable/enable, and last-admin protection.
 - Admin audit log with destructive-action safeguards.
@@ -165,7 +168,7 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 
 ### Next
 
-- V2 items 68–69: interview tracking and V2 deployment.
+- V2 item 69: V2 deployment.
 
 ## What’s Built
 
@@ -209,6 +212,9 @@ Backfill commands are dry runs by default. Apply them with `-- --apply --confirm
 - ATS metadata inspection.
 - Application timeline and status history.
 - Gated browser submission after manual verification, application approval, required-field checks, resume upload, and typed `SUBMIT` authorization.
+- Interview scheduling, history, interviewers, meeting links, notes, and outcome tracking.
+- Optional automatic transition from Submitted/Assessment to Interviewing when an interview is scheduled.
+- Dashboard upcoming-interview visibility.
 
 ### Resume variants
 
@@ -284,7 +290,7 @@ npm run test                 # typecheck + unit tests
 npm run test:integration     # Firestore/Auth emulator integration tests
 ```
 
-Current coverage includes 115 unit tests and 55 integration tests across normalization, deduplication, cursor pagination, sliding-window pagination, application lifecycle, preparation prompts, resume variants, ATS metadata, automation policy, field proposals, approved-field validation, manual verification, submission authorization and confirmation detection, execution-log merging, Firestore write serialization, Storage rules, search tokens, discovery locks, and Firestore rules.
+Current coverage includes 119 unit tests and 56 integration tests across normalization, deduplication, cursor pagination, sliding-window pagination, application lifecycle, preparation prompts, resume variants, ATS metadata, automation policy, field proposals, approved-field validation, manual verification, submission authorization and confirmation detection, interview tracking, execution-log merging, Firestore write serialization, Storage rules, search tokens, discovery locks, and Firestore rules.
 
 ## Deployment
 

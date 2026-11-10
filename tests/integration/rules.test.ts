@@ -344,6 +344,65 @@ describe('Firestore security rules', () => {
     await assertFails(getDoc(doc(dbOther, 'automationArtifacts', 'run-1')))
   })
 
+  it('keeps interviews owner-managed and admin-readable', async () => {
+    const admin = 'user-admin-interviews'
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const firestore = context.firestore()
+      await setDoc(doc(firestore, 'users', admin), {
+        uid: admin,
+        role: 'admin',
+      })
+      await setDoc(doc(firestore, 'interviews', 'interview-1'), {
+        userId: owner,
+        applicationId: 'app-1',
+        companyName: 'Acme',
+        jobTitle: 'Engineer',
+        status: 'scheduled',
+        scheduledAt: new Date(),
+      })
+    })
+
+    const dbOwner = testEnv.authenticatedContext(owner).firestore()
+    await assertSucceeds(getDoc(doc(dbOwner, 'interviews', 'interview-1')))
+    await assertSucceeds(
+      updateDoc(doc(dbOwner, 'interviews', 'interview-1'), {
+        status: 'completed',
+      }),
+    )
+    await assertSucceeds(
+      setDoc(doc(dbOwner, 'interviews', 'interview-2'), {
+        userId: owner,
+        applicationId: 'app-1',
+        companyName: 'Acme',
+        jobTitle: 'Engineer',
+      }),
+    )
+    await assertFails(
+      setDoc(doc(dbOwner, 'interviews', 'interview-3'), {
+        userId: other,
+        applicationId: 'app-1',
+      }),
+    )
+
+    const dbOther = testEnv.authenticatedContext(other).firestore()
+    await assertFails(getDoc(doc(dbOther, 'interviews', 'interview-1')))
+    await assertFails(
+      updateDoc(doc(dbOther, 'interviews', 'interview-1'), {
+        status: 'cancelled',
+      }),
+    )
+
+    const dbAdmin = testEnv
+      .authenticatedContext(admin, { admin: true })
+      .firestore()
+    await assertSucceeds(getDoc(doc(dbAdmin, 'interviews', 'interview-1')))
+    await assertFails(
+      updateDoc(doc(dbAdmin, 'interviews', 'interview-1'), {
+        status: 'cancelled',
+      }),
+    )
+  })
+
   it('keeps automation screenshots owner-readable and client-write-denied', async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await context

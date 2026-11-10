@@ -3,6 +3,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { RunDiscoveryButton } from '@/components/dashboard/RunDiscoveryButton'
 import { QualifyNewButton } from '@/components/dashboard/QualifyNewButton'
 import { RecentOpportunities } from '@/components/dashboard/RecentOpportunities'
+import { UpcomingInterviews } from '@/components/dashboard/UpcomingInterviews'
 import { useJobsPage } from '@/hooks/useJobsPage'
 import { useJobCounts } from '@/hooks/useJobCounts'
 import { useApplications } from '@/hooks/useApplications'
@@ -211,6 +212,8 @@ export function DashboardPage() {
           <h2 className="px-1 text-sm font-bold text-foreground">Applications</h2>
           <MetricGrid metrics={applicationMetrics} />
         </div>
+
+        <UpcomingInterviews />
 
         {/* Priority & Queue Grid */}
         <div className="grid gap-6 lg:grid-cols-2">

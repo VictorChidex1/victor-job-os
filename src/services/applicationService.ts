@@ -76,6 +76,7 @@ export function createApplicationService(firestore: Firestore): ApplicationServi
   const applications = collection(firestore, collections.applications)
   const events = collection(firestore, collections.applicationEvents)
   const preparations = collection(firestore, collections.applicationPreparations)
+  const interviews = collection(firestore, collections.interviews)
 
   async function get(id: string): Promise<Application | null> {
     const snapshot = await getDoc(doc(applications, id))
@@ -274,20 +275,32 @@ export function createApplicationService(firestore: Firestore): ApplicationServi
   }
 
   async function remove(uid: string, id: string): Promise<void> {
-    const eventSnapshot = await getDocs(
-      query(
-        events,
-        where('userId', '==', uid),
-        where('applicationId', '==', id),
-        orderBy('createdAt', 'desc'),
+    const [eventSnapshot, interviewSnapshot] = await Promise.all([
+      getDocs(
+        query(
+          events,
+          where('userId', '==', uid),
+          where('applicationId', '==', id),
+          orderBy('createdAt', 'desc'),
+        ),
       ),
-    )
+      getDocs(
+        query(
+          interviews,
+          where('userId', '==', uid),
+          where('applicationId', '==', id),
+        ),
+      ),
+    ])
 
     const batch = writeBatch(firestore)
     batch.delete(doc(applications, id))
     batch.delete(doc(preparations, preparationDocId(uid, id)))
     for (const event of eventSnapshot.docs) {
       batch.delete(event.ref)
+    }
+    for (const interview of interviewSnapshot.docs) {
+      batch.delete(interview.ref)
     }
     await batch.commit()
   }

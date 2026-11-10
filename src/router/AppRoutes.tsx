@@ -52,6 +52,12 @@ export const AdminApplicationsPage = lazy(() =>
   })),
 )
 
+export const AdminInterviewsPage = lazy(() =>
+  import('@/pages/AdminInterviewsPage').then((module) => ({
+    default: module.AdminInterviewsPage,
+  })),
+)
+
 export const AdminApplicationDetailPage = lazy(() =>
   import('@/pages/AdminApplicationDetailPage').then((module) => ({
     default: module.AdminApplicationDetailPage,
@@ -310,6 +316,14 @@ export function AdminApplicationDetailRoute() {
   return (
     <Suspense fallback={<LoadingState rows={5} />}>
       <AdminApplicationDetailPage />
+    </Suspense>
+  )
+}
+
+export function AdminInterviewsRoute() {
+  return (
+    <Suspense fallback={<LoadingState rows={5} />}>
+      <AdminInterviewsPage />
     </Suspense>
   )
 }

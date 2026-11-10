@@ -111,6 +111,7 @@ export const DOC_SECTIONS: DocsSection[] = [
               'Follow-up tracking',
               'Application pipeline and timeline',
               'Application preparation workspace',
+              'Interview tracking and upcoming interviews',
               'Resume variant library',
               'Profile and project evidence',
             ].map((item) => (
@@ -760,6 +761,11 @@ Rules:
               question: 'Does the system apply for me?',
               answer:
                 'Not silently. The system can inspect the form, populate approved fields, and submit only when the application is Approved, manual verification is complete, required fields and resume are ready, and you type SUBMIT. If submission confirmation cannot be verified, it stops and asks you to finish manually.',
+            },
+            {
+              question: 'How do I track interviews?',
+              answer:
+                'Open an application and use the Interviews card. Schedule the date and time, type, duration, timezone, interviewers, meeting link, and notes. When scheduling, you can optionally move the application to Interviewing. Upcoming interviews also appear on the dashboard, and admins can monitor all interviews read-only at /admin/interviews.',
             },
             {
               question: 'Why can I not jump straight to Offer?',

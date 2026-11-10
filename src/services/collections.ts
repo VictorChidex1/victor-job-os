@@ -12,6 +12,7 @@ export const collections = {
   applications: 'applications',
   applicationEvents: 'applicationEvents',
   applicationPreparations: 'applicationPreparations',
+  interviews: 'interviews',
   contacts: 'contacts',
   followUps: 'followUps',
   activityLogs: 'activityLogs',
